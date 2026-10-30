@@ -221,18 +221,16 @@
         <div id="meta-inputs-grid" class="grid grid-cols-1 md:grid-cols-4 gap-3.5">
           <!-- 1. الفرع / المعرض -->
           <div class="space-y-1.5 md:col-span-2">
-            <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
+              <button type="button" onclick="openManageListsModal('branches')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة الفروع المحفوظة">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span>إدارة الفروع ⚙️</span>
+              </button>
+            </div>
             <div class="flex gap-2">
               <select id="select-branch" onchange="handleBranchSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
-                <option value="فرع العليا العام - الرياض">فرع العليا العام - الرياض</option>
-                <option value="فرع رد سي مول - جدة">فرع رد سي مول - جدة</option>
-                <option value="فرع النخيل مول - الرياض">فرع النخيل مول - الرياض</option>
-                <option value="فرع الراشد مول - الخبر">فرع الراشد مول - الخبر</option>
-                <option value="فرع مكة مول - مكة المكرمة">فرع مكة مول - مكة المكرمة</option>
-                <option value="فرع غرناطة سنتر - الرياض">فرع غرناطة سنتر - الرياض</option>
-                <option value="فرع بانوراما مول - الرياض">فرع بانوراما مول - الرياض</option>
-                <option value="فرع الظهران مول - الخبر">فرع الظهران مول - الخبر</option>
-                <option value="__custom__">+ إضافة فرع مخصص آخر...</option>
+                <!-- يُملأ ديناميكياً من LocalStorage -->
               </select>
             </div>
             <div id="custom-branch-wrapper" class="hidden mt-2">
@@ -241,9 +239,22 @@
           </div>
 
           <!-- 2. أخصائي العرض المرئي -->
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
-            <input type="text" id="input-auditor" value="أحمد المهندس" placeholder="اسم مسؤول التقييم" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
+          <div class="space-y-1.5 md:col-span-1">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
+              <button type="button" onclick="openManageListsModal('specialists')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة أخصائيي الـ VM">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                <span>إدارة الأخصائيين ⚙️</span>
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <select id="select-specialist" onchange="handleSpecialistSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
+                <!-- يُملأ ديناميكياً من LocalStorage -->
+              </select>
+            </div>
+            <div id="custom-specialist-wrapper" class="hidden mt-2">
+              <input type="text" id="input-custom-specialist" placeholder="اكتب اسم الأخصائي..." class="w-full bg-corp-950 border border-gold-500/70 rounded-xl px-3 py-2 text-xs md:text-sm text-white focus:ring-1 focus:ring-gold-500 outline-none">
+            </div>
           </div>
 
           <!-- 3. رقم الأسبوع وتاريخ الزيارة -->
@@ -776,6 +787,90 @@
     </div>
   </div>
 
+  <!-- ==================== نافذة إدارة القوائم (الفروع والأخصائيين) ==================== -->
+  <div id="manage-lists-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- الرأس -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-400 flex items-center justify-center">
+            <i data-lucide="sliders" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">إدارة القوائم المحفوظة</h3>
+            <p class="text-[11px] text-slate-400">إضافة وحذف الفروع وأخصائيي الـ VM مع الحفظ التلقائي</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeManageListsModal()" class="text-slate-400 hover:text-white p-1 rounded-full">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- ألسنة التبويب داخل النافذة -->
+      <div class="grid grid-cols-2 border-b border-corp-800 bg-corp-950/60 p-1.5 gap-1.5">
+        <button type="button" id="manage-tab-btn-branches" onclick="switchManageTab('branches')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow">
+          <i data-lucide="store" class="w-3.5 h-3.5"></i>
+          <span>قائمة الفروع</span>
+        </button>
+        <button type="button" id="manage-tab-btn-specialists" onclick="switchManageTab('specialists')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+          <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+          <span>أخصائيو الـ VM</span>
+        </button>
+      </div>
+
+      <!-- محتوى التبويبات -->
+      <div class="p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- قسم الفروع -->
+        <div id="manage-pane-branches" class="space-y-3">
+          <form onsubmit="handleAddNewBranch(event)" class="flex gap-2">
+            <input type="text" id="new-branch-input" placeholder="اسم الفرع أو المعرض الجديد..." class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
+            <button type="submit" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>إضافة فرع</span>
+            </button>
+          </form>
+
+          <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
+            <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span>الفروع المسجلة</span>
+              <span id="branches-count-badge" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+            </div>
+            <div id="branches-list-container" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
+              <!-- يُملأ ديناميكياً -->
+            </div>
+          </div>
+        </div>
+
+        <!-- قسم الأخصائيين -->
+        <div id="manage-pane-specialists" class="space-y-3 hidden">
+          <form onsubmit="handleAddNewSpecialist(event)" class="flex gap-2">
+            <input type="text" id="new-specialist-input" placeholder="اسم أخصائي الـ VM الجديد..." class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
+            <button type="submit" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>إضافة أخصائي</span>
+            </button>
+          </form>
+
+          <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
+            <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span>الأخصائيون المعتمدون</span>
+              <span id="specialists-count-badge" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+            </div>
+            <div id="specialists-list-container" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
+              <!-- يُملأ ديناميكياً -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- التذييل -->
+      <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-between text-[11px] text-slate-400">
+        <span>تحديث فوري للقوائم ومنع حذف العناصر المستخدمة</span>
+        <button type="button" onclick="closeManageListsModal()" class="px-4 py-1.5 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-lg font-bold text-xs transition">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
   <!-- حاوية التنبيهات الميدانية (TOAST CONTAINER) -->
   <div id="toast-container" class="no-print fixed bottom-20 md:bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -890,41 +985,349 @@
       }
     }
 
+    // ثوابت وقيم افتراضية لقوائم الفروع وأخصائيي العرض المرئي
+    const DEFAULT_BRANCHES = [
+      'فرع العليا العام - الرياض',
+      'فرع رد سي مول - جدة',
+      'فرع النخيل مول - الرياض',
+      'فرع الراشد مول - الخبر',
+      'فرع مكة مول - مكة المكرمة',
+      'فرع غرناطة سنتر - الرياض',
+      'فرع بانوراما مول - الرياض',
+      'فرع الظهران مول - الخبر'
+    ];
+
+    const DEFAULT_SPECIALISTS = [
+      'أحمد المهندس',
+      'سارة العتيبي',
+      'فيصل الغامدي',
+      'نوف الشمري',
+      'خالد الدوسري'
+    ];
+
+    // ==================== دوال إدارة الفروع (Branches Management) ====================
+    function getBranches() {
+      try {
+        const stored = localStorage.getItem('samx_branches');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.warn('Error loading samx_branches', e);
+      }
+      localStorage.setItem('samx_branches', JSON.stringify(DEFAULT_BRANCHES));
+      return [...DEFAULT_BRANCHES];
+    }
+
+    function addBranch(name) {
+      const clean = (name || '').trim();
+      if (!clean) return { success: false, reason: 'يرجى كتابة اسم المعرض أو الفرع' };
+
+      const list = getBranches();
+      if (list.some(b => b.trim().toLowerCase() === clean.toLowerCase())) {
+        return { success: false, reason: 'هذا الفرع مسجل مسبقاً في القائمة' };
+      }
+
+      list.push(clean);
+      localStorage.setItem('samx_branches', JSON.stringify(list));
+      refreshBranchesUI();
+      return { success: true, list };
+    }
+
+    function deleteBranch(name) {
+      const clean = (name || '').trim();
+      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === clean.toLowerCase()) {
+        return { success: false, reason: 'لا يمكن حذف الفرع لأنه محدد حالياً في مسودة التقرير النشطة' };
+      }
+
+      const list = getBranches().filter(b => b.trim().toLowerCase() !== clean.toLowerCase());
+      localStorage.setItem('samx_branches', JSON.stringify(list));
+      refreshBranchesUI();
+      return { success: true, list };
+    }
+
+    // ==================== دوال إدارة الأخصائيين (Specialists Management) ====================
+    function getSpecialists() {
+      try {
+        const stored = localStorage.getItem('samx_specialists');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.warn('Error loading samx_specialists', e);
+      }
+      localStorage.setItem('samx_specialists', JSON.stringify(DEFAULT_SPECIALISTS));
+      return [...DEFAULT_SPECIALISTS];
+    }
+
+    function addSpecialist(name) {
+      const clean = (name || '').trim();
+      if (!clean) return { success: false, reason: 'يرجى كتابة اسم أخصائي الـ VM' };
+
+      const list = getSpecialists();
+      if (list.some(s => s.trim().toLowerCase() === clean.toLowerCase())) {
+        return { success: false, reason: 'اسم الأخصائي مسجل مسبقاً في القائمة' };
+      }
+
+      list.push(clean);
+      localStorage.setItem('samx_specialists', JSON.stringify(list));
+      refreshSpecialistsUI();
+      return { success: true, list };
+    }
+
+    function deleteSpecialist(name) {
+      const clean = (name || '').trim();
+      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === clean.toLowerCase()) {
+        return { success: false, reason: 'لا يمكن حذف الأخصائي لأنه محدد حالياً كمسؤول التقييم في التقرير' };
+      }
+
+      const list = getSpecialists().filter(s => s.trim().toLowerCase() !== clean.toLowerCase());
+      localStorage.setItem('samx_specialists', JSON.stringify(list));
+      refreshSpecialistsUI();
+      return { success: true, list };
+    }
+
+    // ==================== تعبئة وتحديث القوائم المنسدلة ====================
+    function populateBranchSelect() {
+      const branchSelect = document.getElementById('select-branch');
+      if (!branchSelect) return;
+
+      const branches = getBranches();
+      const currentVal = currentAudit.branchName || branches[0];
+
+      let html = '';
+      branches.forEach(b => {
+        const selected = (b === currentVal) ? 'selected' : '';
+        html += `<option value="${b}" ${selected}>${b}</option>`;
+      });
+      html += `<option value="__custom__">+ إضافة فرع مخصص آخر...</option>`;
+
+      branchSelect.innerHTML = html;
+
+      // فحص إذا كان الفرع المختار مخصصاً وليس بالقائمة
+      const customWrapper = document.getElementById('custom-branch-wrapper');
+      const customInput = document.getElementById('input-custom-branch');
+      if (!branches.includes(currentVal) && currentVal) {
+        branchSelect.value = '__custom__';
+        if (customWrapper) customWrapper.classList.remove('hidden');
+        if (customInput) customInput.value = currentVal;
+      } else {
+        if (customWrapper) customWrapper.classList.add('hidden');
+      }
+    }
+
+    function populateSpecialistSelect() {
+      const specialistSelect = document.getElementById('select-specialist');
+      if (!specialistSelect) return;
+
+      const specialists = getSpecialists();
+      const currentVal = currentAudit.auditorName || specialists[0];
+
+      let html = '';
+      specialists.forEach(s => {
+        const selected = (s === currentVal) ? 'selected' : '';
+        html += `<option value="${s}" ${selected}>${s}</option>`;
+      });
+      html += `<option value="__custom__">+ إدخال اسم يدوي مخصص...</option>`;
+
+      specialistSelect.innerHTML = html;
+
+      const customWrapper = document.getElementById('custom-specialist-wrapper');
+      const customInput = document.getElementById('input-custom-specialist');
+      if (!specialists.includes(currentVal) && currentVal) {
+        specialistSelect.value = '__custom__';
+        if (customWrapper) customWrapper.classList.remove('hidden');
+        if (customInput) customInput.value = currentVal;
+      } else {
+        if (customWrapper) customWrapper.classList.add('hidden');
+      }
+    }
+
+    function refreshBranchesUI() {
+      populateBranchSelect();
+      renderBranchesList();
+      syncQuickDisplays();
+    }
+
+    function refreshSpecialistsUI() {
+      populateSpecialistSelect();
+      renderSpecialistsList();
+      syncQuickDisplays();
+    }
+
+    // ==================== نافذة إدارة القوائم المتقدمة (Modal Controller) ====================
+    let activeManageTab = 'branches';
+
+    function openManageListsModal(initialTab = 'branches') {
+      const modal = document.getElementById('manage-lists-modal');
+      modal.classList.remove('hidden');
+      switchManageTab(initialTab);
+      renderBranchesList();
+      renderSpecialistsList();
+      lucide.createIcons();
+    }
+
+    function closeManageListsModal() {
+      document.getElementById('manage-lists-modal').classList.add('hidden');
+      document.getElementById('new-branch-input').value = '';
+      document.getElementById('new-specialist-input').value = '';
+    }
+
+    function switchManageTab(tab) {
+      activeManageTab = tab;
+      const btnBranches = document.getElementById('manage-tab-btn-branches');
+      const btnSpecialists = document.getElementById('manage-tab-btn-specialists');
+      const paneBranches = document.getElementById('manage-pane-branches');
+      const paneSpecialists = document.getElementById('manage-pane-specialists');
+
+      if (tab === 'branches') {
+        btnBranches.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow";
+        btnSpecialists.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
+        paneBranches.classList.remove('hidden');
+        paneSpecialists.classList.add('hidden');
+        setTimeout(() => document.getElementById('new-branch-input').focus(), 50);
+      } else {
+        btnSpecialists.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow";
+        btnBranches.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
+        paneSpecialists.classList.remove('hidden');
+        paneBranches.classList.add('hidden');
+        setTimeout(() => document.getElementById('new-specialist-input').focus(), 50);
+      }
+      lucide.createIcons();
+    }
+
+    function renderBranchesList() {
+      const container = document.getElementById('branches-list-container');
+      const badge = document.getElementById('branches-count-badge');
+      if (!container) return;
+
+      const list = getBranches();
+      if (badge) badge.innerText = list.length;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا توجد فروع مسجلة حالياً</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(b => {
+        const isCurrent = (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === b.trim().toLowerCase());
+        return `
+          <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
+            <div class="flex items-center gap-2 min-w-0">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-gold-400 shrink-0"></i>
+              <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${b}</span>
+              ${isCurrent ? '<span class="bg-gold-500/20 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30">المحدد حالياً</span>' : ''}
+            </div>
+            <button type="button" onclick="handleDeleteBranchItem('${b.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الفرع">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderSpecialistsList() {
+      const container = document.getElementById('specialists-list-container');
+      const badge = document.getElementById('specialists-count-badge');
+      if (!container) return;
+
+      const list = getSpecialists();
+      if (badge) badge.innerText = list.length;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا يوجد أخصائيون مسجلون حالياً</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(s => {
+        const isCurrent = (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === s.trim().toLowerCase());
+        return `
+          <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
+            <div class="flex items-center gap-2 min-w-0">
+              <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+              <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-emerald-300' : ''}">${s}</span>
+              ${isCurrent ? '<span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">المسؤول النشط</span>' : ''}
+            </div>
+            <button type="button" onclick="handleDeleteSpecialistItem('${s.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الأخصائي">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function handleAddNewBranch(e) {
+      e.preventDefault();
+      const input = document.getElementById('new-branch-input');
+      const val = input.value.trim();
+      const res = addBranch(val);
+      if (res.success) {
+        input.value = '';
+        showToast('تمت إضافة الفرع بنجاح', 'success');
+      } else {
+        showToast(res.reason, 'error');
+      }
+    }
+
+    function handleDeleteBranchItem(branchName) {
+      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === branchName.trim().toLowerCase()) {
+        showToast('لا يمكن حذف الفرع لأنه محدد في مسودة التقرير النشطة', 'error');
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف "${branchName}" من قائمة الفروع؟`)) return;
+      const res = deleteBranch(branchName);
+      if (res.success) {
+        showToast('تم حذف الفرع من القائمة', 'info');
+      } else {
+        showToast(res.reason, 'error');
+      }
+    }
+
+    function handleAddNewSpecialist(e) {
+      e.preventDefault();
+      const input = document.getElementById('new-specialist-input');
+      const val = input.value.trim();
+      const res = addSpecialist(val);
+      if (res.success) {
+        input.value = '';
+        showToast('تمت إضافة الأخصائي بنجاح', 'success');
+      } else {
+        showToast(res.reason, 'error');
+      }
+    }
+
+    function handleDeleteSpecialistItem(specialistName) {
+      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === specialistName.trim().toLowerCase()) {
+        showToast('لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط', 'error');
+        return;
+      }
+      if (!confirm(`هل أنت متأكد من حذف "${specialistName}" من قائمة الأخصائيين؟`)) return;
+      const res = deleteSpecialist(specialistName);
+      if (res.success) {
+        showToast('تم حذف الأخصائي من القائمة', 'info');
+      } else {
+        showToast(res.reason, 'error');
+      }
+    }
+
     // ربط الحقول بالبيانات وتفعيل التحديث الحي
     function bindMetaInputs() {
-      const branchSelect = document.getElementById('select-branch');
+      populateBranchSelect();
+      populateSpecialistSelect();
+
       const customBranchInput = document.getElementById('input-custom-branch');
-      const customBranchWrapper = document.getElementById('custom-branch-wrapper');
-      const auditorInput = document.getElementById('input-auditor');
+      const customSpecialistInput = document.getElementById('input-custom-specialist');
       const weekInput = document.getElementById('input-week');
       const dateInput = document.getElementById('input-date');
 
-      // فرع
-      let matched = false;
-      for (let i = 0; i < branchSelect.options.length; i++) {
-        if (branchSelect.options[i].value === currentAudit.branchName) {
-          branchSelect.selectedIndex = i;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched && currentAudit.branchName) {
-        branchSelect.value = '__custom__';
-        customBranchWrapper.classList.remove('hidden');
-        customBranchInput.value = currentAudit.branchName;
-      }
-
-      auditorInput.value = currentAudit.auditorName || 'أحمد المهندس';
       weekInput.value = currentAudit.weekNumber || 43;
       dateInput.value = currentAudit.auditDate || new Date().toISOString().split('T')[0];
 
       // مستمعين للحفظ التلقائي
-      auditorInput.addEventListener('input', (e) => {
-        currentAudit.auditorName = e.target.value;
-        syncQuickDisplays();
-        saveAuditToStorage();
-      });
-
       weekInput.addEventListener('input', (e) => {
         currentAudit.weekNumber = e.target.value;
         syncQuickDisplays();
@@ -937,11 +1340,21 @@
         saveAuditToStorage();
       });
 
-      customBranchInput.addEventListener('input', (e) => {
-        currentAudit.branchName = e.target.value;
-        syncQuickDisplays();
-        saveAuditToStorage();
-      });
+      if (customBranchInput) {
+        customBranchInput.addEventListener('input', (e) => {
+          currentAudit.branchName = e.target.value;
+          syncQuickDisplays();
+          saveAuditToStorage();
+        });
+      }
+
+      if (customSpecialistInput) {
+        customSpecialistInput.addEventListener('input', (e) => {
+          currentAudit.auditorName = e.target.value;
+          syncQuickDisplays();
+          saveAuditToStorage();
+        });
+      }
 
       syncQuickDisplays();
     }
@@ -955,6 +1368,20 @@
       } else {
         customWrapper.classList.add('hidden');
         currentAudit.branchName = val;
+      }
+      syncQuickDisplays();
+      saveAuditToStorage();
+    }
+
+    function handleSpecialistSelectChange(val) {
+      const customWrapper = document.getElementById('custom-specialist-wrapper');
+      const customInput = document.getElementById('input-custom-specialist');
+      if (val === '__custom__') {
+        customWrapper.classList.remove('hidden');
+        currentAudit.auditorName = customInput.value || 'أخصائي جديد';
+      } else {
+        customWrapper.classList.add('hidden');
+        currentAudit.auditorName = val;
       }
       syncQuickDisplays();
       saveAuditToStorage();
