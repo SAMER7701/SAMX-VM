@@ -1,11 +1,12 @@
 {
-  "name": "applet",
+  "name": "samx-vm",
   "version": "1.0.0",
-  "description": "",
+  "description": "SAMX-VM: Visual Merchandising Audit Tool",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
