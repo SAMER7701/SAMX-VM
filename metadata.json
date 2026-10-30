@@ -1,0 +1,8 @@
+{
+  "name": "VM Pro - تقرير العرض المرئي الأسبوعي",
+  "description": "تطبيق توثيق ومتابعة العرض المرئي (Visual Merchandising) للملابس الرجالية وإعداد تقارير الجولات الأسبوعية قبل وبعد التعديل.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VM Pro - تقرير العرض المرئي الأسبوعي</title>
+  <meta name="description" content="تطبيق توثيق ومتابعة العرض المرئي (Visual Merchandising) للملابس الرجالية وإعداد تقارير الجولات الأسبوعية قبل وبعد التعديل.">
+  <meta property="og:title" content="VM Pro - تقرير العرض المرئي الأسبوعي">
+  <meta property="og:description" content="تطبيق توثيق ومتابعة العرض المرئي (Visual Merchandising) للملابس الرجالية وإعداد تقارير الجولات الأسبوعية قبل وبعد التعديل.">
+  
+  <!-- خط تجوال من Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- مكتبة Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- مكتبة الأيقونات Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- إعدادات Tailwind لتناسب هوية التجزئة الفاخرة للرجال -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Tajawal', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0f172a',
+              card: '#1e293b',
+              accent: '#d97706', // Gold / Amber
+              accentHover: '#b45309',
+              lightBg: '#f8fafc',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea, select {
+      user-select: text;
+    }
+    /* إخفاء شريط التمرير الأفقي مع الحفاظ على التمرير */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* تنسيقات الطباعة والتصدير لـ PDF */
+    @media print {
+      body {
+        background-color: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+      .report-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid;
+        margin-bottom: 24px !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col pb-24 md:pb-6">
+
+  <!-- ==================== رأس الصفحة (HEADER) ==================== -->
+  <header class="bg-brand-dark text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-lg bg-brand-accent flex items-center justify-center font-black text-slate-900 text-lg shadow">
+          VM
+        </div>
+        <div>
+          <h1 class="text-base font-bold leading-tight tracking-wide">VM PRO REPORT</h1>
+          <p class="text-xs text-slate-400">العرض المرئي للملابس الرجالية</p>
+        </div>
+      </div>
+      
+      <!-- مؤشر الحفظ الميداني -->
+      <div class="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs text-slate-300 font-medium" id="save-status">حفظ تلقائي</span>
+      </div>
+    </div>
+
+    <!-- شريط معلومات الزيارة السريع -->
+    <div class="bg-slate-900/90 border-t border-slate-800 px-4 py-2 text-xs text-slate-300">
+      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5">
+          <i data-lucide="store" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span class="font-semibold text-white" id="header-store-display">فرع العليا العام - الرياض</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="header-week-display" class="bg-slate-800 px-2 py-0.5 rounded text-amber-400 font-bold">الأسبوع 43</span>
+          <span id="header-date-display" class="text-slate-400">2026-10-30</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== المحتوى الرئيسي (VIEWS) ==================== -->
+  <main class="max-w-4xl w-full mx-auto p-4 flex-1">
+
+    <!-- 1. تبويب الجولة الحالية (ACTIVE AUDIT VIEW) -->
+    <section id="view-audit" class="space-y-4">
+      
+      <!-- كارت إعدادات الزيارة الحالية السريعة -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-3 cursor-pointer" onclick="toggleStoreMeta()">
+          <div class="flex items-center gap-2">
+            <i data-lucide="clipboard-edit" class="w-5 h-5 text-brand-accent"></i>
+            <h2 class="font-bold text-slate-800 text-sm">بيانات الجولة والمعرض</h2>
+          </div>
+          <i data-lucide="chevron-down" id="store-meta-icon" class="w-4 h-4 text-slate-500 transition-transform"></i>
+        </div>
+        
+        <div id="store-meta-fields" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">اسم المعرض / الفرع:</label>
+            <input type="text" id="input-store" value="فرع العليا العام - الرياض" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">مسؤول العرض المرئي (VM):</label>
+            <input type="text" id="input-specialist" value="أحمد المهندس" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">رقم الأسبوع:</label>
+              <input type="number" id="input-week" value="43" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">تاريخ الزيارة:</label>
+              <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- إحصائية الأقسام وزر الإضافة الميدانية -->
+      <div class="flex items-center justify-between bg-slate-900 text-white p-3.5 rounded-xl shadow">
+        <div>
+          <div class="text-xs text-slate-400">حالة التوثيق الميداني</div>
+          <div class="text-sm font-bold flex items-center gap-1.5 mt-0.5">
+            <span id="audit-count" class="text-amber-400 text-base font-black">0</span>
+            <span>أقسام تم توثيقها</span>
+          </div>
+        </div>
+        <button onclick="openModal()" class="flex items-center gap-2 bg-brand-accent hover:bg-brand-accentHover text-slate-950 px-4 py-2 rounded-lg font-bold text-sm shadow transition-all active:scale-95">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>توثيق قسم جديد</span>
+        </button>
+      </div>
+
+      <!-- قائمة بطاقات الأقسام الموثقة -->
+      <div id="sections-container" class="space-y-4">
+        <!-- يتم ملء البطاقات تلقائياً بواسطة JavaScript -->
+      </div>
+
+      <!-- حالة فارغة عند عدم وجود أقسام -->
+      <div id="empty-state" class="hidden text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 p-6">
+        <div class="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="camera" class="w-8 h-8"></i>
+        </div>
+        <h3 class="font-bold text-slate-800 text-base mb-1">لم تبدأ توثيق المعرض بعد</h3>
+        <p class="text-xs text-slate-500 mb-4 max-w-xs mx-auto">ابدأ بالتقاط صور قبل وبعد لأول قسم في المعرض (مثل الواجهة الرئيسية أو نقطة الدخول).</p>
+        <button onclick="openModal()" class="bg-slate-900 text-amber-400 border border-amber-500/30 px-5 py-2 rounded-lg text-sm font-bold inline-flex items-center gap-2 shadow">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>إضافة القسم الأول الآن</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. تبويب المعاينة والتقرير الرسمي (REPORT PREVIEW VIEW) -->
+    <section id="view-preview" class="hidden space-y-4">
+      
+      <!-- أزرار الإجراءات السريعة (تظهر في الشاشة فقط وتختفي عند الطباعة) -->
+      <div class="no-print bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <span class="text-xs text-slate-500 flex items-center gap-1">
+          <i data-lucide="file-check" class="w-4 h-4 text-emerald-600"></i>
+          جاهز للتصدير والمشاركة الرسمية
+        </span>
+        <div class="flex items-center gap-2">
+          <button onclick="exportToPDF()" class="bg-slate-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-slate-800 shadow">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>طباعة / حفظ كـ PDF</span>
+          </button>
+          <button onclick="shareViaWhatsApp()" class="bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 shadow">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+            <span>إرسال واتساب</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- محتوى التقرير التنفيذي المطبوع -->
+      <div id="report-print-container" class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+        
+        <!-- ترويسة التقرير الرسمية -->
+        <div class="border-b-2 border-slate-900 pb-4 mb-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="inline-block bg-slate-900 text-amber-400 text-xs font-black px-2.5 py-1 rounded mb-2">
+                تقرير العرض المرئي الأسبوعي (VM REPORT)
+              </div>
+              <h2 class="text-xl md:text-2xl font-black text-slate-900" id="print-store-name">معرض العليا العام</h2>
+              <p class="text-xs text-slate-500 mt-1">قسم توجيه وتنسيق المتاجر الرجالية</p>
+            </div>
+            <div class="text-left text-xs space-y-1">
+              <div><span class="text-slate-400">رقم الأسبوع:</span> <span class="font-bold text-slate-900" id="print-week">الأسبوع 43</span></div>
+              <div><span class="text-slate-400">تاريخ التوثيق:</span> <span class="font-bold text-slate-900" id="print-date">2026-10-30</span></div>
+              <div><span class="text-slate-400">أخصائي VM:</span> <span class="font-bold text-slate-900" id="print-specialist">أحمد المهندس</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- قائمة الأقسام في التقرير -->
+        <div id="print-sections-list" class="space-y-8">
+          <!-- يتم حقنها من الجافاسكريبت -->
+        </div>
+
+        <!-- تذييل التقرير والتوقيع -->
+        <div class="mt-12 pt-6 border-t border-slate-200 grid grid-cols-2 gap-4 text-xs text-slate-600">
+          <div>
+            <span class="block text-slate-400">اعتماد أخصائي العرض المرئي:</span>
+            <div class="h-10 mt-1 border-b border-dashed border-slate-300 flex items-end">
+              <span class="font-semibold text-slate-800" id="print-signature-name">أحمد المهندس</span>
+            </div>
+          </div>
+          <div>
+            <span class="block text-slate-400">ملاحظات مدير المعرض:</span>
+            <div class="h-10 mt-1 border-b border-dashed border-slate-300"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== شريط التنقل السفلي للجوال (BOTTOM NAV) ==================== -->
+  <nav class="no-print fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 z-40 md:static md:bg-transparent md:border-0 md:max-w-4xl md:mx-auto">
+    <div class="flex items-center justify-around md:justify-center md:gap-4 bg-white md:p-2 md:rounded-2xl md:shadow-sm md:border md:border-slate-200">
+      
+      <button onclick="switchTab('audit')" id="nav-btn-audit" class="flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-brand-dark bg-slate-100">
+        <i data-lucide="eye" class="w-5 h-5"></i>
+        <span>الجولة والتصوير</span>
+      </button>
+
+      <button onclick="openModal()" class="flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-amber-600 bg-amber-50 hover:bg-amber-100">
+        <i data-lucide="camera" class="w-5 h-5"></i>
+        <span>+ توثيق جديد</span>
+      </button>
+
+      <button onclick="switchTab('preview')" id="nav-btn-preview" class="flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-slate-500 hover:text-slate-900">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+        <span>معاينة التقرير</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- ==================== النافذة المنبثقة للتوثيق الميداني (MODAL / BOTTOM SHEET) ==================== -->
+  <div id="entry-modal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-end md:items-center justify-center hidden backdrop-blur-xs transition-opacity duration-200">
+    <div class="bg-white w-full max-w-xl max-h-[92vh] rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom">
+      
+      <!-- رأس النافذة -->
+      <div class="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="camera" class="w-5 h-5 text-amber-400"></i>
+          <h3 id="modal-title" class="font-bold text-sm">توثيق قسم بالمعرض (قبل / بعد)</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-full">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- جسم النافذة (قابل للتمرير) -->
+      <div class="p-4 overflow-y-auto space-y-4 flex-1">
+        
+        <!-- 1. تحديد قسم المعرض الرجالي -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">حدد قسم المعرض:</label>
+          <select id="modal-section-type" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
+            <option value="الواجهة الرئيسية (Window Display)">الواجهة الرئيسية والمانيكانات (Window Display)</option>
+            <option value="نقطة الدخول والتركيز (Focal Point)">نقطة الدخول والتركيز (Focal Point / Entrance)</option>
+            <option value="قسم الثياب الرجالية الرسمية">قسم الثياب الرجالية الرسمية (Formal & Thobes)</option>
+            <option value="قسم الملابس الكاجوال واليومية">قسم الملابس الكاجوال والأطقم (Casual Wear)</option>
+            <option value="قسم الشماغ والإكسسوارات">قسم الشماغ والغتر والإكسسوارات</option>
+            <option value="طاولات العرض المركزية (Folded Tables)">طاولات العرض المركزية والملابس المطوية</option>
+            <option value="منطقة الكاشير وغرف القياس">منطقة الكاشير ومرايا العرض</option>
+            <option value="قسم الأحذية والمستلزمات الجلدية">قسم الأحذية والمستلزمات الجلدية</option>
+            <option value="قسم مخصص آخر">قسم آخر (تحديد يدوي)...</option>
+          </select>
+        </div>
+
+        <!-- 2. حقلي صور قبل وبعد (Side-by-Side Upload) -->
+        <div class="grid grid-cols-2 gap-3">
+          
+          <!-- صورة قبل -->
+          <div class="border-2 border-dashed border-rose-300 bg-rose-50/40 rounded-xl p-2.5 text-center relative flex flex-col items-center justify-center min-h-[160px]">
+            <span class="absolute top-2 right-2 bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow">قبل التعديل</span>
+            
+            <div id="preview-box-before" class="w-full h-28 hidden rounded-lg overflow-hidden relative mb-2">
+              <img id="img-before-preview" src="" class="w-full h-full object-cover">
+              <button onclick="removeImage('before')" class="absolute top-1 left-1 bg-red-600 text-white rounded-full p-1 shadow">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <div id="upload-placeholder-before" class="flex flex-col items-center justify-center py-2">
+              <i data-lucide="camera" class="w-8 h-8 text-rose-400 mb-1"></i>
+              <span class="text-xs font-bold text-rose-900">التقاط أو رفع صورة</span>
+              <span class="text-[10px] text-rose-500 mt-0.5">الوضع السابق</span>
+            </div>
+
+            <input type="file" id="file-before" accept="image/*" capture="environment" onchange="handleImageUpload(event, 'before')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+          </div>
+
+          <!-- صورة بعد -->
+          <div class="border-2 border-dashed border-emerald-300 bg-emerald-50/40 rounded-xl p-2.5 text-center relative flex flex-col items-center justify-center min-h-[160px]">
+            <span class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow">بعد التعديل</span>
+            
+            <div id="preview-box-after" class="w-full h-28 hidden rounded-lg overflow-hidden relative mb-2">
+              <img id="img-after-preview" src="" class="w-full h-full object-cover">
+              <button onclick="removeImage('after')" class="absolute top-1 left-1 bg-red-600 text-white rounded-full p-1 shadow">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <div id="upload-placeholder-after" class="flex flex-col items-center justify-center py-2">
+              <i data-lucide="sparkles" class="w-8 h-8 text-emerald-500 mb-1"></i>
+              <span class="text-xs font-bold text-emerald-900">التقاط أو رفع صورة</span>
+              <span class="text-[10px] text-emerald-600 mt-0.5">بعد التنفيذ</span>
+            </div>
+
+            <input type="file" id="file-after" accept="image/*" capture="environment" onchange="handleImageUpload(event, 'after')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+          </div>
+
+        </div>
+
+        <!-- 3. وسوم العرض المرئي السريعة (Quick Action Tags) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">وسوم التعديل السريع (انقر للإضافة):</label>
+          <div class="flex flex-wrap gap-1.5" id="tags-container">
+            <button type="button" onclick="toggleTag(this, 'تناسق الألوان (Color Story)')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">تناسق الألوان</button>
+            <button type="button" onclick="toggleTag(this, 'تبديل طقم المانيكان')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">تبديل طقم المانيكان</button>
+            <button type="button" onclick="toggleTag(this, 'تعديل الإضاءة والزوايا')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">تعديل الإضاءة</button>
+            <button type="button" onclick="toggleTag(this, 'ترتيب تسلسل المقاسات')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">ترتيب المقاسات</button>
+            <button type="button" onclick="toggleTag(this, 'إعادة طي وترتيب الطاولات')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">ترتيب الطي</button>
+            <button type="button" onclick="toggleTag(this, 'تعبئة النواقص والرفوف')" class="tag-pill text-xs px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 transition">تعبئة النواقص</button>
+          </div>
+        </div>
+
+        <!-- 4. مربع الشرح والتوضيح الميداني -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">شرح التغييرات وسببها:</label>
+          <textarea id="modal-notes" rows="3" placeholder="اكتب بإيجاز: ما الذي تم تعديله ولماذا؟ (مثال: تم توحيد تدرج ألوان القمصان من الفاتح إلى الداكن وتوجيه كشاف الإضاءة نحو منتصف الطاولة لإبراز التشكيلة الجديدة)..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none leading-relaxed"></textarea>
+        </div>
+
+      </div>
+
+      <!-- أزرار الحفظ والإغلاق -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+        <button onclick="closeModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800">إلغاء</button>
+        <button onclick="saveSection()" class="bg-brand-dark hover:bg-slate-800 text-amber-400 px-6 py-2.5 rounded-xl font-bold text-sm shadow flex items-center gap-2 active:scale-95 transition-transform">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>حفظ وتثبيت القسم</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== منطق الجافاسكريبت (CORE APP LOGIC) ==================== -->
+  <script>
+    // هيكل البيانات الأساسي للتقرير
+    let currentReport = {
+      id: 'rep_' + Date.now(),
+      storeName: 'فرع العليا العام - الرياض',
+      specialist: 'أحمد المهندس',
+      weekNumber: '43',
+      date: new Date().toISOString().split('T')[0],
+      sections: []
+    };
+
+    // متغير لتتبع العنصر الجاري تعديله (إن وجد)
+    let editingSectionId = null;
+    let tempBeforeImg = null;
+    let tempAfterImg = null;
+    let activeTags = [];
+
+    // بيانات أولية واقعية للملابس الرجالية لتجربة العرض الفوري
+    const demoSections = [
+      {
+        id: 'sec_1',
+        title: 'الواجهة الرئيسية (Window Display)',
+        beforeImg: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&auto=format&fit=crop&q=60',
+        afterImg: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&auto=format&fit=crop&q=60',
+        tags: ['تبديل طقم المانيكان', 'تعديل الإضاءة والزوايا'],
+        notes: 'تم استبدال المعروض على مانيكانات الواجهة بأطقم الكولكشن الشتوي الجديد، وضبط زوايا السبوت لايت بزاوية 45 درجة لإبراز خامة المعاطف وإزالة الظلال المعتمة.'
+      },
+      {
+        id: 'sec_2',
+        title: 'طاولات العرض المركزية (Folded Tables)',
+        beforeImg: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=600&auto=format&fit=crop&q=60',
+        afterImg: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=600&auto=format&fit=crop&q=60',
+        tags: ['تناسق الألوان (Color Story)', 'ترتيب تسلسل المقاسات', 'إعادة طي وترتيب الطاولات'],
+        notes: 'تمت إعادة طي القمصان وفق معايير المقاس الموحد (Folding Board)، وتنسيق تدرج الألوان (Color Blocking) من الأبيض إلى الكحلي مع وضع المقاسات من الأصغر للأكبر (S إلى XXL).'
+      }
+    ];
+
+    // تشغيل التطبيق عند التحميل
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedData();
+      initUI();
+      lucide.createIcons();
+    });
+
+    function initUI() {
+      // ربط الحقول بالبيانات
+      document.getElementById('input-store').value = currentReport.storeName;
+      document.getElementById('input-specialist').value = currentReport.specialist;
+      document.getElementById('input-week').value = currentReport.weekNumber;
+      document.getElementById('input-date').value = currentReport.date;
+
+      // مستمعين لتحديث البيانات تلقائياً
+      ['store', 'specialist', 'week', 'date'].forEach(field => {
+        document.getElementById(`input-${field}`).addEventListener('input', (e) => {
+          if (field === 'store') currentReport.storeName = e.target.value;
+          if (field === 'specialist') currentReport.specialist = e.target.value;
+          if (field === 'week') currentReport.weekNumber = e.target.value;
+          if (field === 'date') currentReport.date = e.target.value;
+          syncHeaderDisplays();
+          saveToLocalStorage();
+        });
+      });
+
+      syncHeaderDisplays();
+      renderAuditSections();
+    }
+
+    function syncHeaderDisplays() {
+      document.getElementById('header-store-display').innerText = currentReport.storeName;
+      document.getElementById('header-week-display').innerText = 'الأسبوع ' + currentReport.weekNumber;
+      document.getElementById('header-date-display').innerText = currentReport.date;
+      
+      // مزامنة التقرير المطبوع
+      document.getElementById('print-store-name').innerText = currentReport.storeName;
+      document.getElementById('print-week').innerText = 'الأسبوع ' + currentReport.weekNumber;
+      document.getElementById('print-date').innerText = currentReport.date;
+      document.getElementById('print-specialist').innerText = currentReport.specialist;
+      document.getElementById('print-signature-name').innerText = currentReport.specialist;
+    }
+
+    // إظهار وإخفاء إعدادات الزيارة
+    function toggleStoreMeta() {
+      const container = document.getElementById('store-meta-fields');
+      const icon = document.getElementById('store-meta-icon');
+      container.classList.toggle('hidden');
+      icon.classList.toggle('rotate-180');
+    }
+
+    // التبديل بين التبويبات (الجولة الميدانية / المعاينة)
+    function switchTab(tab) {
+      const auditView = document.getElementById('view-audit');
+      const previewView = document.getElementById('view-preview');
+      const btnAudit = document.getElementById('nav-btn-audit');
+      const btnPreview = document.getElementById('nav-btn-preview');
+
+      if (tab === 'audit') {
+        auditView.classList.remove('hidden');
+        previewView.classList.add('hidden');
+        btnAudit.className = "flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-brand-dark bg-slate-100";
+        btnPreview.className = "flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-slate-500 hover:text-slate-900";
+      } else {
+        auditView.classList.add('hidden');
+        previewView.classList.remove('hidden');
+        btnPreview.className = "flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-brand-dark bg-slate-100";
+        btnAudit.className = "flex flex-col md:flex-row items-center gap-1 px-5 py-1.5 rounded-xl font-bold text-xs transition-all text-slate-500 hover:text-slate-900";
+        renderPrintPreview();
+      }
+      lucide.createIcons();
+    }
+
+    // عرض بطاقات الأقسام في شاشة التوثيق الميداني
+    function renderAuditSections() {
+      const container = document.getElementById('sections-container');
+      const countEl = document.getElementById('audit-count');
+      const emptyState = document.getElementById('empty-state');
+
+      countEl.innerText = currentReport.sections.length;
+      container.innerHTML = '';
+
+      if (currentReport.sections.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      currentReport.sections.forEach((sec, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-xl p-4 shadow-sm border border-slate-200 transition hover:shadow-md";
+        
+        const tagsHtml = sec.tags.map(t => `<span class="bg-amber-50 text-amber-800 border border-amber-200/60 text-[11px] px-2 py-0.5 rounded-full font-medium">${t}</span>`).join('');
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-slate-900 text-amber-400 font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+              <h3 class="font-bold text-slate-900 text-sm md:text-base">${sec.title}</h3>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="editSection('${sec.id}')" class="text-slate-500 hover:text-brand-dark p-1.5 rounded-lg hover:bg-slate-100" title="تعديل">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteSection('${sec.id}')" class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50" title="حذف">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- معاينة الصور قبل وبعد -->
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="relative rounded-lg overflow-hidden border border-rose-200 aspect-video bg-slate-100">
+              <span class="absolute top-1.5 right-1.5 bg-rose-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-xs">قبل</span>
+              <img src="${sec.beforeImg || 'https://placehold.co/400x300/f8fafc/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover">
+            </div>
+            <div class="relative rounded-lg overflow-hidden border border-emerald-200 aspect-video bg-slate-100">
+              <span class="absolute top-1.5 right-1.5 bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur-xs">بعد</span>
+              <img src="${sec.afterImg || 'https://placehold.co/400x300/f8fafc/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover">
+            </div>
+          </div>
+
+          <!-- الوسوم المطبقة -->
+          ${sec.tags.length > 0 ? `<div class="flex flex-wrap gap-1 mb-2.5">${tagsHtml}</div>` : ''}
+
+          <!-- الملاحظات والشرح -->
+          <p class="text-xs text-slate-600 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+            ${sec.notes || 'لا يوجد شرح إضافي مسجل.'}
+          </p>
+        `;
+
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    // عرض التقرير بصيغته الرسمية الجاهزة للطباعة
+    function renderPrintPreview() {
+      const container = document.getElementById('print-sections-list');
+      container.innerHTML = '';
+
+      if (currentReport.sections.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">لم يتم تسجيل أي أقسام بعد لعرضها بالتقرير.</div>';
+        return;
+      }
+
+      currentReport.sections.forEach((sec, idx) => {
+        const item = document.createElement('div');
+        item.className = "report-card border border-slate-200 rounded-xl p-4 bg-white";
+        
+        const tagsBadge = sec.tags.map(t => `<span class="bg-slate-100 text-slate-700 border border-slate-300 text-[10px] px-2 py-0.5 rounded font-medium">${t}</span>`).join(' ');
+
+        item.innerHTML = `
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+            <h4 class="font-bold text-slate-900 text-sm md:text-base">
+              <span class="text-amber-600 ml-1">#${idx + 1}</span> ${sec.title}
+            </h4>
+            <div class="flex gap-1">${tagsBadge}</div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <div class="text-[11px] font-bold text-rose-700 mb-1 flex items-center gap-1">
+                <span>الوضع السابق (Before)</span>
+              </div>
+              <div class="aspect-4/3 rounded-lg overflow-hidden border border-slate-200">
+                <img src="${sec.beforeImg}" class="w-full h-full object-cover">
+              </div>
+            </div>
+            <div>
+              <div class="text-[11px] font-bold text-emerald-700 mb-1 flex items-center gap-1">
+                <span>بعد التعديل (After)</span>
+              </div>
+              <div class="aspect-4/3 rounded-lg overflow-hidden border border-slate-200">
+                <img src="${sec.afterImg}" class="w-full h-full object-cover">
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-800 leading-relaxed">
+            <span class="font-bold block text-slate-900 mb-1">تفاصيل ومبررات التعديل الميداني:</span>
+            ${sec.notes || 'تم التنفيذ والتعديل وفق المعايير المعتمدة.'}
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // فتح وإغلاق النافذة المنبثقة
+    function openModal() {
+      editingSectionId = null;
+      resetModalForm();
+      document.getElementById('modal-title').innerText = 'توثيق قسم بالمعرض (قبل / بعد)';
+      document.getElementById('entry-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      document.getElementById('entry-modal').classList.add('hidden');
+      resetModalForm();
+    }
+
+    function resetModalForm() {
+      tempBeforeImg = null;
+      tempAfterImg = null;
+      activeTags = [];
+      document.getElementById('modal-section-type').selectedIndex = 0;
+      document.getElementById('modal-notes').value = '';
+      
+      // تفريغ مربعات الصور
+      removeImage('before');
+      removeImage('after');
+      
+      // إعادة تعيين أزرار الوسوم
+      document.querySelectorAll('.tag-pill').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-slate-900', 'border-amber-600', 'font-bold');
+        btn.classList.add('bg-slate-100', 'text-slate-700', 'border-slate-200');
+      });
+    }
+
+    // التعامل مع الوسوم السريعة
+    function toggleTag(btn, tagName) {
+      if (activeTags.includes(tagName)) {
+        activeTags = activeTags.filter(t => t !== tagName);
+        btn.classList.remove('bg-amber-500', 'text-slate-900', 'border-amber-600', 'font-bold');
+        btn.classList.add('bg-slate-100', 'text-slate-700', 'border-slate-200');
+      } else {
+        activeTags.push(tagName);
+        btn.classList.add('bg-amber-500', 'text-slate-900', 'border-amber-600', 'font-bold');
+        btn.classList.remove('bg-slate-100', 'text-slate-700', 'border-slate-200');
+      }
+    }
+
+    // ضغط الصور الميدانية تلقائياً عبر HTML5 Canvas لتقليل الحجم
+    function handleImageUpload(event, type) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          // ضغط الصورة وحساب الأبعاد المناسبة
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200; // دقة متوازنة جداً للتقارير والطباعة
+
+          if (width > height && width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // تحويل الصورة لصيغة JPEG خفيفة الحجم (جودة 0.75)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+
+          if (type === 'before') {
+            tempBeforeImg = compressedDataUrl;
+            document.getElementById('img-before-preview').src = compressedDataUrl;
+            document.getElementById('preview-box-before').classList.remove('hidden');
+            document.getElementById('upload-placeholder-before').classList.add('hidden');
+          } else {
+            tempAfterImg = compressedDataUrl;
+            document.getElementById('img-after-preview').src = compressedDataUrl;
+            document.getElementById('preview-box-after').classList.remove('hidden');
+            document.getElementById('upload-placeholder-after').classList.add('hidden');
+          }
+          lucide.createIcons();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeImage(type) {
+      if (type === 'before') {
+        tempBeforeImg = null;
+        document.getElementById('file-before').value = '';
+        document.getElementById('img-before-preview').src = '';
+        document.getElementById('preview-box-before').classList.add('hidden');
+        document.getElementById('upload-placeholder-before').classList.remove('hidden');
+      } else {
+        tempAfterImg = null;
+        document.getElementById('file-after').value = '';
+        document.getElementById('img-after-preview').src = '';
+        document.getElementById('preview-box-after').classList.add('hidden');
+        document.getElementById('upload-placeholder-after').classList.remove('hidden');
+      }
+    }
+
+    // حفظ أو تحديث بطاقة القسم
+    function saveSection() {
+      const sectionTitle = document.getElementById('modal-section-type').value;
+      const notes = document.getElementById('modal-notes').value.trim();
+
+      if (!tempBeforeImg && !tempAfterImg) {
+        showStatus('يرجى التقاط صورة واحدة على الأقل (قبل أو بعد)', true);
+        return;
+      }
+
+      if (editingSectionId) {
+        // تحديث قسم موجود
+        const index = currentReport.sections.findIndex(s => s.id === editingSectionId);
+        if (index !== -1) {
+          currentReport.sections[index] = {
+            id: editingSectionId,
+            title: sectionTitle,
+            beforeImg: tempBeforeImg || currentReport.sections[index].beforeImg,
+            afterImg: tempAfterImg || currentReport.sections[index].afterImg,
+            tags: [...activeTags],
+            notes: notes
+          };
+        }
+      } else {
+        // إضافة قسم جديد
+        const newSection = {
+          id: 'sec_' + Date.now(),
+          title: sectionTitle,
+          beforeImg: tempBeforeImg || 'https://placehold.co/600x450/f8fafc/94a3b8?text=لا+توجد+صورة',
+          afterImg: tempAfterImg || 'https://placehold.co/600x450/f8fafc/94a3b8?text=لا+توجد+صورة',
+          tags: [...activeTags],
+          notes: notes
+        };
+        currentReport.sections.push(newSection);
+      }
+
+      saveToLocalStorage();
+      renderAuditSections();
+      closeModal();
+      showStatus('تم حفظ القسم بنجاح');
+    }
+
+    // تعديل قسم سابق
+    function editSection(id) {
+      const sec = currentReport.sections.find(s => s.id === id);
+      if (!sec) return;
+
+      editingSectionId = id;
+      openModal();
+      document.getElementById('modal-title').innerText = 'تعديل توثيق: ' + sec.title;
+      document.getElementById('modal-section-type').value = sec.title;
+      document.getElementById('modal-notes').value = sec.notes || '';
+
+      if (sec.beforeImg) {
+        tempBeforeImg = sec.beforeImg;
+        document.getElementById('img-before-preview').src = sec.beforeImg;
+        document.getElementById('preview-box-before').classList.remove('hidden');
+        document.getElementById('upload-placeholder-before').classList.add('hidden');
+      }
+
+      if (sec.afterImg) {
+        tempAfterImg = sec.afterImg;
+        document.getElementById('img-after-preview').src = sec.afterImg;
+        document.getElementById('preview-box-after').classList.remove('hidden');
+        document.getElementById('upload-placeholder-after').classList.add('hidden');
+      }
+
+      // تفعيل الوسوم المحددة سابقاً
+      activeTags = [...sec.tags];
+      document.querySelectorAll('.tag-pill').forEach(btn => {
+        if (activeTags.includes(btn.innerText.trim()) || activeTags.some(t => t.includes(btn.innerText.trim()))) {
+          btn.classList.add('bg-amber-500', 'text-slate-900', 'border-amber-600', 'font-bold');
+          btn.classList.remove('bg-slate-100', 'text-slate-700', 'border-slate-200');
+        }
+      });
+
+      lucide.createIcons();
+    }
+
+    // حذف قسم
+    function deleteSection(id) {
+      currentReport.sections = currentReport.sections.filter(s => s.id !== id);
+      saveToLocalStorage();
+      renderAuditSections();
+      showStatus('تم حذف القسم');
+    }
+
+    // التخزين المحلي (LocalStorage) لضمان العمل دون إنترنت
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem('vm_pro_active_report', JSON.stringify(currentReport));
+        showStatus('تم الحفظ تلقائياً');
+      } catch (e) {
+        console.warn('LocalStorage Quota exceeded or error', e);
+        showStatus('تحذير: الذاكرة المحلية ممتلئة بالصور', true);
+      }
+    }
+
+    function loadSavedData() {
+      try {
+        const saved = localStorage.getItem('vm_pro_active_report');
+        if (saved) {
+          currentReport = JSON.parse(saved);
+        } else {
+          // تحميل البيانات التجريبية للمرة الأولى
+          currentReport.sections = demoSections;
+          saveToLocalStorage();
+        }
+      } catch (e) {
+        currentReport.sections = demoSections;
+      }
+    }
+
+    function showStatus(text, isError = false) {
+      const el = document.getElementById('save-status');
+      if (el) {
+        el.innerText = text;
+        el.className = isError ? 'text-xs text-rose-400 font-bold' : 'text-xs text-emerald-400 font-medium';
+        setTimeout(() => {
+          el.innerText = 'حفظ تلقائي';
+          el.className = 'text-xs text-slate-300 font-medium';
+        }, 3000);
+      }
+    }
+
+    // تصدير PDF باستخدام نافذة الطباعة المنظمة
+    function exportToPDF() {
+      window.print();
+    }
+
+    // مشاركة ملخص التقرير عبر واتساب
+    function shareViaWhatsApp() {
+      let msg = `*تقرير العرض المرئي الأسبوعي (Visual Merchandising)*\n`;
+      msg += `🏬 *المعرض:* ${currentReport.storeName}\n`;
+      msg += `📅 *التاريخ:* ${currentReport.date} | *الأسبوع:* ${currentReport.weekNumber}\n`;
+      msg += `👔 *أخصائي VM:* ${currentReport.specialist}\n`;
+      msg += `-------------------------------\n`;
+      msg += `📊 *الأقسام الموثقة (${currentReport.sections.length}):*\n`;
+
+      currentReport.sections.forEach((s, i) => {
+        msg += `\n${i + 1}. *${s.title}*\n`;
+        if (s.tags.length > 0) msg += `   🏷️ ${s.tags.join('، ')}\n`;
+        if (s.notes) msg += `   📝 ${s.notes}\n`;
+      });
+
+      msg += `\n_تم إعداد التقرير وتوثيقه ميدانياً بواسطة تطبيق VM Pro_`;
+
+      const encoded = encodeURIComponent(msg);
+      window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+    }
+  </script>
+</body>
+</html>
