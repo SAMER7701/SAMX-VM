@@ -583,8 +583,12 @@
             
             <div id="box-preview-before" class="w-full h-32 hidden rounded-xl overflow-hidden relative mb-1 group">
               <img id="img-elem-before" src="" class="w-full h-full object-cover">
-              <button type="button" onclick="clearModalImage('before')" class="absolute top-1.5 left-1.5 bg-rose-600/90 text-white p-1 rounded-full shadow hover:bg-rose-700">
+              <button type="button" onclick="clearModalImage('before')" class="absolute top-1.5 left-1.5 bg-rose-600/90 text-white p-1 rounded-full shadow hover:bg-rose-700 z-10" title="حذف الصورة">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="openAnnotatorFromModal()" class="absolute bottom-1.5 right-1.5 bg-slate-900/95 hover:bg-slate-950 text-gold-400 hover:text-gold-300 border border-gold-500/50 text-[10px] font-bold px-2 py-1 rounded-lg shadow-md flex items-center gap-1 z-10 transition active:scale-95">
+                <i data-lucide="pen-tool" class="w-3 h-3 text-rose-400"></i>
+                <span>أشر على الملاحظة</span>
               </button>
             </div>
 
@@ -623,7 +627,26 @@
 
         </div>
 
-        <!-- 3. وسوم الإجراء السريع (Quick Action Tags) -->
+        <!-- 3. حالة الإجراء والتنفيذ (Action Item Status) -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-200">حالة الإجراء والتنفيذ الميداني:</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="modal-status-selector">
+            <button type="button" onclick="setModalStatus('resolved')" id="status-opt-resolved" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/80 text-emerald-400 border-emerald-500 ring-1 ring-emerald-500">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+              <span>تم المعالجة ميدانياً ✅</span>
+            </button>
+            <button type="button" onclick="setModalStatus('store_followup')" id="status-opt-store_followup" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>تتطلب متابعة الفرع ⏳</span>
+            </button>
+            <button type="button" onclick="setModalStatus('management_action')" id="status-opt-management_action" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+              <span>تتطلب صيانة / إدارة ⚠️</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. وسوم الإجراء السريع (Quick Action Tags) -->
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <label class="block text-xs font-bold text-slate-200">وسوم المعالجة السريعة (انقر للتحديد):</label>
@@ -666,6 +689,75 @@
         </button>
       </div>
 
+  </div>
+
+  <!-- ==================== نافذة أداة التأشير والملاحظات البصرية (ANNOTATOR MODAL) ==================== -->
+  <div id="annotator-modal" class="modal-backdrop fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4">
+    <div class="bg-corp-900 border border-corp-800 w-full max-w-4xl max-h-[96vh] rounded-2xl md:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- شريط أدوات التأشير العلوي -->
+      <div class="p-3 sm:p-4 bg-corp-950 border-b border-corp-800 flex flex-wrap items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+            <i data-lucide="pen-tool" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-xs sm:text-sm text-white">التأشير وتحديد الملاحظة (قبل التعديل)</h3>
+            <p class="text-[10px] text-slate-400">حدد الخلل بدائرة تنبيه أو خط حر باللون الأحمر</p>
+          </div>
+        </div>
+
+        <!-- اختيار نمط الرسم -->
+        <div class="flex items-center gap-1.5 bg-corp-900 p-1 rounded-xl border border-corp-800">
+          <button type="button" onclick="setAnnotatorTool('freehand')" id="tool-btn-freehand" class="px-2.5 py-1 text-xs font-bold rounded-lg transition bg-gold-500 text-slate-950 shadow flex items-center gap-1">
+            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            <span>قلم حر</span>
+          </button>
+          <button type="button" onclick="setAnnotatorTool('circle')" id="tool-btn-circle" class="px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1">
+            <i data-lucide="circle" class="w-3.5 h-3.5"></i>
+            <span>دائرة تنبيه</span>
+          </button>
+        </div>
+
+        <!-- أزرار الإجراء السريع (تراجع / مسح) -->
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="annotatorUndo()" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-slate-200 border border-corp-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition" title="تراجع عن آخر خطوة">
+            <i data-lucide="undo" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">تراجع</span>
+          </button>
+          <button type="button" onclick="annotatorClear()" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-rose-300 border border-corp-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition" title="مسح كافة التأشيرات">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">مسح</span>
+          </button>
+          <button type="button" onclick="closeAnnotatorModal()" class="text-slate-400 hover:text-white p-1 rounded-full">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- منطقة الكانفاس التفاعلية للرسم -->
+      <div class="flex-1 bg-corp-950 overflow-auto flex items-center justify-center p-3 sm:p-4 min-h-[300px]">
+        <div class="relative max-w-full max-h-[70vh] flex items-center justify-center shadow-2xl rounded-xl overflow-hidden border border-corp-800 bg-black">
+          <canvas id="annotator-canvas" class="block cursor-crosshair touch-none max-w-full max-h-[68vh] object-contain"></canvas>
+        </div>
+      </div>
+
+      <!-- تذييل وحفظ الرسم -->
+      <div class="p-3 sm:p-4 bg-corp-950 border-t border-corp-800 flex items-center justify-between">
+        <span class="text-[11px] text-slate-400 flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+          <span>لون التأشير المعتمد: أحمر تنبيه (#ef4444) بعرض 4px</span>
+        </span>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeAnnotatorModal()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white">إلغاء</button>
+          <button type="button" onclick="saveAnnotationResult()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-5 py-2 rounded-xl font-black text-xs md:text-sm shadow flex items-center gap-1.5 active:scale-95 transition">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>حفظ التأشير وتحديث الصورة</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -705,14 +797,52 @@
     let tempImgBefore = null;
     let tempImgAfter = null;
     let activeModalTags = [];
+    let selectedModalStatus = 'resolved'; // 'resolved' | 'store_followup' | 'management_action'
     let isSpeechRecording = false;
     let speechRecognizer = null;
+
+    // تعريف حالات الإجراء والمتابعة
+    const STATUS_MAP = {
+      resolved: {
+        id: 'resolved',
+        label: 'تم المعالجة ميدانياً ✅',
+        shortLabel: 'تم المعالجة ✅',
+        badgeClass: 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50',
+        printBadgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold',
+        icon: 'check-circle-2'
+      },
+      store_followup: {
+        id: 'store_followup',
+        label: 'تتطلب متابعة الفرع ⏳',
+        shortLabel: 'متابعة الفرع ⏳',
+        badgeClass: 'bg-amber-950/80 text-amber-400 border border-amber-500/50',
+        printBadgeClass: 'bg-amber-100 text-amber-900 border border-amber-400 font-bold',
+        icon: 'clock'
+      },
+      management_action: {
+        id: 'management_action',
+        label: 'تتطلب صيانة / إدارة ⚠️',
+        shortLabel: 'صيانة / إدارة ⚠️',
+        badgeClass: 'bg-rose-950/80 text-rose-400 border border-rose-500/50',
+        printBadgeClass: 'bg-rose-100 text-rose-900 border border-rose-400 font-bold',
+        icon: 'alert-triangle'
+      }
+    };
+
+    function getStatusBadgeHtml(statusKey, isPrint = false) {
+      const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
+      const css = isPrint ? cfg.printBadgeClass : cfg.badgeClass;
+      return `<span class="${css} text-[11px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0">
+        <span>${isPrint ? cfg.label : cfg.shortLabel}</span>
+      </span>`;
+    }
 
     // بيانات تجريبية احترافية للملابس والتجزئة الفاخرة
     const SAMPLE_DEMO_DATA = [
       {
         id: 'sec_demo_1',
         title: 'الواجهة الرئيسية والمانيكانات (Window Display)',
+        status: 'resolved',
         beforeImg: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&auto=format&fit=crop&q=75',
         tags: ['تبديل طقم المانيكان', 'توجيه وزوايا الإضاءة'],
@@ -721,18 +851,20 @@
       {
         id: 'sec_demo_2',
         title: 'طاولات العرض المركزية والملابس المطوية (Folded Tables)',
+        status: 'store_followup',
         beforeImg: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&auto=format&fit=crop&q=75',
         tags: ['تناسق الألوان (Color Story)', 'ترتيب تسلسل المقاسات', 'إعادة طي وترتيب الطاولات'],
-        notes: 'تمت إعادة طي القمصان وفق معايير مقاس الطي المعتمد (Folding Board)، وتنسيق تدرج الألوان من الفاتح إلى الكحلي الداكن مع ترتيب المقاسات تصاعدياً من S إلى XXL.'
+        notes: 'تمت إعادة طي القمصان وفق معايير مقاس الطي المعتمد (Folding Board)، وتنسيق تدرج الألوان من الفاتح إلى الكحلي الداكن مع ترتيب المقاسات تصاعدياً من S إلى XXL. يلزم متابعة تعبئة النواقص.'
       },
       {
         id: 'sec_demo_3',
         title: 'نقطة الدخول والتركيز البصري (Focal Point)',
+        status: 'management_action',
         beforeImg: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=75',
         tags: ['تعبئة النواقص والرفوف', 'لوحات الأسعار والعروض (POSM)'],
-        notes: 'إعادة تعبئة المعاليق الجدارية بنواقص المقاسات وتثبيت بطاقات التشكيلة الجديدة وحوامل الأسعار الأكريليك المعتمدة عند المدخل.'
+        notes: 'إعادة تعبئة المعاليق الجدارية بنواقص المقاسات وتثبيت بطاقات التشكيلة الجديدة، مع رفع طلب صيانة لوحدة إضاءة المسار العلوية.'
       }
     ];
 
@@ -917,6 +1049,255 @@
       lucide.createIcons();
     }
 
+    // ضبط وتحديث حالة الإجراء في الاستمارة
+    function setModalStatus(statusKey) {
+      selectedModalStatus = statusKey;
+      const opts = ['resolved', 'store_followup', 'management_action'];
+      opts.forEach(k => {
+        const btn = document.getElementById(`status-opt-${k}`);
+        if (!btn) return;
+        if (k === statusKey) {
+          if (k === 'resolved') {
+            btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/90 text-emerald-300 border-emerald-500 ring-1 ring-emerald-500 shadow";
+          } else if (k === 'store_followup') {
+            btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-amber-950/90 text-amber-300 border-amber-500 ring-1 ring-amber-500 shadow";
+          } else {
+            btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-rose-950/90 text-rose-300 border-rose-500 ring-1 ring-rose-500 shadow";
+          }
+        } else {
+          btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200";
+        }
+      });
+    }
+
+    // إدارة وضع المقارنة المنزلقة للبطاقات
+    const cardViewModes = {}; // secId -> 'sideBySide' | 'slider'
+
+    function toggleCardViewMode(secId) {
+      cardViewModes[secId] = cardViewModes[secId] === 'slider' ? 'sideBySide' : 'slider';
+      renderAuditCards();
+    }
+
+    function updateSliderPosition(secId, val) {
+      const divider = document.getElementById(`slider-handle-${secId}`);
+      const beforeImg = document.getElementById(`slider-before-img-${secId}`);
+      if (divider) divider.style.left = `${val}%`;
+      if (beforeImg) {
+        beforeImg.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
+      }
+    }
+
+    // ==================== أداة التأشير والملاحظات البصرية (CANVAS ANNOTATOR) ====================
+    let annotatorCanvas = null;
+    let annotatorCtx = null;
+    let annotatorBaseImg = null;
+    let annotatorHistory = [];
+    let isDrawing = false;
+    let annotatorTool = 'freehand'; // 'freehand' | 'circle'
+    let startX = 0;
+    let startY = 0;
+    let annotatorTarget = 'modal'; // 'modal' | sectionId
+
+    function openAnnotatorFromModal() {
+      if (!tempImgBefore) {
+        showToast('يرجى التقاط صورة الوضع السابق أولاً للتأشير عليها', 'error');
+        return;
+      }
+      annotatorTarget = 'modal';
+      initCanvasAnnotator(tempImgBefore);
+    }
+
+    function openAnnotatorForSection(secId) {
+      const sec = currentAudit.sections.find(s => s.id === secId);
+      if (!sec || !sec.beforeImg) {
+        showToast('لا توجد صورة سابقة للتأشير عليها', 'error');
+        return;
+      }
+      annotatorTarget = secId;
+      initCanvasAnnotator(sec.beforeImg);
+    }
+
+    function initCanvasAnnotator(imgSrc) {
+      const modal = document.getElementById('annotator-modal');
+      annotatorCanvas = document.getElementById('annotator-canvas');
+      annotatorCtx = annotatorCanvas.getContext('2d');
+      annotatorHistory = [];
+
+      showToast('جاري تحميل أداة التأشير...', 'info');
+
+      annotatorBaseImg = new Image();
+      annotatorBaseImg.crossOrigin = 'anonymous';
+      annotatorBaseImg.onload = function() {
+        const maxW = 1200;
+        let w = annotatorBaseImg.width;
+        let h = annotatorBaseImg.height;
+        if (w > maxW) {
+          h = Math.round((h * maxW) / w);
+          w = maxW;
+        }
+        annotatorCanvas.width = w;
+        annotatorCanvas.height = h;
+
+        redrawAnnotatorBase();
+        saveAnnotatorHistoryState();
+
+        modal.classList.remove('hidden');
+        bindCanvasDrawingEvents();
+        setAnnotatorTool('freehand');
+        lucide.createIcons();
+      };
+      annotatorBaseImg.src = imgSrc;
+    }
+
+    function setAnnotatorTool(tool) {
+      annotatorTool = tool;
+      const btnFree = document.getElementById('tool-btn-freehand');
+      const btnCirc = document.getElementById('tool-btn-circle');
+      if (tool === 'freehand') {
+        btnFree.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition bg-gold-500 text-slate-950 shadow flex items-center gap-1";
+        btnCirc.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1";
+      } else {
+        btnCirc.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition bg-gold-500 text-slate-950 shadow flex items-center gap-1";
+        btnFree.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center gap-1";
+      }
+    }
+
+    function getCanvasCoordinates(e) {
+      const rect = annotatorCanvas.getBoundingClientRect();
+      const scaleX = annotatorCanvas.width / rect.width;
+      const scaleY = annotatorCanvas.height / rect.height;
+
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    let drawingPoints = [];
+
+    function bindCanvasDrawingEvents() {
+      annotatorCanvas.onmousedown = onDrawingStart;
+      annotatorCanvas.onmousemove = onDrawingMove;
+      annotatorCanvas.onmouseup = onDrawingEnd;
+      annotatorCanvas.onmouseleave = onDrawingEnd;
+
+      annotatorCanvas.ontouchstart = (e) => { e.preventDefault(); onDrawingStart(e); };
+      annotatorCanvas.ontouchmove = (e) => { e.preventDefault(); onDrawingMove(e); };
+      annotatorCanvas.ontouchend = (e) => { e.preventDefault(); onDrawingEnd(e); };
+    }
+
+    function onDrawingStart(e) {
+      isDrawing = true;
+      const pos = getCanvasCoordinates(e);
+      startX = pos.x;
+      startY = pos.y;
+      drawingPoints = [{ x: pos.x, y: pos.y }];
+    }
+
+    function onDrawingMove(e) {
+      if (!isDrawing) return;
+      const pos = getCanvasCoordinates(e);
+
+      if (annotatorTool === 'freehand') {
+        drawingPoints.push({ x: pos.x, y: pos.y });
+        annotatorCtx.strokeStyle = '#ef4444';
+        annotatorCtx.lineWidth = 4;
+        annotatorCtx.lineCap = 'round';
+        annotatorCtx.lineJoin = 'round';
+        annotatorCtx.beginPath();
+        const p1 = drawingPoints[drawingPoints.length - 2];
+        const p2 = drawingPoints[drawingPoints.length - 1];
+        if (p1 && p2) {
+          annotatorCtx.moveTo(p1.x, p1.y);
+          annotatorCtx.lineTo(p2.x, p2.y);
+          annotatorCtx.stroke();
+        }
+      } else if (annotatorTool === 'circle') {
+        restoreLastHistoryState();
+        const radius = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+        annotatorCtx.strokeStyle = '#ef4444';
+        annotatorCtx.lineWidth = 4;
+        annotatorCtx.beginPath();
+        annotatorCtx.arc(startX, startY, radius, 0, 2 * Math.PI);
+        annotatorCtx.stroke();
+      }
+    }
+
+    function onDrawingEnd(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+      saveAnnotatorHistoryState();
+    }
+
+    function saveAnnotatorHistoryState() {
+      const state = annotatorCtx.getImageData(0, 0, annotatorCanvas.width, annotatorCanvas.height);
+      annotatorHistory.push(state);
+      if (annotatorHistory.length > 25) annotatorHistory.shift();
+    }
+
+    function restoreLastHistoryState() {
+      if (annotatorHistory.length > 0) {
+        annotatorCtx.putImageData(annotatorHistory[annotatorHistory.length - 1], 0, 0);
+      }
+    }
+
+    function annotatorUndo() {
+      if (annotatorHistory.length > 1) {
+        annotatorHistory.pop();
+        const prev = annotatorHistory[annotatorHistory.length - 1];
+        annotatorCtx.putImageData(prev, 0, 0);
+        showToast('تم التراجع عن آخر خطوة', 'info');
+      } else {
+        showToast('لا توجد خطوات سابقة للتراجع عنها', 'info');
+      }
+    }
+
+    function annotatorClear() {
+      if (!confirm('هل ترغب في مسح كافة التأشيرات واستعادة الصورة الأصلية؟')) return;
+      redrawAnnotatorBase();
+      annotatorHistory = [];
+      saveAnnotatorHistoryState();
+      showToast('تم مسح التأشيرات', 'info');
+    }
+
+    function redrawAnnotatorBase() {
+      annotatorCtx.clearRect(0, 0, annotatorCanvas.width, annotatorCanvas.height);
+      annotatorCtx.drawImage(annotatorBaseImg, 0, 0, annotatorCanvas.width, annotatorCanvas.height);
+    }
+
+    function saveAnnotationResult() {
+      const annotatedData = annotatorCanvas.toDataURL('image/jpeg', 0.85);
+
+      if (annotatorTarget === 'modal') {
+        tempImgBefore = annotatedData;
+        const imgElem = document.getElementById('img-elem-before');
+        if (imgElem) imgElem.src = annotatedData;
+      } else {
+        const secIndex = currentAudit.sections.findIndex(s => s.id === annotatorTarget);
+        if (secIndex !== -1) {
+          currentAudit.sections[secIndex].beforeImg = annotatedData;
+          saveAuditToStorage();
+          renderAuditCards();
+        }
+      }
+
+      closeAnnotatorModal();
+      showToast('تم حفظ التأشير وتحديث الصورة بنجاح', 'success');
+    }
+
+    function closeAnnotatorModal() {
+      document.getElementById('annotator-modal').classList.add('hidden');
+      isDrawing = false;
+    }
+
     // عرض بطاقات الأقسام في شاشة الجولة الميدانية
     function renderAuditCards() {
       const container = document.getElementById('audit-cards-container');
@@ -942,11 +1323,16 @@
           </span>
         `).join('');
 
+        const statusBadgeHtml = getStatusBadgeHtml(sec.status || 'resolved');
+        const hasBoth = sec.beforeImg && sec.afterImg && !sec.beforeImg.includes('placehold.co') && !sec.afterImg.includes('placehold.co');
+        const isSlider = hasBoth && cardViewModes[sec.id] === 'slider';
+
         card.innerHTML = `
           <div class="flex items-center justify-between pb-3 mb-3 border-b border-corp-800">
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="w-7 h-7 rounded-lg bg-corp-800 text-gold-400 font-black text-xs flex items-center justify-center border border-corp-700">#${idx + 1}</span>
               <h3 class="font-bold text-sm md:text-base text-white">${sec.title}</h3>
+              ${statusBadgeHtml}
             </div>
             <div class="flex items-center gap-1.5">
               <button onclick="moveSection(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 p-1.5"' : 'class="text-slate-400 hover:text-white p-1.5 hover:bg-corp-800 rounded-lg"'} title="نقل لأعلى">
@@ -964,28 +1350,66 @@
             </div>
           </div>
 
-          <!-- مقارنة الصور قبل وبعد (Side-by-side) -->
-          <div class="grid grid-cols-2 gap-3 mb-3">
+          <!-- شريط التحكم بنمط العرض والتأشير -->
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            ${hasBoth ? `
+              <button type="button" onclick="toggleCardViewMode('${sec.id}')" class="text-[11px] px-2.5 py-1 rounded-lg border flex items-center gap-1.5 font-bold transition ${isSlider ? 'bg-gold-500 text-slate-950 border-gold-400 shadow' : 'bg-corp-950 text-slate-400 border-corp-800 hover:text-white'}">
+                <i data-lucide="${isSlider ? 'layout-grid' : 'columns'}" class="w-3.5 h-3.5"></i>
+                <span>${isSlider ? 'عرض جنباً إلى جنب' : 'مقارنة منزلقة تفاعلية ↔'}</span>
+              </button>
+            ` : '<div></div>'}
             
-            <div class="relative rounded-xl overflow-hidden border border-rose-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - قبل التعديل')">
-              <span class="absolute top-2 right-2 bg-rose-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">قبل</span>
-              <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                <span>تكبير</span>
-              </div>
-            </div>
-
-            <div class="relative rounded-xl overflow-hidden border border-emerald-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.afterImg}', '${sec.title} - بعد التعديل')">
-              <span class="absolute top-2 right-2 bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">بعد</span>
-              <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                <span>تكبير</span>
-              </div>
-            </div>
-
+            <button type="button" onclick="openAnnotatorForSection('${sec.id}')" class="text-[11px] px-2.5 py-1 rounded-lg border border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 flex items-center gap-1.5 font-bold transition active:scale-95">
+              <i data-lucide="pen-tool" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>أشر على صورة قبل</span>
+            </button>
           </div>
+
+          <!-- عرض الصور: إما مقارنة منزلقة أو جنباً إلى جنب -->
+          ${isSlider ? `
+            <!-- المقارنة المنزلقة التفاعلية -->
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden select-none bg-corp-950 border border-corp-800 mb-3 shadow-inner" id="slider-box-${sec.id}">
+              <!-- صورة بعد (في الخلفية) -->
+              <img src="${sec.afterImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none">
+              <span class="absolute top-2 left-2 bg-emerald-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10 pointer-events-none">بعد التعديل</span>
+
+              <!-- صورة قبل (المقتطعة أفقياً) -->
+              <img id="slider-before-img-${sec.id}" src="${sec.beforeImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+              <span class="absolute top-2 right-2 bg-rose-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10 pointer-events-none">قبل التعديل</span>
+
+              <!-- المقبض الفاصل -->
+              <div id="slider-handle-${sec.id}" class="absolute top-0 bottom-0 pointer-events-none z-20 flex items-center justify-center -translate-x-1/2" style="left: 50%;">
+                <div class="w-0.5 h-full bg-gold-400 shadow-xl"></div>
+                <div class="absolute w-8 h-8 bg-gold-500 text-slate-950 rounded-full shadow-2xl flex items-center justify-center border-2 border-slate-900 font-black text-xs">
+                  ↔
+                </div>
+              </div>
+
+              <!-- منزلق التحكم التفاعلي -->
+              <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
+            </div>
+          ` : `
+            <!-- العرض التقليدي جنباً إلى جنب -->
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div class="relative rounded-xl overflow-hidden border border-rose-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - قبل التعديل')">
+                <span class="absolute top-2 right-2 bg-rose-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">قبل</span>
+                <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير</span>
+                </div>
+              </div>
+
+              <div class="relative rounded-xl overflow-hidden border border-emerald-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.afterImg}', '${sec.title} - بعد التعديل')">
+                <span class="absolute top-2 right-2 bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">بعد</span>
+                <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير</span>
+                </div>
+              </div>
+            </div>
+          `}
 
           <!-- الوسوم المطبقة -->
           ${sec.tags && sec.tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-3">${tagsHtml}</div>` : ''}
@@ -1030,9 +1454,10 @@
 
         item.innerHTML = `
           <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
-            <h4 class="font-black text-slate-900 text-sm md:text-base flex items-center gap-1.5">
+            <h4 class="font-black text-slate-900 text-sm md:text-base flex items-center gap-2 flex-wrap">
               <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
               <span>${sec.title}</span>
+              ${getStatusBadgeHtml(sec.status || 'resolved', true)}
             </h4>
             <div class="flex flex-wrap gap-1">${tagsBadge}</div>
           </div>
@@ -1087,6 +1512,7 @@
       tempImgBefore = null;
       tempImgAfter = null;
       activeModalTags = [];
+      setModalStatus('resolved');
       document.getElementById('modal-section-type').selectedIndex = 0;
       document.getElementById('custom-section-wrapper').classList.add('hidden');
       document.getElementById('modal-custom-title').value = '';
@@ -1210,6 +1636,7 @@
           currentAudit.sections[index] = {
             id: editingSectionId,
             title: finalTitle,
+            status: selectedModalStatus || 'resolved',
             beforeImg: tempImgBefore || currentAudit.sections[index].beforeImg,
             afterImg: tempImgAfter || currentAudit.sections[index].afterImg,
             tags: [...activeModalTags],
@@ -1221,6 +1648,7 @@
         const newSec = {
           id: 'sec_' + Date.now(),
           title: finalTitle,
+          status: selectedModalStatus || 'resolved',
           beforeImg: tempImgBefore || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
           afterImg: tempImgAfter || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
           tags: [...activeModalTags],
@@ -1258,6 +1686,9 @@
         document.getElementById('custom-section-wrapper').classList.remove('hidden');
         document.getElementById('modal-custom-title').value = sec.title;
       }
+
+      // تعيين حالة الإجراء المخزنة
+      setModalStatus(sec.status || 'resolved');
 
       document.getElementById('modal-notes').value = sec.notes || '';
 
@@ -1466,7 +1897,8 @@
       msg += `📊 *إجمالي الأقسام الموثقة (${currentAudit.sections.length}):*\n`;
 
       currentAudit.sections.forEach((sec, idx) => {
-        msg += `\n${idx + 1}. *${sec.title}*\n`;
+        const statusMeta = STATUS_MAP[sec.status] || STATUS_MAP.resolved;
+        msg += `\n${idx + 1}. *${sec.title}* [${statusMeta.label}]\n`;
         if (sec.tags && sec.tags.length > 0) {
           msg += `   🏷️ ${sec.tags.join('، ')}\n`;
         }
