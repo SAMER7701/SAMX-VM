@@ -585,6 +585,24 @@
           </div>
         </div>
 
+        <!-- قائمة معايير الـ VM التفاعلية الخاصة بالقسم (Dynamic Category Checklist) -->
+        <div class="space-y-2 bg-corp-950/80 border border-corp-800 rounded-2xl p-3.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="list-checks" class="w-4 h-4 text-gold-400"></i>
+              <span>معايير العرض المرئي (VM Standards) المعتمدة للقسم:</span>
+            </label>
+            <button type="button" onclick="insertChecklistToNotes()" class="text-[11px] text-gold-400 hover:text-gold-300 font-bold flex items-center gap-1 transition" title="إدراج المعايير المؤكدة في حقل الملاحظات">
+              <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+              <span>إدراج بالملاحظات 📝</span>
+            </button>
+          </div>
+          <div id="category-checklist-container" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <!-- يُملأ ديناميكياً بناءً على تصنيف القسم المختار -->
+          </div>
+          <p class="text-[10px] text-slate-400">انقر لتأكيد الالتزام بالمعيار الميداني (تُحفظ كبنود جودة موثقة في التقرير التنفيذي).</p>
+        </div>
+
         <!-- 2. رفع صور قبل وبعد مع ضغط Canvas التلقائي -->
         <div class="grid grid-cols-2 gap-3">
           
@@ -654,6 +672,38 @@
               <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
               <span>تتطلب صيانة / إدارة ⚠️</span>
             </button>
+          </div>
+        </div>
+
+        <!-- حقول متابعة وتكليف الإجراء (Follow-up & Commitment Fields) -->
+        <div id="action-followup-container" class="hidden bg-corp-950 border border-amber-500/40 rounded-2xl p-3.5 space-y-3">
+          <div class="flex items-center justify-between">
+            <label id="followup-action-label" class="block text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+              <span>بيانات التكليف والمتابعة الإلزامية:</span>
+            </label>
+            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">مطلوب للمتابعة</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-slate-300">المسؤول عن التنفيذ (Assignee):</label>
+              <input type="text" id="modal-action-assignee" placeholder="مثال: مدير المعرض، مشرف القسم، مسؤول الصيانة..." class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-500 focus:ring-1 outline-none">
+              <div class="flex flex-wrap gap-1 mt-1">
+                <button type="button" onclick="setQuickAssignee('مدير المعرض')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">مدير المعرض</button>
+                <button type="button" onclick="setQuickAssignee('مشرف القسم')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">مشرف القسم</button>
+                <button type="button" onclick="setQuickAssignee('فريق الصيانة')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">فريق الصيانة</button>
+                <button type="button" onclick="setQuickAssignee('إدارة التشغيل')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">إدارة التشغيل</button>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-slate-300">تاريخ الإنجاز المطلوب (Target Due Date):</label>
+              <input type="date" id="modal-action-duedate" class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-500 focus:ring-1 outline-none">
+              <div class="flex gap-1 mt-1">
+                <button type="button" onclick="setQuickDueDate(2)" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">خلال 48 ساعة</button>
+                <button type="button" onclick="setQuickDueDate(7)" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">خلال أسبوع</button>
+                <button type="button" onclick="setQuickDueDate(14)" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">خلال أسبوعين</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -871,6 +921,51 @@
     </div>
   </div>
 
+  <!-- ==================== نافذة التحقق من جودة التقرير قبل التصدير (PRE-EXPORT QUALITY CHECK) ==================== -->
+  <div id="validation-check-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- رأس التنبيه -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white">فحص جودة وتكامل تقرير المعرض</h3>
+            <p class="text-[11px] text-slate-400">مراجعة معايير التوثيق الميداني قبل التصدير والطباعة</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeValidationModal()" class="text-slate-400 hover:text-white p-1 rounded-full">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- محتوى النواقص المكتشفة -->
+      <div class="p-4 overflow-y-auto space-y-3 flex-1">
+        <div class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200 flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span>تنبيه: تم رصد أقسام تنقصها صور بعد التعديل أو الملاحظات/المعايير المعتمدة. يُوصى باستكمالها لضمان اعتماد التقرير التنفيذي.</span>
+        </div>
+
+        <div id="validation-issues-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+          <!-- يُملأ ديناميكياً بقائمة الأقسام غير المكتملة -->
+        </div>
+      </div>
+
+      <!-- أزرار الإجراء -->
+      <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-between gap-2">
+        <button type="button" onclick="closeValidationModal()" class="px-4 py-2 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          <span>استكمال النواقص الآن ✏️</span>
+        </button>
+        <button type="button" id="validation-proceed-btn" onclick="confirmProceedAnyway()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-5 py-2 rounded-xl text-xs font-black shadow transition active:scale-95 flex items-center gap-1.5">
+          <i data-lucide="file-check" class="w-4 h-4"></i>
+          <span>المتابعة والتصدير رغم ذلك 📄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- حاوية التنبيهات الميدانية (TOAST CONTAINER) -->
   <div id="toast-container" class="no-print fixed bottom-20 md:bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -892,9 +987,79 @@
     let tempImgBefore = null;
     let tempImgAfter = null;
     let activeModalTags = [];
+    let activeModalChecklist = [];
     let selectedModalStatus = 'resolved'; // 'resolved' | 'store_followup' | 'management_action'
     let isSpeechRecording = false;
     let speechRecognizer = null;
+    let pendingValidationProceedCallback = null;
+    let isBypassingValidation = false;
+
+    // معايير التدقيق الميداني المعتمدة حسب كل قسم (Dynamic VM Category Checklists)
+    const VM_CATEGORY_CHECKLISTS = {
+      'الواجهة الرئيسية والمانيكانات (Window Display)': [
+        'سلامة ونظافة المانيكان وضبط التثبيت والوقفة',
+        'تطبيق قصة الألوان المعتمدة للواجهة (Color Story)',
+        'توجيه زوايا الإضاءة والسبوت لايت (45 درجة)',
+        'وضوح لافتات الأسعار والحملة الترويجية (POSM)',
+        'تناسق الإكسسوارات مع الأطقم المعروضة'
+      ],
+      'نقطة الدخول والتركيز البصري (Focal Point)': [
+        'إبراز القطع البطلة للتشكيلة الجديدة (Hero Items)',
+        'توازن الارتفاعات والتدرج الهرمي للمنتجات',
+        'ضبط الإضاءة الموجهة دون ظلال عاتمة',
+        'اكتمال ووضوح لوحات الأسعار والترحيب',
+        'انسيابية الممرات وخط الرؤية المباشر للزبائن'
+      ],
+      'قسم الثياب والأزياء الرسمية (Formal & Thobes)': [
+        'تسلسل وترتيب المقاسات تصاعدياً (Size Sequence)',
+        'توحيد اتجاه ونوعية المعاليق (Hanger Consistency)',
+        'كوي وتجهيز القطع وخلوها من التجاعيد',
+        'دقة بطاقات الأسعار والأكواد التعريفية',
+        'تناسق درجات الأقمشة والألوان الرسمية'
+      ],
+      'قسم الملابس الكاجوال واليومية (Casual Wear)': [
+        'تناسق تدفق الألوان والتدرج البصري (Color Flow)',
+        'ضبط مسافات المعاليق (قاعدة مسافة الإصبع)',
+        'توافر وتوزيع كامل مقاسات التشكيلة (S-XXL)',
+        'تنسيق أطقم الربط المباشر (Cross-Merchandising)',
+        'وضوح شاشات ولوحات العروض الترويجية'
+      ],
+      'طاولات العرض المركزية والملابس المطوية (Folded Tables)': [
+        'تطبيق معيار مقاس الطي المعتمد (Folding Board)',
+        'تدرج الألوان الأفقي والعمودي على الطاولة',
+        'ترتيب مقاسات الأكوام تصاعدياً من الأعلى للأسفل',
+        'تماثل ارتفاعات أكوام الملابس وتناسقها',
+        'تثبيت بطاقة السعر بوضوح أمام كل كومة'
+      ],
+      'قسم الشماغ والغتر والإكسسوارات (Accessories)': [
+        'نظافة وتلميع الفترينات وواجهات العرض الزجاجية',
+        'ترتيب الأشمغة والغتر بدقة حسب المقاس والماركة',
+        'تثبيت لواصق الأسعار والباركود في مواضعها',
+        'اكتمال الإضاءة الداخلية للفترينات',
+        'تنظيم ملحقات العرض (الكبك، المحافظ، الأزرار)'
+      ],
+      'قسم الأحذية والمستلزمات الجلدية (Footwear)': [
+        'توجيه الحذاء الأيمن للخارج وبزاوية العرض المعتمدة',
+        'نظافة أرفف العرض والوسائد الجلدية',
+        'اكتمال بطاقات المقاسات والأسعار',
+        'ترتيب تسلسل الموديلات والألوان',
+        'توفر مقاسات التجربة الأساسية'
+      ],
+      'منطقة الكاشير وغرف القياس (Cashier & Fitting)': [
+        'نظافة طاولة الكاشير وخلوها من العوائق',
+        'ترتيب وتجديد عروض الشراء السريع (Impulse Buys)',
+        'نظافة مرايا وإضاءة غرف القياس',
+        'جاهزية أرقام غرف القياس وسلال الإرجاع السريع',
+        'وضوح شاشات الأسعار وسياسة الاستبدال'
+      ],
+      'default': [
+        'تناسق الألوان وتدرجها البصري (Color Story)',
+        'تسلسل المقاسات والترتيب المعياري للقطع',
+        'توجيه وضبط زوايا الإضاءة نحو المنتجات',
+        'وضوح بطاقات الأسعار والحملة الترويجية (POSM)',
+        'نظافة الموقع وتوحيد اتجاه المعاليق'
+      ]
+    };
 
     // تعريف حالات الإجراء والمتابعة
     const STATUS_MAP = {
@@ -941,24 +1106,42 @@
         beforeImg: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&auto=format&fit=crop&q=75',
         tags: ['تبديل طقم المانيكان', 'توجيه وزوايا الإضاءة'],
+        checklist: [
+          'سلامة ونظافة المانيكان وضبط التثبيت والوقفة',
+          'تطبيق قصة الألوان المعتمدة للواجهة (Color Story)',
+          'توجيه زوايا الإضاءة والسبوت لايت (45 درجة)'
+        ],
         notes: 'تم استبدال المعروض على مانيكانات الواجهة الرئيسية بأطقم الكولكشن الشتوي الفاخر، وضبط كشافات الإضاءة بزاوية 45 درجة لإبراز خامة الصوف وإزالة الظلال العاتمة.'
       },
       {
         id: 'sec_demo_2',
         title: 'طاولات العرض المركزية والملابس المطوية (Folded Tables)',
         status: 'store_followup',
+        actionAssignee: 'مدير المعرض (خالد)',
+        actionDueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
         beforeImg: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&auto=format&fit=crop&q=75',
         tags: ['تناسق الألوان (Color Story)', 'ترتيب تسلسل المقاسات', 'إعادة طي وترتيب الطاولات'],
+        checklist: [
+          'تطبيق معيار مقاس الطي المعتمد (Folding Board)',
+          'تدرج الألوان الأفقي والعمودي على الطاولة',
+          'ترتيب مقاسات الأكوام تصاعدياً من الأعلى للأسفل'
+        ],
         notes: 'تمت إعادة طي القمصان وفق معايير مقاس الطي المعتمد (Folding Board)، وتنسيق تدرج الألوان من الفاتح إلى الكحلي الداكن مع ترتيب المقاسات تصاعدياً من S إلى XXL. يلزم متابعة تعبئة النواقص.'
       },
       {
         id: 'sec_demo_3',
         title: 'نقطة الدخول والتركيز البصري (Focal Point)',
         status: 'management_action',
+        actionAssignee: 'فريق الصيانة المركزية',
+        actionDueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
         beforeImg: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop&q=75',
         afterImg: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=75',
         tags: ['تعبئة النواقص والرفوف', 'لوحات الأسعار والعروض (POSM)'],
+        checklist: [
+          'إبراز القطع البطلة للتشكيلة الجديدة (Hero Items)',
+          'اكتمال ووضوح لوحات الأسعار والترحيب'
+        ],
         notes: 'إعادة تعبئة المعاليق الجدارية بنواقص المقاسات وتثبيت بطاقات التشكيلة الجديدة، مع رفع طلب صيانة لوحدة إضاءة المسار العلوية.'
       }
     ];
@@ -1441,8 +1624,148 @@
       icon.classList.toggle('rotate-180');
     }
 
+    // ==================== معايير الـ VM وقوائم التحقق الميدانية التفاعلية ====================
+    function renderCategoryChecklist(categoryName) {
+      const container = document.getElementById('category-checklist-container');
+      if (!container) return;
+
+      const standards = VM_CATEGORY_CHECKLISTS[categoryName] || VM_CATEGORY_CHECKLISTS['default'];
+
+      container.innerHTML = standards.map(std => {
+        const isChecked = activeModalChecklist.includes(std);
+        return `
+          <button type="button" onclick="toggleChecklistItem('${std.replace(/'/g, "\\'")}')" class="text-right p-2 rounded-xl text-[11px] font-semibold border transition flex items-start gap-2 ${
+            isChecked
+              ? 'bg-gold-500/15 border-gold-400 text-gold-300 ring-1 ring-gold-500 shadow-sm'
+              : 'bg-corp-900 border-corp-800 text-slate-300 hover:border-corp-700'
+          }">
+            <span class="w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${
+              isChecked
+                ? 'bg-gold-500 text-slate-950 border-gold-400 font-black text-xs'
+                : 'border-corp-700 bg-corp-950 text-transparent'
+            }">✓</span>
+            <span class="leading-tight">${std}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleChecklistItem(standard) {
+      if (activeModalChecklist.includes(standard)) {
+        activeModalChecklist = activeModalChecklist.filter(s => s !== standard);
+      } else {
+        activeModalChecklist.push(standard);
+      }
+      const typeSelect = document.getElementById('modal-section-type');
+      renderCategoryChecklist(typeSelect ? typeSelect.value : 'default');
+    }
+
+    function insertChecklistToNotes() {
+      if (activeModalChecklist.length === 0) {
+        showToast('يرجى تحديد معيار واحد على الأقل من قائمة الـ VM أولاً', 'info');
+        return;
+      }
+      const notesEl = document.getElementById('modal-notes');
+      const bullets = activeModalChecklist.map(item => `• معيار مؤكد: ${item}`).join('\n');
+      notesEl.value = (notesEl.value ? notesEl.value.trim() + '\n\n' : '') + bullets;
+      showToast('تم إدراج معايير الـ VM في الملاحظات', 'success');
+    }
+
+    function setQuickAssignee(role) {
+      const el = document.getElementById('modal-action-assignee');
+      if (el) el.value = role;
+    }
+
+    function setQuickDueDate(daysAhead) {
+      const el = document.getElementById('modal-action-duedate');
+      if (el) {
+        const d = new Date(Date.now() + daysAhead * 86400000);
+        el.value = d.toISOString().split('T')[0];
+      }
+    }
+
+    // ==================== فحص الجودة قبل التصدير والطباعة (Pre-Export Quality Check) ====================
+    function validateAuditQuality(onProceed) {
+      if (!currentAudit.sections || currentAudit.sections.length === 0) {
+        return true;
+      }
+
+      const issues = [];
+      currentAudit.sections.forEach((sec, idx) => {
+        const secIssues = [];
+        const hasBefore = sec.beforeImg && !sec.beforeImg.includes('placehold.co');
+        const hasAfter = sec.afterImg && !sec.afterImg.includes('placehold.co');
+        const hasNotesOrChecklist = (sec.notes && sec.notes.trim().length > 0) || (sec.checklist && sec.checklist.length > 0);
+
+        if (!hasBefore) secIssues.push('صورة الوضع السابق (قبل) مفقودة');
+        if (!hasAfter) secIssues.push('صورة بعد التعديل (بعد) مفقودة');
+        if (!hasNotesOrChecklist) secIssues.push('الملاحظات الفنية أو معايير الـ VM غير موثقة');
+
+        if (secIssues.length > 0) {
+          issues.push({
+            sectionIndex: idx,
+            sectionId: sec.id,
+            sectionTitle: sec.title,
+            reasons: secIssues
+          });
+        }
+      });
+
+      if (issues.length === 0) {
+        return true;
+      }
+
+      pendingValidationProceedCallback = onProceed;
+      const modal = document.getElementById('validation-check-modal');
+      const listEl = document.getElementById('validation-issues-list');
+      
+      listEl.innerHTML = issues.map(item => `
+        <div class="p-3 bg-corp-950/90 border border-corp-800 rounded-xl flex items-start justify-between gap-3">
+          <div>
+            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded bg-corp-800 text-gold-400 text-[10px] font-bold flex items-center justify-center">#${item.sectionIndex + 1}</span>
+              <span>${item.sectionTitle}</span>
+            </h4>
+            <ul class="mt-1 space-y-0.5 pr-6 text-[11px] text-rose-400 list-disc">
+              ${item.reasons.map(r => `<li>${r}</li>`).join('')}
+            </ul>
+          </div>
+          <button type="button" onclick="editSectionEntry('${item.sectionId}'); closeValidationModal();" class="text-xs text-gold-400 hover:text-gold-300 font-bold bg-corp-900 border border-corp-700 px-2.5 py-1.5 rounded-lg shrink-0 transition">
+            استكمال ✏️
+          </button>
+        </div>
+      `).join('');
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+      showToast('تنبيه: بعض الأقسام تنقصها صور بعد أو الملاحظات', 'info');
+      return false;
+    }
+
+    function closeValidationModal() {
+      document.getElementById('validation-check-modal').classList.add('hidden');
+      pendingValidationProceedCallback = null;
+    }
+
+    function confirmProceedAnyway() {
+      const cb = pendingValidationProceedCallback;
+      closeValidationModal();
+      if (typeof cb === 'function') {
+        isBypassingValidation = true;
+        cb();
+        isBypassingValidation = false;
+      }
+    }
+
     // التنقل بين التبويبات (الجولة، التقرير، الأدوات)
     function switchTab(tabId) {
+      if (tabId === 'preview' && !isBypassingValidation) {
+        const passed = validateAuditQuality(() => {
+          switchTab('preview');
+        });
+        if (!passed) return;
+      }
+
       const views = ['audit', 'preview', 'settings'];
       views.forEach(v => {
         const viewEl = document.getElementById(`view-${v}`);
@@ -1495,6 +1818,23 @@
           btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200";
         }
       });
+
+      // إظهار/إخفاء حقول متابعة وتكليف الإجراء
+      const followupWrapper = document.getElementById('action-followup-container');
+      const labelEl = document.getElementById('followup-action-label');
+      if (followupWrapper) {
+        if (statusKey === 'store_followup' || statusKey === 'management_action') {
+          followupWrapper.classList.remove('hidden');
+          if (labelEl) {
+            labelEl.innerHTML = statusKey === 'store_followup'
+              ? '<i data-lucide="calendar-clock" class="w-4 h-4 text-amber-400"></i><span>بيانات تكليف متابعة الفرع:</span>'
+              : '<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i><span>بيانات تكليف الصيانة / الإدارة:</span>';
+          }
+        } else {
+          followupWrapper.classList.add('hidden');
+        }
+      }
+      lucide.createIcons();
     }
 
     // إدارة وضع المقارنة المنزلقة للبطاقات
@@ -1838,6 +2178,42 @@
             </div>
           `}
 
+          <!-- بنود معايير الـ VM المؤكدة -->
+          ${sec.checklist && sec.checklist.length > 0 ? `
+            <div class="mb-3 bg-corp-950/70 p-2.5 rounded-xl border border-corp-800">
+              <span class="text-[11px] font-bold text-gold-400 block mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="check-check" class="w-3.5 h-3.5 text-gold-500"></i>
+                <span>معايير الـ VM المؤكدة للقسم (${sec.checklist.length}):</span>
+              </span>
+              <div class="flex flex-wrap gap-1.5">
+                ${sec.checklist.map(c => `
+                  <span class="bg-gold-500/10 text-gold-300 border border-gold-500/20 text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
+                    <span class="text-gold-400 font-bold">✓</span>
+                    <span>${c}</span>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- التزام وبيانات متابعة الإجراء إن وجد -->
+          ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
+            <div class="mb-3 p-2.5 rounded-xl border ${
+              sec.status === 'store_followup' ? 'bg-amber-950/30 border-amber-500/40 text-amber-200' : 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+            } text-xs flex flex-wrap items-center justify-between gap-2 shadow-inner">
+              <div class="flex items-center gap-2">
+                <i data-lucide="${sec.status === 'store_followup' ? 'clock' : 'alert-triangle'}" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="font-bold">المسؤول عن التنفيذ:</span>
+                <span class="bg-corp-950 px-2 py-0.5 rounded-md text-white font-semibold border border-corp-800">${sec.actionAssignee || 'مدير المعرض'}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="font-bold">تاريخ الإنجاز المطلوب:</span>
+                <span class="bg-corp-950 px-2 py-0.5 rounded-md text-gold-400 font-bold border border-corp-800">${sec.actionDueDate || 'خلال أسبوع'}</span>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- الوسوم المطبقة -->
           ${sec.tags && sec.tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-3">${tagsHtml}</div>` : ''}
 
@@ -1911,6 +2287,30 @@
             </div>
           </div>
 
+          <!-- معايير الـ VM المطبقة في التقرير الرسمي -->
+          ${sec.checklist && sec.checklist.length > 0 ? `
+            <div class="mb-2 p-2 rounded-lg bg-amber-50/80 border border-amber-200">
+              <span class="text-[10px] font-bold text-amber-900 block mb-1">معايير الـ VM المؤكدة ميدانياً (${sec.checklist.length}):</span>
+              <div class="flex flex-wrap gap-1">
+                ${sec.checklist.map(c => `
+                  <span class="bg-white text-slate-800 border border-amber-300 text-[9px] px-1.5 py-0.5 rounded font-medium">
+                    ✓ ${c}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- التزام المتابعة والتكليف في التقرير المطبوع -->
+          ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
+            <div class="mb-2 p-2 rounded-lg border ${
+              sec.status === 'store_followup' ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-rose-50 border-rose-300 text-rose-900'
+            } text-[11px] flex flex-wrap items-center justify-between gap-2 font-semibold">
+              <span>👤 المسؤول عن التنفيذ: <strong class="underline">${sec.actionAssignee || 'مدير المعرض'}</strong></span>
+              <span>📅 تاريخ الإنجاز المستهدف: <strong class="underline">${sec.actionDueDate || 'خلال أسبوع'}</strong></span>
+            </div>
+          ` : ''}
+
           <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-800 leading-relaxed">
             <span class="font-bold text-slate-900 block mb-0.5">تفاصيل ومبررات التعديل الميداني:</span>
             <p>${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}</p>
@@ -1939,14 +2339,23 @@
       tempImgBefore = null;
       tempImgAfter = null;
       activeModalTags = [];
+      activeModalChecklist = [];
       setModalStatus('resolved');
-      document.getElementById('modal-section-type').selectedIndex = 0;
+      
+      const typeSelect = document.getElementById('modal-section-type');
+      typeSelect.selectedIndex = 0;
       document.getElementById('custom-section-wrapper').classList.add('hidden');
       document.getElementById('modal-custom-title').value = '';
       document.getElementById('modal-notes').value = '';
+
+      const assigneeInput = document.getElementById('modal-action-assignee');
+      const duedateInput = document.getElementById('modal-action-duedate');
+      if (assigneeInput) assigneeInput.value = '';
+      if (duedateInput) duedateInput.value = '';
       
       clearModalImage('before');
       clearModalImage('after');
+      renderCategoryChecklist(typeSelect.value);
       
       document.querySelectorAll('#modal-tags-list .tag-chip').forEach(btn => {
         btn.className = "tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition";
@@ -1961,8 +2370,10 @@
       const customWrapper = document.getElementById('custom-section-wrapper');
       if (val === '__custom_section__') {
         customWrapper.classList.remove('hidden');
+        renderCategoryChecklist('default');
       } else {
         customWrapper.classList.add('hidden');
+        renderCategoryChecklist(val);
       }
     }
 
@@ -2057,6 +2468,12 @@
         return;
       }
 
+      const isFollowup = (selectedModalStatus === 'store_followup' || selectedModalStatus === 'management_action');
+      const assigneeInput = document.getElementById('modal-action-assignee');
+      const duedateInput = document.getElementById('modal-action-duedate');
+      const actionAssignee = isFollowup ? ((assigneeInput ? assigneeInput.value.trim() : '') || 'مدير المعرض') : '';
+      const actionDueDate = isFollowup ? ((duedateInput ? duedateInput.value : '') || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]) : '';
+
       if (editingSectionId) {
         const index = currentAudit.sections.findIndex(s => s.id === editingSectionId);
         if (index !== -1) {
@@ -2064,6 +2481,9 @@
             id: editingSectionId,
             title: finalTitle,
             status: selectedModalStatus || 'resolved',
+            actionAssignee: actionAssignee,
+            actionDueDate: actionDueDate,
+            checklist: [...activeModalChecklist],
             beforeImg: tempImgBefore || currentAudit.sections[index].beforeImg,
             afterImg: tempImgAfter || currentAudit.sections[index].afterImg,
             tags: [...activeModalTags],
@@ -2076,6 +2496,9 @@
           id: 'sec_' + Date.now(),
           title: finalTitle,
           status: selectedModalStatus || 'resolved',
+          actionAssignee: actionAssignee,
+          actionDueDate: actionDueDate,
+          checklist: [...activeModalChecklist],
           beforeImg: tempImgBefore || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
           afterImg: tempImgAfter || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
           tags: [...activeModalTags],
@@ -2116,6 +2539,16 @@
 
       // تعيين حالة الإجراء المخزنة
       setModalStatus(sec.status || 'resolved');
+
+      // تعيين بيانات المتابعة
+      const assigneeInput = document.getElementById('modal-action-assignee');
+      const duedateInput = document.getElementById('modal-action-duedate');
+      if (assigneeInput) assigneeInput.value = sec.actionAssignee || '';
+      if (duedateInput) duedateInput.value = sec.actionDueDate || '';
+
+      // استرجاع معايير الـ VM
+      activeModalChecklist = [...(sec.checklist || [])];
+      renderCategoryChecklist(matched ? sec.title : 'default');
 
       document.getElementById('modal-notes').value = sec.notes || '';
 
@@ -2310,6 +2743,12 @@
 
     // طباعة وحفظ التقرير كـ PDF
     function printReport() {
+      if (!isBypassingValidation) {
+        const passed = validateAuditQuality(() => {
+          printReport();
+        });
+        if (!passed) return;
+      }
       renderPrintSections();
       window.print();
     }
@@ -2326,6 +2765,12 @@
       currentAudit.sections.forEach((sec, idx) => {
         const statusMeta = STATUS_MAP[sec.status] || STATUS_MAP.resolved;
         msg += `\n${idx + 1}. *${sec.title}* [${statusMeta.label}]\n`;
+        if (sec.checklist && sec.checklist.length > 0) {
+          msg += `   ✅ معايير الـ VM: ${sec.checklist.join('، ')}\n`;
+        }
+        if (sec.status !== 'resolved' && sec.actionAssignee) {
+          msg += `   👤 المكلف: ${sec.actionAssignee} | 📅 الإنجاز: ${sec.actionDueDate || 'أسبوع'}\n`;
+        }
         if (sec.tags && sec.tags.length > 0) {
           msg += `   🏷️ ${sec.tags.join('، ')}\n`;
         }
