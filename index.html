@@ -223,7 +223,7 @@
           <div class="space-y-1.5 md:col-span-2">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
-              <button type="button" onclick="openManagementModal('branches')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة الفروع">
+              <button type="button" id="btn-manage-branches" onclick="openManagementModal('branches')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة الفروع">
                 <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                 <span>إدارة الفروع ⚙️</span>
               </button>
@@ -239,7 +239,7 @@
           <div class="space-y-1.5 md:col-span-1">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
-              <button type="button" onclick="openManagementModal('specialists')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة أخصائيي الـ VM">
+              <button type="button" id="btn-manage-specialists" onclick="openManagementModal('specialists')" class="text-[11px] text-gold-400 hover:text-gold-300 flex items-center gap-1 font-semibold transition" title="إدارة قائمة أخصائيي الـ VM">
                 <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                 <span>إدارة الأخصائيين ⚙️</span>
               </button>
@@ -296,7 +296,7 @@
         </div>
 
         <div class="flex items-center gap-2 w-full sm:w-auto">
-          <button onclick="openEntryModal()" class="flex-1 sm:flex-none bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95">
+          <button type="button" id="btn-add-section" onclick="addNewSection()" class="flex-1 sm:flex-none bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95">
             <i data-lucide="plus-circle" class="w-5 h-5"></i>
             <span>+ توثيق قسم جديد</span>
           </button>
@@ -318,7 +318,7 @@
           ابدأ جولتك بالتقاط صورة الواجهة الرئيسية أو نقطة الجذب الأولى (Focal Point) مع وسوم المعالجة المقترحة.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3">
-          <button onclick="openEntryModal()" class="bg-gold-500 hover:bg-gold-400 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow inline-flex items-center gap-2 transition active:scale-95">
+          <button type="button" id="btn-add-first-section" onclick="addNewSection()" class="bg-gold-500 hover:bg-gold-400 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow inline-flex items-center gap-2 transition active:scale-95">
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span>إضافة وتصوير القسم الأول</span>
           </button>
@@ -1125,6 +1125,58 @@
       }
     ];
 
+    // دوال إنشاء وتوثيق قسم جديد
+    function addNewSection() {
+      const mgmtModal = document.getElementById('management-modal');
+      if (mgmtModal) mgmtModal.classList.add('hidden');
+      openEntryModal();
+    }
+    function createSection() { addNewSection(); }
+    function addSection() { addNewSection(); }
+
+    // ربط مستمعات النقر الجراحية للأزرار الثلاثة
+    function wireButtonListeners() {
+      // 1. زر إضافة وتوثيق قسم جديد (+ توثيق قسم جديد)
+      const btnAddSection = document.getElementById('btn-add-section');
+      if (btnAddSection) {
+        btnAddSection.onclick = function(e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          addNewSection();
+        };
+      }
+      const btnAddFirst = document.getElementById('btn-add-first-section');
+      if (btnAddFirst) {
+        btnAddFirst.onclick = function(e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          addNewSection();
+        };
+      }
+
+      // 2. زر إدارة الفروع (⚙️ إدارة الفروع)
+      const btnManageBranches = document.getElementById('btn-manage-branches');
+      if (btnManageBranches) {
+        btnManageBranches.onclick = function(e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          openManagementModal('branches');
+        };
+      }
+
+      // 3. زر إدارة الأخصائيين (⚙️ إدارة الأخصائيين)
+      const btnManageSpecialists = document.getElementById('btn-manage-specialists');
+      if (btnManageSpecialists) {
+        btnManageSpecialists.onclick = function(e) {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
+          openManagementModal('specialists');
+        };
+      }
+    }
+
+    // إتاحة الدوال على نطاق النافذة العام (Window Scope)
+    window.addNewSection = addNewSection;
+    window.createSection = createSection;
+    window.addSection = addSection;
+    window.wireButtonListeners = wireButtonListeners;
+
     // تشغيل التطبيق عند التحميل بنمط غير متزامن لتحميل البيانات المحلية والسحابية
     window.addEventListener('DOMContentLoaded', async () => {
       await loadMetadata();
@@ -1134,6 +1186,7 @@
       renderAuditCards();
       setupNetworkStatusListener();
       initSpeechRecognition();
+      wireButtonListeners();
       lucide.createIcons();
     });
 
@@ -1489,6 +1542,9 @@
     let currentModalTab = 'branches'; // 'branches' | 'specialists'
 
     function openManagementModal(tab = 'branches') {
+      const secModal = document.getElementById('section-modal');
+      if (secModal) secModal.classList.add('hidden');
+
       currentModalTab = tab;
       const modal = document.getElementById('management-modal');
       if (!modal) return;
@@ -2441,12 +2497,16 @@
 
     // فتح وإغلاق استمارة توثيق القسم
     function openEntryModal() {
+      const mgmtModal = document.getElementById('management-modal');
+      if (mgmtModal) mgmtModal.classList.add('hidden');
+
       editingSectionId = null;
       resetModalFields();
       document.getElementById('modal-heading').innerText = 'توثيق قسم بالمعرض (قبل / بعد)';
       document.getElementById('section-modal').classList.remove('hidden');
       lucide.createIcons();
     }
+    window.openEntryModal = openEntryModal;
 
     function closeEntryModal() {
       document.getElementById('section-modal').classList.add('hidden');
