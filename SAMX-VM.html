@@ -837,21 +837,27 @@
     </div>
   </div>
 
-  <!-- ==================== نافذة إدارة القوائم (الفروع والأخصائيين) ==================== -->
+  <!-- ==================== نافذة إدارة القوائم (الفروع والأخصائيين - Local-First / Cloud-Ready) ==================== -->
   <div id="manage-lists-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
     <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-      <!-- الرأس -->
+      <!-- الرأس مع مؤشر المزامنة السحابية / المحلية -->
       <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-400 flex items-center justify-center">
             <i data-lucide="sliders" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="font-bold text-sm text-white">إدارة القوائم المحفوظة</h3>
-            <p class="text-[11px] text-slate-400">إضافة وحذف الفروع وأخصائيي الـ VM مع الحفظ التلقائي</p>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-sm text-white">إدارة القوائم وفريق العمل</h3>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Local-First Ready</span>
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">تحديث فوري لمعرفات الفروع والأخصائيين مع الحفظ المحلي والتهيئة للمزامنة السحابية</p>
           </div>
         </div>
-        <button type="button" onclick="closeManageListsModal()" class="text-slate-400 hover:text-white p-1 rounded-full">
+        <button type="button" onclick="closeManageListsModal()" class="text-slate-400 hover:text-white p-1 rounded-full hover:bg-corp-850 transition">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -860,11 +866,13 @@
       <div class="grid grid-cols-2 border-b border-corp-800 bg-corp-950/60 p-1.5 gap-1.5">
         <button type="button" id="manage-tab-btn-branches" onclick="switchManageTab('branches')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow">
           <i data-lucide="store" class="w-3.5 h-3.5"></i>
-          <span>قائمة الفروع</span>
+          <span>الفروع</span>
+          <span id="branches-tab-count" class="bg-slate-950/20 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
         </button>
         <button type="button" id="manage-tab-btn-specialists" onclick="switchManageTab('specialists')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
           <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-          <span>أخصائيو الـ VM</span>
+          <span>أخصائيو العرض</span>
+          <span id="specialists-tab-count" class="bg-corp-800 text-slate-300 text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
         </button>
       </div>
 
@@ -882,7 +890,10 @@
 
           <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
             <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
-              <span>الفروع المسجلة</span>
+              <span class="flex items-center gap-1.5">
+                <span>سجل الفروع المعتمدة</span>
+                <span class="text-[10px] text-slate-500 font-mono">(Conflict-Free UUID)</span>
+              </span>
               <span id="branches-count-badge" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
             </div>
             <div id="branches-list-container" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
@@ -903,7 +914,10 @@
 
           <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
             <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
-              <span>الأخصائيون المعتمدون</span>
+              <span class="flex items-center gap-1.5">
+                <span>فريق أخصائيي العرض المرئي</span>
+                <span class="text-[10px] text-slate-500 font-mono">(Team IDs)</span>
+              </span>
               <span id="specialists-count-badge" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
             </div>
             <div id="specialists-list-container" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
@@ -913,9 +927,12 @@
         </div>
       </div>
 
-      <!-- التذييل -->
+      <!-- التذييل مع بيانات التوافق السحابي -->
       <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-between text-[11px] text-slate-400">
-        <span>تحديث فوري للقوائم ومنع حذف العناصر المستخدمة</span>
+        <span class="flex items-center gap-1">
+          <i data-lucide="cloud-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>حفظ محلي فوري وتحديث مباشر للقوائم المنسدلة</span>
+        </span>
         <button type="button" onclick="closeManageListsModal()" class="px-4 py-1.5 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-lg font-bold text-xs transition">إغلاق</button>
       </div>
     </div>
@@ -1146,8 +1163,9 @@
       }
     ];
 
-    // تشغيل التطبيق عند التحميل
-    window.addEventListener('DOMContentLoaded', () => {
+    // تشغيل التطبيق عند التحميل بنمط غير متزامن لتحميل البيانات المحلية والسحابية
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadMetadata();
       calculateCurrentWeek();
       loadAuditFromStorage();
       bindMetaInputs();
@@ -1168,109 +1186,271 @@
       }
     }
 
-    // ثوابت وقيم افتراضية لقوائم الفروع وأخصائيي العرض المرئي
-    const DEFAULT_BRANCHES = [
-      'فرع العليا العام - الرياض',
-      'فرع رد سي مول - جدة',
-      'فرع النخيل مول - الرياض',
-      'فرع الراشد مول - الخبر',
-      'فرع مكة مول - مكة المكرمة',
-      'فرع غرناطة سنتر - الرياض',
-      'فرع بانوراما مول - الرياض',
-      'فرع الظهران مول - الخبر'
-    ];
+    // ==================== طبقة تجريد البيانات الموزعة وإدارة القوائم (Local-First Data Layer) ====================
+    const STORAGE_KEY_BRANCHES = 'samx_branches_v2';
+    const STORAGE_KEY_SPECIALISTS = 'samx_specialists_v2';
+    const LEGACY_BRANCHES_KEY = 'samx_branches';
+    const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
 
-    const DEFAULT_SPECIALISTS = [
-      'أحمد المهندس',
-      'سارة العتيبي',
-      'فيصل الغامدي',
-      'نوف الشمري',
-      'خالد الدوسري'
-    ];
+    // مخزن الذاكرة المؤقتة (Local-First Cache)
+    const metadataCache = {
+      branches: [],
+      specialists: [],
+      lastSyncedAt: null,
+      syncStatus: 'idle'
+    };
 
-    // ==================== دوال إدارة الفروع (Branches Management) ====================
-    function getBranches() {
-      try {
-        const stored = localStorage.getItem('samx_branches');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) {
-        console.warn('Error loading samx_branches', e);
-      }
-      localStorage.setItem('samx_branches', JSON.stringify(DEFAULT_BRANCHES));
-      return [...DEFAULT_BRANCHES];
+    // مولد معرفات فريدة مقاومة لتعارضات التزامن (Conflict-Free Entity ID)
+    function generateEntityId(prefix = 'ent') {
+      const ts = Date.now().toString(36);
+      const rand = Math.random().toString(36).substring(2, 7);
+      return `${prefix}_${ts}_${rand}`;
     }
 
-    function addBranch(name) {
+    // القيم الافتراضية الأولية مع معرفات فريدة وطوابع زمنية
+    const SEED_BRANCHES = [
+      { id: 'br_olaya_01', name: 'فرع العليا العام - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_redsea_02', name: 'فرع رد سي مول - جدة', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_nakheel_03', name: 'فرع النخيل مول - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_rashed_04', name: 'فرع الراشد مول - الخبر', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_makkah_05', name: 'فرع مكة مول - مكة المكرمة', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_granada_06', name: 'فرع غرناطة سنتر - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_panorama_07', name: 'فرع بانوراما مول - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'br_dhahran_08', name: 'فرع الظهران مول - الخبر', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' }
+    ];
+
+    const SEED_SPECIALISTS = [
+      { id: 'sp_ahmed_01', name: 'أحمد المهندس', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'sp_sarah_02', name: 'سارة العتيبي', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'sp_faisal_03', name: 'فيصل الغامدي', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'sp_nouf_04', name: 'نوف الشمري', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
+      { id: 'sp_khaled_05', name: 'خالد الدوسري', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' }
+    ];
+
+    // قراءة البيانات من التخزين المحلي أولاً، ثم الاستعداد لمزامنة الخادم
+    async function loadMetadata() {
+      try {
+        let branches = [];
+        let specialists = [];
+
+        // 1. قراءة الفروع من Local-First Storage (v2)
+        const storedBranchesV2 = localStorage.getItem(STORAGE_KEY_BRANCHES);
+        if (storedBranchesV2) {
+          try {
+            const parsed = JSON.parse(storedBranchesV2);
+            if (Array.isArray(parsed) && parsed.length > 0) branches = parsed;
+          } catch (e) {
+            console.warn('Failed parsing storedBranchesV2', e);
+          }
+        }
+
+        // ترقية تلقائية للبيانات السابقة ذات التنسيق النصي (Auto-migration)
+        if (!branches || branches.length === 0) {
+          const legacyBranches = localStorage.getItem(LEGACY_BRANCHES_KEY);
+          if (legacyBranches) {
+            try {
+              const legacyList = JSON.parse(legacyBranches);
+              if (Array.isArray(legacyList) && legacyList.length > 0) {
+                branches = legacyList.map((item, idx) => ({
+                  id: generateEntityId(`br_${idx + 1}`),
+                  name: typeof item === 'string' ? item : (item.name || 'فرع'),
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }));
+              }
+            } catch (e) {
+              console.warn('Failed migrating legacy branches', e);
+            }
+          }
+        }
+
+        if (!branches || branches.length === 0) {
+          branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
+        }
+
+        // 2. قراءة الأخصائيين من Local-First Storage (v2)
+        const storedSpecialistsV2 = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
+        if (storedSpecialistsV2) {
+          try {
+            const parsed = JSON.parse(storedSpecialistsV2);
+            if (Array.isArray(parsed) && parsed.length > 0) specialists = parsed;
+          } catch (e) {
+            console.warn('Failed parsing storedSpecialistsV2', e);
+          }
+        }
+
+        // ترقية تلقائية للأخصائيين السابقين
+        if (!specialists || specialists.length === 0) {
+          const legacySpecialists = localStorage.getItem(LEGACY_SPECIALISTS_KEY);
+          if (legacySpecialists) {
+            try {
+              const legacyList = JSON.parse(legacySpecialists);
+              if (Array.isArray(legacyList) && legacyList.length > 0) {
+                specialists = legacyList.map((item, idx) => ({
+                  id: generateEntityId(`sp_${idx + 1}`),
+                  name: typeof item === 'string' ? item : (item.name || 'أخصائي'),
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                }));
+              }
+            } catch (e) {
+              console.warn('Failed migrating legacy specialists', e);
+            }
+          }
+        }
+
+        if (!specialists || specialists.length === 0) {
+          specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
+        }
+
+        // تحديث كاش الذاكرة والتخزين المحلي
+        metadataCache.branches = branches;
+        metadataCache.specialists = specialists;
+        localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
+        localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
+
+        // 3. محاكاة فحص المزامنة مع السحابة / الخادم المستقبلي (Cloud Fetch Hook)
+        try {
+          if (window.SAMX_CLOUD_SYNC_ENABLED) {
+            // نقطة تكامل جاهزة لمزامنة سحابية دون مقاطعة التفاعل
+            // const remoteRes = await fetch('/api/metadata');
+          }
+        } catch (networkErr) {
+          console.info('Cloud sync deferred, running in offline/local-first mode.', networkErr);
+        }
+
+        metadataCache.lastSyncedAt = new Date().toISOString();
+        return { branches, specialists };
+      } catch (err) {
+        console.error('loadMetadata error:', err);
+        metadataCache.branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
+        metadataCache.specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
+        return { branches: metadataCache.branches, specialists: metadataCache.specialists };
+      }
+    }
+
+    // دوال الوصول للقوائم (كائنات مع معرفات)
+    function getBranches() {
+      if (!metadataCache.branches || metadataCache.branches.length === 0) {
+        const stored = localStorage.getItem(STORAGE_KEY_BRANCHES);
+        if (stored) {
+          try { metadataCache.branches = JSON.parse(stored); } catch(e){}
+        }
+        if (!metadataCache.branches || metadataCache.branches.length === 0) {
+          metadataCache.branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
+        }
+      }
+      return metadataCache.branches;
+    }
+
+    function getSpecialists() {
+      if (!metadataCache.specialists || metadataCache.specialists.length === 0) {
+        const stored = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
+        if (stored) {
+          try { metadataCache.specialists = JSON.parse(stored); } catch(e){}
+        }
+        if (!metadataCache.specialists || metadataCache.specialists.length === 0) {
+          metadataCache.specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
+        }
+      }
+      return metadataCache.specialists;
+    }
+
+    // إضافة فرع جديد بنظام المعرفات الفريدة
+    async function addBranchItem(name) {
       const clean = (name || '').trim();
       if (!clean) return { success: false, reason: 'يرجى كتابة اسم المعرض أو الفرع' };
 
       const list = getBranches();
-      if (list.some(b => b.trim().toLowerCase() === clean.toLowerCase())) {
+      if (list.some(b => (b.name || b).trim().toLowerCase() === clean.toLowerCase())) {
         return { success: false, reason: 'هذا الفرع مسجل مسبقاً في القائمة' };
       }
 
-      list.push(clean);
-      localStorage.setItem('samx_branches', JSON.stringify(list));
+      const now = new Date().toISOString();
+      const newBranch = {
+        id: generateEntityId('br'),
+        name: clean,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      list.push(newBranch);
+      metadataCache.branches = list;
+      localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(list));
+      localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(list.map(b => b.name || b)));
+
       refreshBranchesUI();
-      return { success: true, list };
+      return { success: true, item: newBranch, list };
     }
 
-    function deleteBranch(name) {
-      const clean = (name || '').trim();
-      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === clean.toLowerCase()) {
+    // حذف فرع بالمعرف أو بالاسم مع حماية الفرع النشط
+    async function deleteBranchItem(idOrName) {
+      const list = getBranches();
+      const target = list.find(b => b.id === idOrName || b.name === idOrName || b === idOrName);
+      const targetName = target ? (target.name || target) : idOrName;
+
+      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === targetName.trim().toLowerCase()) {
         return { success: false, reason: 'لا يمكن حذف الفرع لأنه محدد حالياً في مسودة التقرير النشطة' };
       }
 
-      const list = getBranches().filter(b => b.trim().toLowerCase() !== clean.toLowerCase());
-      localStorage.setItem('samx_branches', JSON.stringify(list));
+      metadataCache.branches = list.filter(b => b.id !== idOrName && (b.name || b) !== idOrName);
+      localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(metadataCache.branches));
+      localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(metadataCache.branches.map(b => b.name || b)));
+
       refreshBranchesUI();
-      return { success: true, list };
+      return { success: true, list: metadataCache.branches };
     }
 
-    // ==================== دوال إدارة الأخصائيين (Specialists Management) ====================
-    function getSpecialists() {
-      try {
-        const stored = localStorage.getItem('samx_specialists');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) {
-        console.warn('Error loading samx_specialists', e);
-      }
-      localStorage.setItem('samx_specialists', JSON.stringify(DEFAULT_SPECIALISTS));
-      return [...DEFAULT_SPECIALISTS];
-    }
-
-    function addSpecialist(name) {
+    // إضافة أخصائي جديد بنظام المعرفات الفريدة
+    async function addSpecialistItem(name) {
       const clean = (name || '').trim();
       if (!clean) return { success: false, reason: 'يرجى كتابة اسم أخصائي الـ VM' };
 
       const list = getSpecialists();
-      if (list.some(s => s.trim().toLowerCase() === clean.toLowerCase())) {
+      if (list.some(s => (s.name || s).trim().toLowerCase() === clean.toLowerCase())) {
         return { success: false, reason: 'اسم الأخصائي مسجل مسبقاً في القائمة' };
       }
 
-      list.push(clean);
-      localStorage.setItem('samx_specialists', JSON.stringify(list));
+      const now = new Date().toISOString();
+      const newSpecialist = {
+        id: generateEntityId('sp'),
+        name: clean,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      list.push(newSpecialist);
+      metadataCache.specialists = list;
+      localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(list));
+      localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(list.map(s => s.name || s)));
+
       refreshSpecialistsUI();
-      return { success: true, list };
+      return { success: true, item: newSpecialist, list };
     }
 
-    function deleteSpecialist(name) {
-      const clean = (name || '').trim();
-      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === clean.toLowerCase()) {
-        return { success: false, reason: 'لا يمكن حذف الأخصائي لأنه محدد حالياً كمسؤول التقييم في التقرير' };
+    // حذف أخصائي بالمعرف أو بالاسم مع حماية الأخصائي النشط
+    async function deleteSpecialistItem(idOrName) {
+      const list = getSpecialists();
+      const target = list.find(s => s.id === idOrName || s.name === idOrName || s === idOrName);
+      const targetName = target ? (target.name || target) : idOrName;
+
+      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === targetName.trim().toLowerCase()) {
+        return { success: false, reason: 'لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط' };
       }
 
-      const list = getSpecialists().filter(s => s.trim().toLowerCase() !== clean.toLowerCase());
-      localStorage.setItem('samx_specialists', JSON.stringify(list));
+      metadataCache.specialists = list.filter(s => s.id !== idOrName && (s.name || s) !== idOrName);
+      localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(metadataCache.specialists));
+      localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(metadataCache.specialists.map(s => s.name || s)));
+
       refreshSpecialistsUI();
-      return { success: true, list };
+      return { success: true, list: metadataCache.specialists };
     }
+
+    // جسور التوافق مع النداءات المتزامنة السابقة
+    function addBranch(name) { return addBranchItem(name); }
+    function deleteBranch(name) { return deleteBranchItem(name); }
+    function addSpecialist(name) { return addSpecialistItem(name); }
+    function deleteSpecialist(name) { return deleteSpecialistItem(name); }
 
     // ==================== تعبئة وتحديث القوائم المنسدلة ====================
     function populateBranchSelect() {
@@ -1278,21 +1458,24 @@
       if (!branchSelect) return;
 
       const branches = getBranches();
-      const currentVal = currentAudit.branchName || branches[0];
+      const currentVal = currentAudit.branchName || (branches[0] ? (branches[0].name || branches[0]) : '');
 
       let html = '';
       branches.forEach(b => {
-        const selected = (b === currentVal) ? 'selected' : '';
-        html += `<option value="${b}" ${selected}>${b}</option>`;
+        const name = typeof b === 'string' ? b : (b.name || '');
+        const id = typeof b === 'object' && b.id ? b.id : '';
+        const selected = (name === currentVal) ? 'selected' : '';
+        html += `<option value="${name}" data-id="${id}" ${selected}>${name}</option>`;
       });
       html += `<option value="__custom__">+ إضافة فرع مخصص آخر...</option>`;
 
       branchSelect.innerHTML = html;
 
       // فحص إذا كان الفرع المختار مخصصاً وليس بالقائمة
+      const branchNames = branches.map(b => typeof b === 'string' ? b : b.name);
       const customWrapper = document.getElementById('custom-branch-wrapper');
       const customInput = document.getElementById('input-custom-branch');
-      if (!branches.includes(currentVal) && currentVal) {
+      if (!branchNames.includes(currentVal) && currentVal) {
         branchSelect.value = '__custom__';
         if (customWrapper) customWrapper.classList.remove('hidden');
         if (customInput) customInput.value = currentVal;
@@ -1306,20 +1489,23 @@
       if (!specialistSelect) return;
 
       const specialists = getSpecialists();
-      const currentVal = currentAudit.auditorName || specialists[0];
+      const currentVal = currentAudit.auditorName || (specialists[0] ? (specialists[0].name || specialists[0]) : '');
 
       let html = '';
       specialists.forEach(s => {
-        const selected = (s === currentVal) ? 'selected' : '';
-        html += `<option value="${s}" ${selected}>${s}</option>`;
+        const name = typeof s === 'string' ? s : (s.name || '');
+        const id = typeof s === 'object' && s.id ? s.id : '';
+        const selected = (name === currentVal) ? 'selected' : '';
+        html += `<option value="${name}" data-id="${id}" ${selected}>${name}</option>`;
       });
       html += `<option value="__custom__">+ إدخال اسم يدوي مخصص...</option>`;
 
       specialistSelect.innerHTML = html;
 
+      const specialistNames = specialists.map(s => typeof s === 'string' ? s : s.name);
       const customWrapper = document.getElementById('custom-specialist-wrapper');
       const customInput = document.getElementById('input-custom-specialist');
-      if (!specialists.includes(currentVal) && currentVal) {
+      if (!specialistNames.includes(currentVal) && currentVal) {
         specialistSelect.value = '__custom__';
         if (customWrapper) customWrapper.classList.remove('hidden');
         if (customInput) customInput.value = currentVal;
@@ -1384,10 +1570,12 @@
     function renderBranchesList() {
       const container = document.getElementById('branches-list-container');
       const badge = document.getElementById('branches-count-badge');
+      const tabCount = document.getElementById('branches-tab-count');
       if (!container) return;
 
       const list = getBranches();
       if (badge) badge.innerText = list.length;
+      if (tabCount) tabCount.innerText = list.length;
 
       if (list.length === 0) {
         container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا توجد فروع مسجلة حالياً</div>`;
@@ -1395,15 +1583,21 @@
       }
 
       container.innerHTML = list.map(b => {
-        const isCurrent = (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === b.trim().toLowerCase());
+        const name = typeof b === 'string' ? b : (b.name || '');
+        const id = typeof b === 'object' && b.id ? b.id : '';
+        const isCurrent = (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === name.trim().toLowerCase());
+        const safeIdOrName = id || name.replace(/'/g, "\\'");
         return `
           <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
             <div class="flex items-center gap-2 min-w-0">
               <i data-lucide="map-pin" class="w-3.5 h-3.5 text-gold-400 shrink-0"></i>
-              <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${b}</span>
+              <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${name}</span>
+                ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800" title="Team Entity ID">${id}</span>` : ''}
+              </div>
               ${isCurrent ? '<span class="bg-gold-500/20 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gold-500/30">المحدد حالياً</span>' : ''}
             </div>
-            <button type="button" onclick="handleDeleteBranchItem('${b.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الفرع">
+            <button type="button" onclick="handleDeleteBranchItem('${safeIdOrName}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الفرع">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>
@@ -1415,10 +1609,12 @@
     function renderSpecialistsList() {
       const container = document.getElementById('specialists-list-container');
       const badge = document.getElementById('specialists-count-badge');
+      const tabCount = document.getElementById('specialists-tab-count');
       if (!container) return;
 
       const list = getSpecialists();
       if (badge) badge.innerText = list.length;
+      if (tabCount) tabCount.innerText = list.length;
 
       if (list.length === 0) {
         container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا يوجد أخصائيون مسجلون حالياً</div>`;
@@ -1426,15 +1622,21 @@
       }
 
       container.innerHTML = list.map(s => {
-        const isCurrent = (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === s.trim().toLowerCase());
+        const name = typeof s === 'string' ? s : (s.name || '');
+        const id = typeof s === 'object' && s.id ? s.id : '';
+        const isCurrent = (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === name.trim().toLowerCase());
+        const safeIdOrName = id || name.replace(/'/g, "\\'");
         return `
           <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
             <div class="flex items-center gap-2 min-w-0">
               <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
-              <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-emerald-300' : ''}">${s}</span>
+              <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-emerald-300' : ''}">${name}</span>
+                ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800" title="Team Entity ID">${id}</span>` : ''}
+              </div>
               ${isCurrent ? '<span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">المسؤول النشط</span>' : ''}
             </div>
-            <button type="button" onclick="handleDeleteSpecialistItem('${s.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الأخصائي">
+            <button type="button" onclick="handleDeleteSpecialistItem('${safeIdOrName}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف الأخصائي">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>
@@ -1443,26 +1645,30 @@
       lucide.createIcons();
     }
 
-    function handleAddNewBranch(e) {
+    async function handleAddNewBranch(e) {
       e.preventDefault();
       const input = document.getElementById('new-branch-input');
       const val = input.value.trim();
-      const res = addBranch(val);
+      const res = await addBranchItem(val);
       if (res.success) {
         input.value = '';
-        showToast('تمت إضافة الفرع بنجاح', 'success');
+        showToast('تمت إضافة الفرع بنجاح وتوليد المعرف الفريد', 'success');
       } else {
         showToast(res.reason, 'error');
       }
     }
 
-    function handleDeleteBranchItem(branchName) {
-      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === branchName.trim().toLowerCase()) {
+    async function handleDeleteBranchItem(idOrName) {
+      const list = getBranches();
+      const target = list.find(b => b.id === idOrName || b.name === idOrName || b === idOrName);
+      const targetName = target ? (target.name || target) : idOrName;
+
+      if (currentAudit.branchName && currentAudit.branchName.trim().toLowerCase() === targetName.trim().toLowerCase()) {
         showToast('لا يمكن حذف الفرع لأنه محدد في مسودة التقرير النشطة', 'error');
         return;
       }
-      if (!confirm(`هل أنت متأكد من حذف "${branchName}" من قائمة الفروع؟`)) return;
-      const res = deleteBranch(branchName);
+      if (!confirm(`هل أنت متأكد من حذف "${targetName}" من قائمة الفروع؟`)) return;
+      const res = await deleteBranchItem(idOrName);
       if (res.success) {
         showToast('تم حذف الفرع من القائمة', 'info');
       } else {
@@ -1470,26 +1676,30 @@
       }
     }
 
-    function handleAddNewSpecialist(e) {
+    async function handleAddNewSpecialist(e) {
       e.preventDefault();
       const input = document.getElementById('new-specialist-input');
       const val = input.value.trim();
-      const res = addSpecialist(val);
+      const res = await addSpecialistItem(val);
       if (res.success) {
         input.value = '';
-        showToast('تمت إضافة الأخصائي بنجاح', 'success');
+        showToast('تمت إضافة الأخصائي بنجاح وتوليد المعرف الفريد', 'success');
       } else {
         showToast(res.reason, 'error');
       }
     }
 
-    function handleDeleteSpecialistItem(specialistName) {
-      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === specialistName.trim().toLowerCase()) {
+    async function handleDeleteSpecialistItem(idOrName) {
+      const list = getSpecialists();
+      const target = list.find(s => s.id === idOrName || s.name === idOrName || s === idOrName);
+      const targetName = target ? (target.name || target) : idOrName;
+
+      if (currentAudit.auditorName && currentAudit.auditorName.trim().toLowerCase() === targetName.trim().toLowerCase()) {
         showToast('لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط', 'error');
         return;
       }
-      if (!confirm(`هل أنت متأكد من حذف "${specialistName}" من قائمة الأخصائيين؟`)) return;
-      const res = deleteSpecialist(specialistName);
+      if (!confirm(`هل أنت متأكد من حذف "${targetName}" من قائمة الأخصائيين؟`)) return;
+      const res = await deleteSpecialistItem(idOrName);
       if (res.success) {
         showToast('تم حذف الأخصائي من القائمة', 'info');
       } else {
