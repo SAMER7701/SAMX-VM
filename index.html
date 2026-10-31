@@ -799,7 +799,7 @@
           <span>حفظ وتثبيت القسم</span>
         </button>
       </div>
-
+    </div>
   </div>
 
   <!-- ==================== نافذة أداة التأشير والملاحظات البصرية (ANNOTATOR MODAL) ==================== -->
@@ -1285,8 +1285,8 @@
 
     // إتاحة الدوال على نطاق النافذة العام (Window Scope)
     window.addNewSection = addNewSection;
-    window.createSection = createSection;
-    window.addSection = addSection;
+    window.createSection = addNewSection;
+    window.addSection = addNewSection;
     window.wireButtonListeners = wireButtonListeners;
 
     // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية (Interactive / Complete / Loading)
