@@ -1002,7 +1002,7 @@
   </div>
 
   <!-- حاوية التنبيهات الميدانية (TOAST CONTAINER) -->
-  <div id="toast-container" style="z-index: 999999;" class="no-print fixed top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none"></div>
+  <div id="toast-container" style="z-index: 999999;" class="no-print fixed top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none w-full max-w-sm px-4"></div>
 
   <!-- ==================== المنطق البرمجي الكامل (VANILLA JAVASCRIPT) ==================== -->
   <script>
@@ -1938,6 +1938,22 @@
     };
     function renderModalList() { return window.renderModalList(); }
 
+    function showModalInlineFeedback(text) {
+      const form = document.querySelector('#management-modal form');
+      if (!form) return;
+      let feedback = document.getElementById('modal-inline-feedback');
+      if (!feedback) {
+        feedback = document.createElement('div');
+        feedback.id = 'modal-inline-feedback';
+        feedback.className = 'mt-2 p-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-xl text-center animate-pulse';
+        form.parentNode.insertBefore(feedback, form.nextSibling);
+      }
+      feedback.innerText = text;
+      feedback.style.display = 'block';
+      setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 2500);
+    }
+    window.showModalInlineFeedback = showModalInlineFeedback;
+
     window.addEntity = async function(type = currentModalTab) {
       const input = document.getElementById('management-input');
       const val = input ? input.value.trim() : '';
@@ -1951,7 +1967,9 @@
         if (input) input.value = '';
         renderModalList();
         refreshMainSelects();
-        showToast(type === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`, 'success');
+        const successMsg = type === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`;
+        showToast(successMsg, 'success');
+        showModalInlineFeedback(successMsg);
       } else {
         showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
       }
