@@ -944,6 +944,31 @@
 
   <!-- ==================== المنطق البرمجي الكامل (VANILLA JAVASCRIPT) ==================== -->
   <script>
+    // دوال مركزية موحدة ومحصنة لفتح وإغلاق النوافذ المنبثقة
+    function showModal(modalId) {
+      try {
+        const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+      } catch (err) {
+        console.error('showModal error:', err);
+      }
+    }
+    window.showModal = showModal;
+
+    function hideModal(modalId) {
+      try {
+        const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+      } catch (err) {
+        console.error('hideModal error:', err);
+      }
+    }
+    window.hideModal = hideModal;
+
     // الحالة المركزية لتقرير المعرض (SAMX-VM State)
     const APP_STORAGE_KEY = 'samx_vm_active_audit';
     
@@ -1121,12 +1146,17 @@
 
     // دوال إنشاء وتوثيق قسم جديد
     function addNewSection() {
-      const mgmtModal = document.getElementById('management-modal');
-      if (mgmtModal) mgmtModal.classList.add('hidden');
-      openEntryModal();
+      try {
+        hideModal('management-modal');
+        hideModal('annotator-modal');
+        openEntryModal(false);
+      } catch (e) {
+        console.error('addNewSection error:', e);
+      }
     }
-    function createSection() { addNewSection(); }
-    function addSection() { addNewSection(); }
+    window.addNewSection = addNewSection;
+    window.createSection = addNewSection;
+    window.addSection = addNewSection;
 
     // ربط مستمعات النقر الصريحة للأزرار الثلاثة
     function wireButtonListeners() {
@@ -1341,30 +1371,38 @@
 
     // دوال الوصول للقوائم (كائنات مع معرفات)
     function getBranches() {
-      if (!metadataCache.branches || metadataCache.branches.length === 0) {
+      if (!metadataCache.branches || !Array.isArray(metadataCache.branches) || metadataCache.branches.length === 0) {
         const stored = localStorage.getItem(STORAGE_KEY_BRANCHES);
         if (stored) {
-          try { metadataCache.branches = JSON.parse(stored); } catch(e){}
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) metadataCache.branches = parsed;
+          } catch(e){}
         }
-        if (!metadataCache.branches || metadataCache.branches.length === 0) {
+        if (!metadataCache.branches || !Array.isArray(metadataCache.branches) || metadataCache.branches.length === 0) {
           metadataCache.branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
         }
       }
-      return metadataCache.branches;
+      return Array.isArray(metadataCache.branches) ? metadataCache.branches : JSON.parse(JSON.stringify(SEED_BRANCHES));
     }
+    window.getBranches = getBranches;
 
     function getSpecialists() {
-      if (!metadataCache.specialists || metadataCache.specialists.length === 0) {
+      if (!metadataCache.specialists || !Array.isArray(metadataCache.specialists) || metadataCache.specialists.length === 0) {
         const stored = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
         if (stored) {
-          try { metadataCache.specialists = JSON.parse(stored); } catch(e){}
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) metadataCache.specialists = parsed;
+          } catch(e){}
         }
-        if (!metadataCache.specialists || metadataCache.specialists.length === 0) {
+        if (!metadataCache.specialists || !Array.isArray(metadataCache.specialists) || metadataCache.specialists.length === 0) {
           metadataCache.specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
         }
       }
-      return metadataCache.specialists;
+      return Array.isArray(metadataCache.specialists) ? metadataCache.specialists : JSON.parse(JSON.stringify(SEED_SPECIALISTS));
     }
+    window.getSpecialists = getSpecialists;
 
     // إضافة فرع جديد بنظام المعرفات الفريدة
     async function addBranchItem(name) {
@@ -1538,11 +1576,10 @@
 
     window.openManagementModal = function(tab = 'branches') {
       try {
-        const secModal = document.getElementById('section-modal');
-        if (secModal) {
-          secModal.classList.add('hidden');
-          secModal.style.display = 'none';
-        }
+        hideModal('section-modal');
+        hideModal('annotator-modal');
+        hideModal('validation-check-modal');
+        hideModal('image-lightbox');
 
         currentModalTab = (tab === 'specialists') ? 'specialists' : 'branches';
         const modal = document.getElementById('management-modal');
@@ -1551,9 +1588,8 @@
           return;
         }
 
-        // إظهار النافذة وضمان أولوية العرض بنمط flex
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+        // إظهار النافذة بحصانة تامة عبر دالة showModal
+        showModal('management-modal');
 
         const btnBranches = document.getElementById('tab-btn-branches');
         const btnSpecialists = document.getElementById('tab-btn-specialists');
@@ -1576,7 +1612,9 @@
         }
 
         renderModalList();
-        setTimeout(() => { if (input) input.focus(); }, 60);
+        setTimeout(() => { 
+          if (input && typeof input.focus === 'function') input.focus(); 
+        }, 60);
         if (window.lucide && typeof lucide.createIcons === 'function') {
           try { lucide.createIcons(); } catch(e){}
         }
@@ -1587,11 +1625,7 @@
     function openManagementModal(tab) { return window.openManagementModal(tab); }
 
     window.closeManagementModal = function() {
-      const modal = document.getElementById('management-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-      }
+      hideModal('management-modal');
       const input = document.getElementById('management-input');
       if (input) input.value = '';
       refreshMainSelects();
@@ -1957,16 +1991,19 @@
         </div>
       `).join('');
 
-      modal.classList.remove('hidden');
-      lucide.createIcons();
+      showModal('validation-check-modal');
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
       showToast('تنبيه: بعض الأقسام تنقصها صور بعد أو الملاحظات', 'info');
       return false;
     }
 
     function closeValidationModal() {
-      document.getElementById('validation-check-modal').classList.add('hidden');
+      hideModal('validation-check-modal');
       pendingValidationProceedCallback = null;
     }
+    window.closeValidationModal = closeValidationModal;
 
     function confirmProceedAnyway() {
       const cb = pendingValidationProceedCallback;
@@ -2094,6 +2131,7 @@
       annotatorTarget = 'modal';
       initCanvasAnnotator(tempImgBefore);
     }
+    window.openAnnotatorFromModal = openAnnotatorFromModal;
 
     function openAnnotatorForSection(secId) {
       const sec = currentAudit.sections.find(s => s.id === secId);
@@ -2104,21 +2142,32 @@
       annotatorTarget = secId;
       initCanvasAnnotator(sec.beforeImg);
     }
+    window.openAnnotatorForSection = openAnnotatorForSection;
 
     function initCanvasAnnotator(imgSrc) {
-      const modal = document.getElementById('annotator-modal');
       annotatorCanvas = document.getElementById('annotator-canvas');
+      if (!annotatorCanvas) {
+        console.error('annotator-canvas element missing');
+        return;
+      }
       annotatorCtx = annotatorCanvas.getContext('2d');
       annotatorHistory = [];
 
-      showToast('جاري تحميل أداة التأشير...', 'info');
+      showToast('جاري فتح أداة التأشير...', 'info');
 
       annotatorBaseImg = new Image();
-      annotatorBaseImg.crossOrigin = 'anonymous';
-      annotatorBaseImg.onload = function() {
+      if (typeof imgSrc === 'string' && (imgSrc.startsWith('http://') || imgSrc.startsWith('https://'))) {
+        annotatorBaseImg.crossOrigin = 'anonymous';
+      }
+
+      let launched = false;
+      const launch = () => {
+        if (launched) return;
+        launched = true;
+
         const maxW = 1200;
-        let w = annotatorBaseImg.width;
-        let h = annotatorBaseImg.height;
+        let w = (annotatorBaseImg && annotatorBaseImg.width) ? annotatorBaseImg.width : 800;
+        let h = (annotatorBaseImg && annotatorBaseImg.height) ? annotatorBaseImg.height : 600;
         if (w > maxW) {
           h = Math.round((h * maxW) / w);
           w = maxW;
@@ -2126,16 +2175,36 @@
         annotatorCanvas.width = w;
         annotatorCanvas.height = h;
 
-        redrawAnnotatorBase();
+        try {
+          redrawAnnotatorBase();
+        } catch(e) {
+          annotatorCtx.fillStyle = '#0b1120';
+          annotatorCtx.fillRect(0, 0, annotatorCanvas.width, annotatorCanvas.height);
+        }
         saveAnnotatorHistoryState();
 
-        modal.classList.remove('hidden');
+        showModal('annotator-modal');
         bindCanvasDrawingEvents();
         setAnnotatorTool('freehand');
-        lucide.createIcons();
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+          try { lucide.createIcons(); } catch(e){}
+        }
       };
+
+      annotatorBaseImg.onload = launch;
+      annotatorBaseImg.onerror = function(err) {
+        console.warn('Annotator base image failed to load, launching canvas fallback', err);
+        launch();
+      };
+
+      // مؤقت أمان فوري في حال تعثر تحميل الصورة عبر الشبكة
+      setTimeout(() => {
+        if (!launched) launch();
+      }, 1000);
+
       annotatorBaseImg.src = imgSrc;
     }
+    window.initCanvasAnnotator = initCanvasAnnotator;
 
     function setAnnotatorTool(tool) {
       annotatorTool = tool;
@@ -2226,18 +2295,26 @@
     }
 
     function saveAnnotatorHistoryState() {
-      const state = annotatorCtx.getImageData(0, 0, annotatorCanvas.width, annotatorCanvas.height);
-      annotatorHistory.push(state);
-      if (annotatorHistory.length > 25) annotatorHistory.shift();
+      if (!annotatorCanvas) annotatorCanvas = document.getElementById('annotator-canvas');
+      if (!annotatorCanvas || !annotatorCtx) return;
+      try {
+        const state = annotatorCtx.getImageData(0, 0, annotatorCanvas.width, annotatorCanvas.height);
+        annotatorHistory.push(state);
+        if (annotatorHistory.length > 25) annotatorHistory.shift();
+      } catch(e) {}
     }
 
     function restoreLastHistoryState() {
+      if (!annotatorCanvas) annotatorCanvas = document.getElementById('annotator-canvas');
+      if (!annotatorCanvas || !annotatorCtx) return;
       if (annotatorHistory.length > 0) {
         annotatorCtx.putImageData(annotatorHistory[annotatorHistory.length - 1], 0, 0);
       }
     }
 
     function annotatorUndo() {
+      if (!annotatorCanvas) annotatorCanvas = document.getElementById('annotator-canvas');
+      if (!annotatorCanvas || !annotatorCtx) return;
       if (annotatorHistory.length > 1) {
         annotatorHistory.pop();
         const prev = annotatorHistory[annotatorHistory.length - 1];
@@ -2247,6 +2324,7 @@
         showToast('لا توجد خطوات سابقة للتراجع عنها', 'info');
       }
     }
+    window.annotatorUndo = annotatorUndo;
 
     function annotatorClear() {
       if (!confirm('هل ترغب في مسح كافة التأشيرات واستعادة الصورة الأصلية؟')) return;
@@ -2255,36 +2333,57 @@
       saveAnnotatorHistoryState();
       showToast('تم مسح التأشيرات', 'info');
     }
+    window.annotatorClear = annotatorClear;
 
     function redrawAnnotatorBase() {
+      if (!annotatorCanvas) annotatorCanvas = document.getElementById('annotator-canvas');
+      if (!annotatorCanvas || !annotatorCtx) return;
       annotatorCtx.clearRect(0, 0, annotatorCanvas.width, annotatorCanvas.height);
-      annotatorCtx.drawImage(annotatorBaseImg, 0, 0, annotatorCanvas.width, annotatorCanvas.height);
+      if (annotatorBaseImg && annotatorBaseImg.width) {
+        annotatorCtx.drawImage(annotatorBaseImg, 0, 0, annotatorCanvas.width, annotatorCanvas.height);
+      } else {
+        annotatorCtx.fillStyle = '#0b1120';
+        annotatorCtx.fillRect(0, 0, annotatorCanvas.width, annotatorCanvas.height);
+      }
     }
 
     function saveAnnotationResult() {
-      const annotatedData = annotatorCanvas.toDataURL('image/jpeg', 0.85);
-
-      if (annotatorTarget === 'modal') {
-        tempImgBefore = annotatedData;
-        const imgElem = document.getElementById('img-elem-before');
-        if (imgElem) imgElem.src = annotatedData;
-      } else {
-        const secIndex = currentAudit.sections.findIndex(s => s.id === annotatorTarget);
-        if (secIndex !== -1) {
-          currentAudit.sections[secIndex].beforeImg = annotatedData;
-          saveAuditToStorage();
-          renderAuditCards();
+      try {
+        if (!annotatorCanvas) annotatorCanvas = document.getElementById('annotator-canvas');
+        if (!annotatorCanvas) {
+          closeAnnotatorModal();
+          return;
         }
-      }
+        const annotatedData = annotatorCanvas.toDataURL('image/jpeg', 0.85);
 
-      closeAnnotatorModal();
-      showToast('تم حفظ التأشير وتحديث الصورة بنجاح', 'success');
+        if (annotatorTarget === 'modal') {
+          tempImgBefore = annotatedData;
+          const imgElem = document.getElementById('img-elem-before');
+          if (imgElem) imgElem.src = annotatedData;
+        } else {
+          const secIndex = currentAudit.sections.findIndex(s => s.id === annotatorTarget);
+          if (secIndex !== -1) {
+            currentAudit.sections[secIndex].beforeImg = annotatedData;
+            saveAuditToStorage();
+            renderAuditCards();
+          }
+        }
+
+        closeAnnotatorModal();
+        showToast('تم حفظ التأشير وتحديث الصورة بنجاح', 'success');
+      } catch (err) {
+        console.error('Error in saveAnnotationResult:', err);
+        closeAnnotatorModal();
+        showToast('تم إغلاق نافذة التأشير', 'info');
+      }
     }
+    window.saveAnnotationResult = saveAnnotationResult;
 
     function closeAnnotatorModal() {
-      document.getElementById('annotator-modal').classList.add('hidden');
+      hideModal('annotator-modal');
       isDrawing = false;
     }
+    window.closeAnnotatorModal = closeAnnotatorModal;
 
     // عرض بطاقات الأقسام في شاشة الجولة الميدانية
     function renderAuditCards() {
@@ -2543,22 +2642,29 @@
     }
 
     // فتح وإغلاق استمارة توثيق القسم
-    function openEntryModal() {
-      const mgmtModal = document.getElementById('management-modal');
-      if (mgmtModal) mgmtModal.classList.add('hidden');
+    function openEntryModal(isEdit = false) {
+      hideModal('management-modal');
+      hideModal('annotator-modal');
+      hideModal('validation-check-modal');
 
-      editingSectionId = null;
-      resetModalFields();
-      document.getElementById('modal-heading').innerText = 'توثيق قسم بالمعرض (قبل / بعد)';
-      document.getElementById('section-modal').classList.remove('hidden');
-      lucide.createIcons();
+      if (!isEdit) {
+        editingSectionId = null;
+        resetModalFields();
+        const heading = document.getElementById('modal-heading');
+        if (heading) heading.innerText = 'توثيق قسم بالمعرض (قبل / بعد)';
+      }
+      showModal('section-modal');
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
     }
     window.openEntryModal = openEntryModal;
 
     function closeEntryModal() {
-      document.getElementById('section-modal').classList.add('hidden');
+      hideModal('section-modal');
       resetModalFields();
     }
+    window.closeEntryModal = closeEntryModal;
 
     function resetModalFields() {
       tempImgBefore = null;
@@ -2744,7 +2850,8 @@
       if (!sec) return;
 
       editingSectionId = id;
-      openEntryModal();
+      resetModalFields(); // تنظيف الحقول السابقة أولاً
+      openEntryModal(true); // فتح النافذة في نمط التعديل
       document.getElementById('modal-heading').innerText = 'تعديل توثيق: ' + sec.title;
       
       const typeSelect = document.getElementById('modal-section-type');
@@ -2799,8 +2906,11 @@
         }
       });
 
-      lucide.createIcons();
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
     }
+    window.editSectionEntry = editSectionEntry;
 
     // حذف بطاقة قسم
     function deleteSectionEntry(id) {
@@ -3024,14 +3134,18 @@
       if (!src || src.includes('placehold.co')) return;
       document.getElementById('lightbox-img').src = src;
       document.getElementById('lightbox-title').innerText = title || 'معاينة الصورة الميدانية';
-      document.getElementById('image-lightbox').classList.remove('hidden');
-      lucide.createIcons();
+      showModal('image-lightbox');
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
     }
+    window.openLightbox = openLightbox;
 
     function closeLightbox() {
-      document.getElementById('image-lightbox').classList.add('hidden');
+      hideModal('image-lightbox');
       document.getElementById('lightbox-img').src = '';
     }
+    window.closeLightbox = closeLightbox;
 
     // مراقبة حالة الاتصال بالإنترنت
     function setupNetworkStatusListener() {
@@ -3055,6 +3169,7 @@
     // عرض الإشعارات السريعة (Toasts)
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
+      if (!container) return;
       const toast = document.createElement('div');
       
       let borderCol = 'border-gold-500/40 text-gold-300';
@@ -3074,15 +3189,24 @@
       `;
 
       container.appendChild(toast);
-      lucide.createIcons();
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
 
       setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(8px)';
         toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => {
+          if (typeof toast.remove === 'function') {
+            toast.remove();
+          } else if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }, 3000);
     }
+    window.showToast = showToast;
   </script>
 </body>
 </html>
