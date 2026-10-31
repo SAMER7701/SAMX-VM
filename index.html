@@ -1929,6 +1929,7 @@
             </div>
           `;
         }).join('');
+
         if (window.lucide && typeof lucide.createIcons === 'function') {
           try { lucide.createIcons(); } catch(e){}
         }
@@ -1945,12 +1946,20 @@
       if (!feedback) {
         feedback = document.createElement('div');
         feedback.id = 'modal-inline-feedback';
-        feedback.className = 'mt-2 p-2 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-xl text-center animate-pulse';
+        feedback.className = 'mt-2.5 p-2.5 bg-emerald-950/90 border border-emerald-500/60 text-emerald-200 text-xs font-bold rounded-xl text-center shadow-lg transition-opacity duration-300 flex items-center justify-center gap-1.5';
         form.parentNode.insertBefore(feedback, form.nextSibling);
       }
-      feedback.innerText = text;
-      feedback.style.display = 'block';
-      setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 2500);
+      feedback.innerHTML = `<span>${text}</span>`;
+      feedback.style.display = 'flex';
+      feedback.style.opacity = '1';
+
+      if (window._feedbackTimeout) clearTimeout(window._feedbackTimeout);
+      window._feedbackTimeout = setTimeout(() => {
+        if (feedback) {
+          feedback.style.opacity = '0';
+          setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 300);
+        }
+      }, 2000);
     }
     window.showModalInlineFeedback = showModalInlineFeedback;
 
@@ -1964,12 +1973,64 @@
 
       const res = (type === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
       if (res && res.success) {
-        if (input) input.value = '';
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+
+        // 1. تحديث فوري ومباشر لقائمة النافذة المنبثقة
         renderModalList();
+
+        // 2. تحديث فوري للقائمة المنسدلة في الشاشة الرئيسية واختيار العنصر الجديد
+        if (type === 'branches') {
+          currentAudit.branchName = val;
+          const select = document.getElementById('select-branch');
+          if (select) {
+            if (select.options.length === 1 && select.options[0].value === '') {
+              select.innerHTML = '';
+            }
+            let exists = false;
+            for (let i = 0; i < select.options.length; i++) {
+              if (select.options[i].value === val) { exists = true; break; }
+            }
+            if (!exists) {
+              const opt = document.createElement('option');
+              opt.value = val;
+              opt.innerText = val;
+              opt.selected = true;
+              select.appendChild(opt);
+            }
+            select.value = val;
+          }
+        } else {
+          currentAudit.auditorName = val;
+          const select = document.getElementById('select-specialist');
+          if (select) {
+            if (select.options.length === 1 && select.options[0].value === '') {
+              select.innerHTML = '';
+            }
+            let exists = false;
+            for (let i = 0; i < select.options.length; i++) {
+              if (select.options[i].value === val) { exists = true; break; }
+            }
+            if (!exists) {
+              const opt = document.createElement('option');
+              opt.value = val;
+              opt.innerText = val;
+              opt.selected = true;
+              select.appendChild(opt);
+            }
+            select.value = val;
+          }
+        }
+
         refreshMainSelects();
-        const successMsg = type === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`;
-        showToast(successMsg, 'success');
-        showModalInlineFeedback(successMsg);
+        renderInlineDrawerList();
+
+        // 3. رسالة التأكيد اللحظية
+        const bannerText = `✨ تمت إضافة "${val}" بنجاح وتحديث القائمة فوراً ✅`;
+        showToast(bannerText, 'success');
+        showModalInlineFeedback(bannerText);
       } else {
         showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
       }
