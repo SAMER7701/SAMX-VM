@@ -402,7 +402,11 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition">
+            <input type="checkbox" id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+            <span>إدراج التوقيعات والاعتمادات الرسمية</span>
+          </label>
           <button onclick="printReport()" class="flex-1 sm:flex-none bg-slate-100 hover:bg-white text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
             <span>طباعة / حفظ PDF</span>
@@ -448,7 +452,7 @@
         </div>
 
         <!-- تذييل التقرير والتوقيعات الرسمية -->
-        <div class="print-break-inside-avoid mt-10 pt-6 border-t-2 border-slate-200 grid grid-cols-2 gap-8 text-xs text-slate-700">
+        <div id="print-signatures-footer" class="print-break-inside-avoid mt-10 pt-6 border-t-2 border-slate-200 grid grid-cols-2 gap-8 text-xs text-slate-700">
           <div>
             <span class="font-bold text-slate-900 block mb-1">إعداد واعتماد أخصائي العرض المرئي (VM Specialist):</span>
             <p class="text-[11px] text-slate-500 mb-2">أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.</p>
@@ -2060,6 +2064,7 @@
       const res = (type === 'branches') ? await deleteBranchItem(targetId) : await deleteSpecialistItem(targetId);
       if (res && res.success) {
         renderModalList();
+        renderInlineDrawerList();
         refreshMainSelects();
         showToast('تم الحذف بنجاح من القائمة', 'info');
       } else {
@@ -2792,23 +2797,25 @@
               <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
             </div>
           ` : `
-            <!-- العرض التقليدي جنباً إلى جنب -->
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div class="relative rounded-xl overflow-hidden border border-rose-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - قبل التعديل')">
-                <span class="absolute top-2 right-2 bg-rose-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">قبل</span>
+            <!-- العرض التقليدي جنباً إلى جنب (موزع من اليمين لليسار: قبل ثم بعد) -->
+            <div class="grid grid-cols-2 gap-3.5 mb-3.5">
+              <!-- اليمين: قبل التعديل -->
+              <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - قبل التعديل')">
+                <span class="absolute top-2.5 right-2.5 bg-rose-600/95 backdrop-blur-md text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-md z-10 border border-rose-400/40">🔴 قبل التعديل</span>
                 <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
                   <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                  <span>تكبير</span>
+                  <span>تكبير الصورة</span>
                 </div>
               </div>
 
-              <div class="relative rounded-xl overflow-hidden border border-emerald-500/30 bg-corp-950 aspect-video group cursor-pointer" onclick="openLightbox('${sec.afterImg}', '${sec.title} - بعد التعديل')">
-                <span class="absolute top-2 right-2 bg-emerald-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">بعد</span>
+              <!-- اليسار: بعد التنفيذ والتعديل -->
+              <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - بعد التعديل')">
+                <span class="absolute top-2.5 right-2.5 bg-emerald-600/95 backdrop-blur-md text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-md z-10 border border-emerald-400/40">🟢 بعد التنفيذ والتعديل</span>
                 <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
                   <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                  <span>تكبير</span>
+                  <span>تكبير الصورة</span>
                 </div>
               </div>
             </div>
@@ -2901,23 +2908,25 @@
             <div class="flex flex-wrap gap-1">${tagsBadge}</div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 mb-3">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <!-- اليمين: قبل التعديل -->
             <div>
-              <div class="text-[11px] font-bold text-rose-700 mb-1 flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full bg-rose-600"></span>
+              <div class="text-xs font-black text-rose-800 mb-1.5 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
                 <span>الوضع السابق (Before Audit)</span>
               </div>
-              <div class="aspect-4/3 rounded-lg overflow-hidden border border-slate-300 bg-slate-50">
+              <div class="aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden border-2 border-rose-300/80 bg-slate-50 shadow-sm">
                 <img src="${sec.beforeImg}" class="w-full h-full object-cover">
               </div>
             </div>
 
+            <!-- اليسار: بعد التنفيذ والتعديل -->
             <div>
-              <div class="text-[11px] font-bold text-emerald-700 mb-1 flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+              <div class="text-xs font-black text-emerald-800 mb-1.5 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                 <span>بعد التنفيذ والتعديل (After VM Action)</span>
               </div>
-              <div class="aspect-4/3 rounded-lg overflow-hidden border border-slate-300 bg-slate-50">
+              <div class="aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden border-2 border-emerald-300/80 bg-slate-50 shadow-sm">
                 <img src="${sec.afterImg}" class="w-full h-full object-cover">
               </div>
             </div>
@@ -3404,6 +3413,15 @@
       };
       reader.readAsText(file);
     }
+
+    // التحكم في إظهار أو إخفاء تذييل التوقيعات والاعتمادات في التقرير المطبوع
+    function toggleReportFooter(show) {
+      const footer = document.getElementById('print-signatures-footer');
+      if (footer) {
+        footer.style.display = show ? 'grid' : 'none';
+      }
+    }
+    window.toggleReportFooter = toggleReportFooter;
 
     // طباعة وحفظ التقرير كـ PDF
     function printReport() {
