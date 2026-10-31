@@ -1002,7 +1002,7 @@
   </div>
 
   <!-- حاوية التنبيهات الميدانية (TOAST CONTAINER) -->
-  <div id="toast-container" class="no-print fixed bottom-20 md:bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toast-container" style="z-index: 999999;" class="no-print fixed top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none"></div>
 
   <!-- ==================== المنطق البرمجي الكامل (VANILLA JAVASCRIPT) ==================== -->
   <script>
@@ -1763,7 +1763,7 @@
         renderInlineDrawerList();
         renderModalList();
         refreshMainSelects();
-        showToast(currentDrawerTab === 'branches' ? 'تمت إضافة الفرع بنجاح وتحديث القائمة' : 'تمت إضافة الأخصائي بنجاح وتحديث القائمة', 'success');
+        showToast(currentDrawerTab === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`, 'success');
       } else {
         showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
       }
@@ -1951,7 +1951,7 @@
         if (input) input.value = '';
         renderModalList();
         refreshMainSelects();
-        showToast(type === 'branches' ? 'تمت إضافة الفرع بنجاح' : 'تمت إضافة الأخصائي بنجاح', 'success');
+        showToast(type === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`, 'success');
       } else {
         showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
       }
@@ -3422,20 +3422,20 @@
       if (!container) return;
       const toast = document.createElement('div');
       
-      let borderCol = 'border-gold-500/40 text-gold-300';
+      let borderCol = 'border-gold-500/40 text-gold-300 bg-corp-900/95';
       let icon = 'info';
       if (type === 'success') {
-        borderCol = 'border-emerald-500/40 text-emerald-300';
-        icon = 'check-circle-2';
+        borderCol = 'border-emerald-500/50 text-emerald-200 bg-emerald-950/90 shadow-emerald-900/40';
+        icon = 'sparkles';
       } else if (type === 'error') {
-        borderCol = 'border-rose-500/40 text-rose-300';
+        borderCol = 'border-rose-500/50 text-rose-200 bg-rose-950/90 shadow-rose-900/40';
         icon = 'alert-circle';
       }
 
-      toast.className = `bg-corp-900 border ${borderCol} px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2 pointer-events-auto animate-in slide-in-from-bottom duration-200`;
+      toast.className = `border ${borderCol} px-4 py-2 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2 pointer-events-auto backdrop-blur-md transition-all duration-300 transform animate-in slide-in-from-top-2`;
       toast.innerHTML = `
-        <i data-lucide="${icon}" class="w-4 h-4"></i>
-        <span>${message}</span>
+        <i data-lucide="${icon}" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+        <span class="tracking-wide">${message}</span>
       `;
 
       container.appendChild(toast);
@@ -3445,8 +3445,7 @@
 
       setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(8px)';
-        toast.style.transition = 'all 0.3s ease';
+        toast.style.transform = 'translateY(-8px) scale(0.95)';
         setTimeout(() => {
           if (typeof toast.remove === 'function') {
             toast.remove();
@@ -3454,7 +3453,7 @@
             toast.parentNode.removeChild(toast);
           }
         }, 300);
-      }, 3000);
+      }, 2200);
     }
     window.showToast = showToast;
   </script>
