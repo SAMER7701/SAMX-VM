@@ -223,7 +223,7 @@
           <div class="space-y-1.5 md:col-span-2">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
-              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="window.openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
+              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
             </div>
             <div class="flex gap-2">
               <select id="select-branch" onchange="handleBranchSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
@@ -236,7 +236,7 @@
           <div class="space-y-1.5 md:col-span-1">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
-              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="window.openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
+              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
             </div>
             <div class="flex gap-2">
               <select id="select-specialist" onchange="handleSpecialistSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
@@ -255,6 +255,68 @@
               <label class="block text-xs font-bold text-slate-300">تاريخ الزيارة:</label>
               <input type="date" id="input-date" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
             </div>
+          </div>
+        </div>
+
+        <!-- ==================== الدرج المنسدل المدمج لإدارة الفروع والأخصائيين (INLINE MANAGEMENT DRAWER) ==================== -->
+        <div id="inline-management-drawer" style="display: none;" class="mt-4 p-4 bg-corp-950/95 border border-gold-500/50 rounded-2xl shadow-2xl transition-all duration-300">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-corp-800 flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-gold-400 animate-pulse"></span>
+              <div>
+                <h4 id="drawer-header-title" class="text-xs md:text-sm font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="sliders" class="w-4 h-4 text-gold-400"></i>
+                  <span>إدارة قوائم المعرض وفريق العمل</span>
+                </h4>
+                <p class="text-[10px] text-slate-400">إضافة أو حذف فوري مع تحديث القوائم المنسدلة تلقائياً</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <!-- ألسنة التبديل السريع -->
+              <button type="button" id="drawer-tab-branches" onclick="openInlineManagement('branches')" class="px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 bg-gold-500 text-slate-950 shadow">
+                <i data-lucide="store" class="w-3.5 h-3.5"></i>
+                <span>الفروع</span>
+                <span id="drawer-badge-branches" class="bg-slate-950/20 text-slate-950 text-[10px] px-1.5 rounded-full font-black">0</span>
+              </button>
+              <button type="button" id="drawer-tab-specialists" onclick="openInlineManagement('specialists')" class="px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 text-slate-400 hover:text-white bg-corp-900 border border-corp-800">
+                <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                <span>أخصائيو الـ VM</span>
+                <span id="drawer-badge-specialists" class="bg-corp-800 text-slate-300 text-[10px] px-1.5 rounded-full font-bold">0</span>
+              </button>
+              <!-- زر طي اللوحة -->
+              <button type="button" onclick="closeInlineManagement()" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-corp-850 rounded-lg transition mr-1" title="إغلاق الدرج">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- نموذج الإضافة السريع -->
+          <form onsubmit="event.preventDefault(); addInlineEntity();" class="flex gap-2 mb-3">
+            <input type="text" id="drawer-input" placeholder="اكتب اسم الفرع أو المعرض الجديد..." class="flex-1 bg-corp-900 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
+            <button type="submit" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1.5 shadow active:scale-95">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>إضافة +</span>
+            </button>
+          </form>
+
+          <!-- قائمة العناصر المسجلة -->
+          <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-900/70">
+            <div class="px-3 py-1.5 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span id="drawer-list-label">قائمة الفروع المسجلة</span>
+              <span id="drawer-list-counter" class="bg-corp-950 text-gold-400 px-2 py-0.2 rounded-full text-[10px] font-bold">0</span>
+            </div>
+            <div id="drawer-items-list" class="divide-y divide-corp-800/60 max-h-52 overflow-y-auto">
+              <!-- يتم تعبئتها ديناميكياً -->
+            </div>
+          </div>
+
+          <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-400">
+            <span class="flex items-center gap-1 text-emerald-400 font-medium">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+              <span>التغييرات تُحفظ محلياً وتظهر فوراً في القوائم المنسدلة والتقرير</span>
+            </span>
+            <button type="button" onclick="closeInlineManagement()" class="text-xs text-gold-400 hover:text-gold-300 font-bold transition">طي اللوحة ▲</button>
           </div>
         </div>
 
@@ -1599,12 +1661,184 @@
     function refreshBranchesUI() {
       refreshMainSelects();
       renderModalList();
+      renderInlineDrawerList();
     }
 
     function refreshSpecialistsUI() {
       refreshMainSelects();
       renderModalList();
+      renderInlineDrawerList();
     }
+
+    // ==================== التحكم باللوحة المدمجة المنبثقة (INLINE DRAWER CONTROLLER) ====================
+    let currentDrawerTab = 'branches'; // 'branches' | 'specialists'
+    let isInlineDrawerOpen = false;
+
+    function toggleInlineManagement(tab = 'branches') {
+      try {
+        const drawer = document.getElementById('inline-management-drawer');
+        if (!drawer) {
+          openManagementModal(tab);
+          return;
+        }
+
+        if (isInlineDrawerOpen && currentDrawerTab === tab) {
+          closeInlineManagement();
+        } else {
+          openInlineManagement(tab);
+        }
+      } catch (err) {
+        console.error('toggleInlineManagement error:', err);
+      }
+    }
+    window.toggleInlineManagement = toggleInlineManagement;
+
+    function openInlineManagement(tab = 'branches') {
+      try {
+        currentDrawerTab = (tab === 'specialists') ? 'specialists' : 'branches';
+        currentModalTab = currentDrawerTab;
+
+        const drawer = document.getElementById('inline-management-drawer');
+        if (!drawer) {
+          openManagementModal(tab);
+          return;
+        }
+
+        drawer.style.display = 'block';
+        isInlineDrawerOpen = true;
+
+        const tabBranches = document.getElementById('drawer-tab-branches');
+        const tabSpecialists = document.getElementById('drawer-tab-specialists');
+        const input = document.getElementById('drawer-input');
+        const listLabel = document.getElementById('drawer-list-label');
+
+        if (currentDrawerTab === 'branches') {
+          if (tabBranches) tabBranches.className = "px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 bg-gold-500 text-slate-950 shadow";
+          if (tabSpecialists) tabSpecialists.className = "px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 text-slate-400 hover:text-white bg-corp-900 border border-corp-800";
+          if (input) input.placeholder = "اكتب اسم الفرع أو المعرض الجديد...";
+          if (listLabel) listLabel.innerText = "قائمة الفروع المسجلة";
+        } else {
+          if (tabSpecialists) tabSpecialists.className = "px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 bg-gold-500 text-slate-950 shadow";
+          if (tabBranches) tabBranches.className = "px-3 py-1 text-xs font-bold rounded-xl transition flex items-center gap-1.5 text-slate-400 hover:text-white bg-corp-900 border border-corp-800";
+          if (input) input.placeholder = "اكتب اسم الأخصائي الجديد...";
+          if (listLabel) listLabel.innerText = "فريق أخصائيي العرض (VM)";
+        }
+
+        renderInlineDrawerList();
+        setTimeout(() => {
+          if (input && typeof input.focus === 'function') input.focus();
+        }, 60);
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+          try { lucide.createIcons(); } catch(e){}
+        }
+      } catch (err) {
+        console.error('openInlineManagement error:', err);
+      }
+    }
+    window.openInlineManagement = openInlineManagement;
+
+    function closeInlineManagement() {
+      try {
+        const drawer = document.getElementById('inline-management-drawer');
+        if (drawer) {
+          drawer.style.display = 'none';
+          isInlineDrawerOpen = false;
+          const input = document.getElementById('drawer-input');
+          if (input) input.value = '';
+          refreshMainSelects();
+        }
+      } catch (err) {
+        console.error('closeInlineManagement error:', err);
+      }
+    }
+    window.closeInlineManagement = closeInlineManagement;
+
+    function renderInlineDrawerList() {
+      try {
+        const container = document.getElementById('drawer-items-list');
+        const counter = document.getElementById('drawer-list-counter');
+        const badgeBranches = document.getElementById('drawer-badge-branches');
+        const badgeSpecialists = document.getElementById('drawer-badge-specialists');
+
+        const branches = getBranches() || [];
+        const specialists = getSpecialists() || [];
+
+        if (badgeBranches) badgeBranches.innerText = branches.length;
+        if (badgeSpecialists) badgeSpecialists.innerText = specialists.length;
+
+        const items = (currentDrawerTab === 'branches') ? branches : specialists;
+        if (counter) counter.innerText = items.length;
+        if (!container) return;
+
+        if (items.length === 0) {
+          container.innerHTML = `<div class="p-3 text-center text-xs text-slate-500">لا توجد عناصر مسجلة حالياً</div>`;
+          return;
+        }
+
+        container.innerHTML = items.map((item, index) => {
+          const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
+          const id = typeof item === 'object' && item && item.id ? item.id : '';
+          const activeName = (currentDrawerTab === 'branches') ? currentAudit.branchName : currentAudit.auditorName;
+          const isCurrent = activeName && String(activeName).trim().toLowerCase() === String(name).trim().toLowerCase();
+
+          const iconName = (currentDrawerTab === 'branches') ? 'store' : 'user';
+          const iconColor = (currentDrawerTab === 'branches') ? 'text-gold-400' : 'text-emerald-400';
+          const activeBadgeText = (currentDrawerTab === 'branches') ? 'المحدد حالياً' : 'المسؤول النشط';
+          const activeBadgeClass = (currentDrawerTab === 'branches') 
+            ? 'bg-gold-500/20 text-gold-400 border-gold-500/30' 
+            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+
+          return `
+            <div class="px-3 py-2 flex items-center justify-between gap-2 hover:bg-corp-850/60 transition">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="${iconName}" class="w-3.5 h-3.5 ${iconColor} shrink-0"></i>
+                <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${name}</span>
+                  ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-950 px-1 py-0.2 rounded border border-corp-800">${id}</span>` : ''}
+                </div>
+                ${isCurrent ? `<span class="${activeBadgeClass} text-[10px] font-bold px-1.5 py-0.2 rounded border">${activeBadgeText}</span>` : ''}
+              </div>
+              <button type="button" onclick="deleteInlineEntity('${currentDrawerTab}', ${index})" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+          try { lucide.createIcons(); } catch(e){}
+        }
+      } catch (err) {
+        console.error('renderInlineDrawerList error:', err);
+      }
+    }
+    window.renderInlineDrawerList = renderInlineDrawerList;
+
+    async function addInlineEntity() {
+      const input = document.getElementById('drawer-input');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        showToast(currentDrawerTab === 'branches' ? 'يرجى كتابة اسم المعرض أو الفرع' : 'يرجى كتابة اسم أخصائي الـ VM', 'error');
+        return;
+      }
+      const res = (currentDrawerTab === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
+      if (res && res.success) {
+        if (input) input.value = '';
+        renderInlineDrawerList();
+        renderModalList();
+        refreshMainSelects();
+        showToast(currentDrawerTab === 'branches' ? 'تمت إضافة الفرع بنجاح وتحديث القائمة' : 'تمت إضافة الأخصائي بنجاح وتحديث القائمة', 'success');
+      } else {
+        showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
+      }
+    }
+    window.addInlineEntity = addInlineEntity;
+
+    async function deleteInlineEntity(type, index) {
+      await deleteEntity(type, index);
+      renderInlineDrawerList();
+    }
+    window.deleteInlineEntity = deleteInlineEntity;
 
     // ==================== نافذة إدارة القوائم (MANAGEMENT MODAL CONTROLLER) ====================
     let currentModalTab = 'branches'; // 'branches' | 'specialists'
@@ -1614,18 +1848,13 @@
         lastModalOpenTime = Date.now();
         currentModalTab = (tab === 'specialists') ? 'specialists' : 'branches';
         const modal = document.getElementById('management-modal');
-        if (!modal) {
-          console.warn('Management modal element not found');
-          return;
-        }
+        if (!modal) return;
 
-        // إغلاق أي نوافذ منبثقة أخرى لتجنب التداخل
         hideModal('section-modal');
         hideModal('annotator-modal');
         hideModal('validation-check-modal');
         hideModal('image-lightbox');
 
-        // إظهار نافذة إدارة القوائم وضبط display و z-index
         showModal('management-modal');
 
         const btnBranches = document.getElementById('tab-btn-branches');
@@ -1663,7 +1892,6 @@
 
     function closeManagementModal(force = false) {
       try {
-        // حماية صارمة: منع الإغلاق التلقائي العرضي في أول 350 ملي ثانية من الفتح
         if (!force && (Date.now() - lastModalOpenTime < 350)) {
           return;
         }
