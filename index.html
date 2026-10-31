@@ -223,7 +223,7 @@
           <div class="space-y-1.5 md:col-span-2">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
-              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
+              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="if(event)event.stopPropagation(); openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
             </div>
             <div class="flex gap-2">
               <select id="select-branch" onchange="handleBranchSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
@@ -236,7 +236,7 @@
           <div class="space-y-1.5 md:col-span-1">
             <div class="flex items-center justify-between">
               <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
-              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
+              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="if(event)event.stopPropagation(); openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
             </div>
             <div class="flex gap-2">
               <select id="select-specialist" onchange="handleSpecialistSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
@@ -532,7 +532,7 @@
   </nav>
 
   <!-- ==================== النافذة المنبثقة لتوثيق القسم (MODAL / DIALOG) ==================== -->
-  <div id="section-modal" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end md:items-center justify-center hidden p-0 md:p-4">
+  <div id="section-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);" class="modal-backdrop p-0 md:p-4">
     <div class="bg-corp-900 border border-corp-800 w-full max-w-2xl max-h-[92vh] rounded-t-3xl md:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
       
       <!-- رأس النافذة -->
@@ -741,7 +741,7 @@
   </div>
 
   <!-- ==================== نافذة أداة التأشير والملاحظات البصرية (ANNOTATOR MODAL) ==================== -->
-  <div id="annotator-modal" class="modal-backdrop fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-2 sm:p-4">
+  <div id="annotator-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.9); backdrop-filter: blur(8px);" class="modal-backdrop p-2 sm:p-4">
     <div class="bg-corp-900 border border-corp-800 w-full max-w-4xl max-h-[96vh] rounded-2xl md:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
       
       <!-- شريط أدوات التأشير العلوي -->
@@ -811,7 +811,7 @@
   </div>
 
   <!-- ==================== نافذة التكبير والمقارنة للصور (LIGHTBOX) ==================== -->
-  <div id="image-lightbox" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center hidden p-4" onclick="closeLightbox()">
+  <div id="image-lightbox" style="display: none; position: fixed; inset: 0; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.9);" class="p-4" onclick="closeLightbox()">
     <div class="max-w-4xl w-full flex flex-col items-center" onclick="event.stopPropagation()">
       <div class="flex items-center justify-between w-full mb-3 text-white">
         <h4 id="lightbox-title" class="font-bold text-sm">معاينة الصورة</h4>
@@ -826,8 +826,8 @@
   </div>
 
   <!-- ==================== نافذة إدارة القوائم (الفروع والأخصائيين - MANAGEMENT MODAL) ==================== -->
-  <div id="management-modal" onclick="if(event.target === this) closeManagementModal();" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden p-3 sm:p-4">
-    <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+  <div id="management-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);" onclick="if(event.target === this) closeManagementModal();" class="p-3 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onclick="event.stopPropagation();">
       <!-- الرأس مع العنوان وزر الإغلاق -->
       <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
@@ -895,7 +895,7 @@
   </div>
 
   <!-- ==================== نافذة التحقق من جودة التقرير قبل التصدير (PRE-EXPORT QUALITY CHECK) ==================== -->
-  <div id="validation-check-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+  <div id="validation-check-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);" class="p-3 sm:p-4">
     <div class="bg-corp-900 border border-corp-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
       <!-- رأس التنبيه -->
       <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
@@ -950,7 +950,11 @@
         const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
         if (!modal) return;
         modal.classList.remove('hidden');
+        modal.style.display = 'flex';
         modal.style.setProperty('display', 'flex', 'important');
+        modal.style.zIndex = '99999';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
       } catch (err) {
         console.error('showModal error:', err);
       }
@@ -962,6 +966,7 @@
         const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
         if (!modal) return;
         modal.classList.add('hidden');
+        modal.style.display = 'none';
         modal.style.setProperty('display', 'none', 'important');
       } catch (err) {
         console.error('hideModal error:', err);
@@ -3007,13 +3012,26 @@
       try {
         const saved = localStorage.getItem(APP_STORAGE_KEY);
         if (saved) {
-          currentAudit = JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            currentAudit.id = parsed.id || currentAudit.id;
+            currentAudit.branchName = parsed.branchName || currentAudit.branchName;
+            currentAudit.auditorName = parsed.auditorName || currentAudit.auditorName;
+            currentAudit.weekNumber = parsed.weekNumber || currentAudit.weekNumber;
+            currentAudit.auditDate = parsed.auditDate || currentAudit.auditDate;
+            currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [...SAMPLE_DEMO_DATA];
+          } else {
+            currentAudit.sections = [...SAMPLE_DEMO_DATA];
+          }
         } else {
           // تحميل النموذج التجريبي عند التشغيل الأول
           currentAudit.sections = [...SAMPLE_DEMO_DATA];
           saveAuditToStorage();
         }
       } catch (e) {
+        currentAudit.sections = [...SAMPLE_DEMO_DATA];
+      }
+      if (!Array.isArray(currentAudit.sections)) {
         currentAudit.sections = [...SAMPLE_DEMO_DATA];
       }
     }
