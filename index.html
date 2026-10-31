@@ -182,7 +182,7 @@
         <div class="flex items-center gap-4 text-slate-400 text-[11px]">
           <div class="flex items-center gap-1.5">
             <i data-lucide="store" class="w-3.5 h-3.5 text-gold-500"></i>
-            <span class="text-slate-200 font-semibold" id="quick-store-name">فرع العليا العام - الرياض</span>
+            <span class="text-slate-200 font-semibold" id="quick-store-name">لم يتم تحديد الفرع</span>
           </div>
           <div class="flex items-center gap-1.5">
             <i data-lucide="calendar" class="w-3.5 h-3.5 text-gold-500"></i>
@@ -1061,8 +1061,8 @@
     
     let currentAudit = {
       id: 'samx_' + Date.now(),
-      branchName: 'فرع العليا العام - الرياض',
-      auditorName: 'أحمد المهندس',
+      branchName: '',
+      auditorName: '',
       weekNumber: 43,
       auditDate: new Date().toISOString().split('T')[0],
       sections: []
@@ -1324,10 +1324,8 @@
     }
 
     // ==================== طبقة تجريد البيانات الموزعة وإدارة القوائم (Local-First Data Layer) ====================
-    const STORAGE_KEY_BRANCHES = 'samx_branches_v2';
-    const STORAGE_KEY_SPECIALISTS = 'samx_specialists_v2';
-    const LEGACY_BRANCHES_KEY = 'samx_branches';
-    const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
+    const STORAGE_KEY_BRANCHES = 'samx_branches_clean_v1';
+    const STORAGE_KEY_SPECIALISTS = 'samx_specialists_clean_v1';
 
     // مخزن الذاكرة المؤقتة (Local-First Cache)
     const metadataCache = {
@@ -1344,100 +1342,36 @@
       return `${prefix}_${ts}_${rand}`;
     }
 
-    // القيم الافتراضية الأولية مع معرفات فريدة وطوابع زمنية
-    const SEED_BRANCHES = [
-      { id: 'br_olaya_01', name: 'فرع العليا العام - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_redsea_02', name: 'فرع رد سي مول - جدة', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_nakheel_03', name: 'فرع النخيل مول - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_rashed_04', name: 'فرع الراشد مول - الخبر', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_makkah_05', name: 'فرع مكة مول - مكة المكرمة', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_granada_06', name: 'فرع غرناطة سنتر - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_panorama_07', name: 'فرع بانوراما مول - الرياض', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'br_dhahran_08', name: 'فرع الظهران مول - الخبر', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' }
-    ];
+    // مصفوفات أولية فارغة تماماً (يتم إدارتها كلياً عبر واجهة المستخدم)
+    const SEED_BRANCHES = [];
+    const SEED_SPECIALISTS = [];
 
-    const SEED_SPECIALISTS = [
-      { id: 'sp_ahmed_01', name: 'أحمد المهندس', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'sp_sarah_02', name: 'سارة العتيبي', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'sp_faisal_03', name: 'فيصل الغامدي', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'sp_nouf_04', name: 'نوف الشمري', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' },
-      { id: 'sp_khaled_05', name: 'خالد الدوسري', createdAt: '2026-01-10T08:00:00Z', updatedAt: '2026-01-10T08:00:00Z' }
-    ];
-
-    // قراءة البيانات من التخزين المحلي أولاً، ثم الاستعداد لمزامنة الخادم
+    // قراءة البيانات من التخزين المحلي النظيف (Clean Storage)
     async function loadMetadata() {
       try {
         let branches = [];
         let specialists = [];
 
-        // 1. قراءة الفروع من Local-First Storage (v2)
-        const storedBranchesV2 = localStorage.getItem(STORAGE_KEY_BRANCHES);
-        if (storedBranchesV2) {
+        // 1. قراءة الفروع من LocalStorage
+        const storedBranches = localStorage.getItem(STORAGE_KEY_BRANCHES);
+        if (storedBranches) {
           try {
-            const parsed = JSON.parse(storedBranchesV2);
-            if (Array.isArray(parsed) && parsed.length > 0) branches = parsed;
+            const parsed = JSON.parse(storedBranches);
+            if (Array.isArray(parsed)) branches = parsed;
           } catch (e) {
-            console.warn('Failed parsing storedBranchesV2', e);
+            console.warn('Failed parsing storedBranches', e);
           }
         }
 
-        // ترقية تلقائية للبيانات السابقة ذات التنسيق النصي (Auto-migration)
-        if (!branches || branches.length === 0) {
-          const legacyBranches = localStorage.getItem(LEGACY_BRANCHES_KEY);
-          if (legacyBranches) {
-            try {
-              const legacyList = JSON.parse(legacyBranches);
-              if (Array.isArray(legacyList) && legacyList.length > 0) {
-                branches = legacyList.map((item, idx) => ({
-                  id: generateEntityId(`br_${idx + 1}`),
-                  name: typeof item === 'string' ? item : (item.name || 'فرع'),
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                }));
-              }
-            } catch (e) {
-              console.warn('Failed migrating legacy branches', e);
-            }
-          }
-        }
-
-        if (!branches || branches.length === 0) {
-          branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
-        }
-
-        // 2. قراءة الأخصائيين من Local-First Storage (v2)
-        const storedSpecialistsV2 = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
-        if (storedSpecialistsV2) {
+        // 2. قراءة الأخصائيين من LocalStorage
+        const storedSpecialists = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
+        if (storedSpecialists) {
           try {
-            const parsed = JSON.parse(storedSpecialistsV2);
-            if (Array.isArray(parsed) && parsed.length > 0) specialists = parsed;
+            const parsed = JSON.parse(storedSpecialists);
+            if (Array.isArray(parsed)) specialists = parsed;
           } catch (e) {
-            console.warn('Failed parsing storedSpecialistsV2', e);
+            console.warn('Failed parsing storedSpecialists', e);
           }
-        }
-
-        // ترقية تلقائية للأخصائيين السابقين
-        if (!specialists || specialists.length === 0) {
-          const legacySpecialists = localStorage.getItem(LEGACY_SPECIALISTS_KEY);
-          if (legacySpecialists) {
-            try {
-              const legacyList = JSON.parse(legacySpecialists);
-              if (Array.isArray(legacyList) && legacyList.length > 0) {
-                specialists = legacyList.map((item, idx) => ({
-                  id: generateEntityId(`sp_${idx + 1}`),
-                  name: typeof item === 'string' ? item : (item.name || 'أخصائي'),
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString()
-                }));
-              }
-            } catch (e) {
-              console.warn('Failed migrating legacy specialists', e);
-            }
-          }
-        }
-
-        if (!specialists || specialists.length === 0) {
-          specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
         }
 
         // تحديث كاش الذاكرة والتخزين المحلي
@@ -1446,58 +1380,48 @@
         localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
         localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
 
-        // 3. محاكاة فحص المزامنة مع السحابة / الخادم المستقبلي (Cloud Fetch Hook)
-        try {
-          if (window.SAMX_CLOUD_SYNC_ENABLED) {
-            // نقطة تكامل جاهزة لمزامنة سحابية دون مقاطعة التفاعل
-            // const remoteRes = await fetch('/api/metadata');
-          }
-        } catch (networkErr) {
-          console.info('Cloud sync deferred, running in offline/local-first mode.', networkErr);
-        }
-
         metadataCache.lastSyncedAt = new Date().toISOString();
         return { branches, specialists };
       } catch (err) {
         console.error('loadMetadata error:', err);
-        metadataCache.branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
-        metadataCache.specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
-        return { branches: metadataCache.branches, specialists: metadataCache.specialists };
+        metadataCache.branches = [];
+        metadataCache.specialists = [];
+        return { branches: [], specialists: [] };
       }
     }
 
-    // دوال الوصول للقوائم (كائنات مع معرفات)
+    // دوال الوصول للقوائم (تسمح بإرجاع مصفوفة فارغة [])
     function getBranches() {
-      if (!metadataCache.branches || !Array.isArray(metadataCache.branches) || metadataCache.branches.length === 0) {
+      if (!Array.isArray(metadataCache.branches)) {
         const stored = localStorage.getItem(STORAGE_KEY_BRANCHES);
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) metadataCache.branches = parsed;
+            if (Array.isArray(parsed)) metadataCache.branches = parsed;
           } catch(e){}
         }
-        if (!metadataCache.branches || !Array.isArray(metadataCache.branches) || metadataCache.branches.length === 0) {
-          metadataCache.branches = JSON.parse(JSON.stringify(SEED_BRANCHES));
+        if (!Array.isArray(metadataCache.branches)) {
+          metadataCache.branches = [];
         }
       }
-      return Array.isArray(metadataCache.branches) ? metadataCache.branches : JSON.parse(JSON.stringify(SEED_BRANCHES));
+      return metadataCache.branches;
     }
     window.getBranches = getBranches;
 
     function getSpecialists() {
-      if (!metadataCache.specialists || !Array.isArray(metadataCache.specialists) || metadataCache.specialists.length === 0) {
+      if (!Array.isArray(metadataCache.specialists)) {
         const stored = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) metadataCache.specialists = parsed;
+            if (Array.isArray(parsed)) metadataCache.specialists = parsed;
           } catch(e){}
         }
-        if (!metadataCache.specialists || !Array.isArray(metadataCache.specialists) || metadataCache.specialists.length === 0) {
-          metadataCache.specialists = JSON.parse(JSON.stringify(SEED_SPECIALISTS));
+        if (!Array.isArray(metadataCache.specialists)) {
+          metadataCache.specialists = [];
         }
       }
-      return Array.isArray(metadataCache.specialists) ? metadataCache.specialists : JSON.parse(JSON.stringify(SEED_SPECIALISTS));
+      return metadataCache.specialists;
     }
     window.getSpecialists = getSpecialists;
 
@@ -1604,6 +1528,12 @@
       if (!branchSelect) return;
 
       const branches = getBranches();
+      if (branches.length === 0) {
+        branchSelect.innerHTML = '<option value="">-- أضف فرعاً من زر (⚙️ إدارة الفروع) --</option>';
+        currentAudit.branchName = '';
+        return;
+      }
+
       const branchNames = branches.map(b => typeof b === 'string' ? b : (b.name || ''));
 
       // إذا لم يكن هناك فرع محدد، أو كان الفرع الحالي غير موجود بالقائمة، اختر الأول
@@ -1630,6 +1560,12 @@
       if (!specialistSelect) return;
 
       const specialists = getSpecialists();
+      if (specialists.length === 0) {
+        specialistSelect.innerHTML = '<option value="">-- أضف أخصائياً من زر (⚙️ إدارة الأخصائيين) --</option>';
+        currentAudit.auditorName = '';
+        return;
+      }
+
       const specialistNames = specialists.map(s => typeof s === 'string' ? s : (s.name || ''));
 
       if ((!currentAudit.auditorName || !specialistNames.includes(currentAudit.auditorName)) && specialistNames.length > 0) {
@@ -2108,17 +2044,36 @@
     }
 
     function syncQuickDisplays() {
-      document.getElementById('quick-store-name').innerText = currentAudit.branchName;
-      document.getElementById('quick-audit-week').innerText = 'الأسبوع ' + currentAudit.weekNumber;
+      const branchDisplay = currentAudit.branchName || 'لم يتم تحديد الفرع';
+      const auditorDisplay = currentAudit.auditorName || 'لم يتم تحديد الأخصائي';
+
+      const quickStore = document.getElementById('quick-store-name');
+      if (quickStore) quickStore.innerText = branchDisplay;
+
+      const quickWeek = document.getElementById('quick-audit-week');
+      if (quickWeek) quickWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
       
       // مزامنة التقرير المطبوع
-      document.getElementById('print-header-store').innerText = currentAudit.branchName;
-      document.getElementById('print-header-week').innerText = 'الأسبوع ' + currentAudit.weekNumber;
-      document.getElementById('print-header-date').innerText = currentAudit.auditDate;
-      document.getElementById('print-header-auditor').innerText = currentAudit.auditorName;
-      document.getElementById('print-sign-auditor').innerText = currentAudit.auditorName;
-      document.getElementById('print-header-count').innerText = currentAudit.sections.length + ' أقسام';
-      document.getElementById('print-timestamp').innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.0.0`;
+      const printStore = document.getElementById('print-header-store');
+      if (printStore) printStore.innerText = branchDisplay;
+
+      const printWeek = document.getElementById('print-header-week');
+      if (printWeek) printWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
+
+      const printDate = document.getElementById('print-header-date');
+      if (printDate) printDate.innerText = currentAudit.auditDate || '';
+
+      const printAuditor = document.getElementById('print-header-auditor');
+      if (printAuditor) printAuditor.innerText = auditorDisplay;
+
+      const printSign = document.getElementById('print-sign-auditor');
+      if (printSign) printSign.innerText = auditorDisplay;
+
+      const printCount = document.getElementById('print-header-count');
+      if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
+
+      const printTimestamp = document.getElementById('print-timestamp');
+      if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.0.0`;
 
       // تحديث المؤشرات
       updateKPIs();
