@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.3.2
+ * Version: 1.3.3
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.3.2';
+export const APP_VERSION = '1.3.3';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
@@ -118,56 +118,6 @@ export const VM_CATEGORY_CHECKLISTS = {
     'نظافة الموقع وتوحيد اتجاه المعاليق'
   ]
 };
-
-// بيانات تجريبية احترافية للملابس والتجزئة الفاخرة
-export const SAMPLE_DEMO_DATA = [
-  {
-    id: 'sec_demo_1',
-    title: 'الواجهة الرئيسية والمانيكانات (Window Display)',
-    status: 'resolved',
-    beforeImg: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&auto=format&fit=crop&q=75',
-    afterImg: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&auto=format&fit=crop&q=75',
-    tags: ['تبديل طقم المانيكان', 'توجيه وزوايا الإضاءة'],
-    checklist: [
-      'سلامة ونظافة المانيكان وضبط التثبيت والوقفة',
-      'تطبيق قصة الألوان المعتمدة للواجهة (Color Story)',
-      'توجيه زوايا الإضاءة والسبوت لايت (45 درجة)'
-    ],
-    notes: 'تم استبدال المعروض على مانيكانات الواجهة الرئيسية بأطقم الكولكشن الشتوي الفاخر، وضبط كشافات الإضاءة بزاوية 45 درجة لإبراز خامة الصوف وإزالة الظلال العاتمة.'
-  },
-  {
-    id: 'sec_demo_2',
-    title: 'طاولات العرض المركزية والجدوال (Folded Tables / Gondolas)',
-    status: 'store_followup',
-    actionAssignee: 'مدير المعرض (خالد)',
-    actionDueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
-    beforeImg: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=800&auto=format&fit=crop&q=75',
-    afterImg: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&auto=format&fit=crop&q=75',
-    tags: ['تناسق الألوان (Color Story)', 'ترتيب تسلسل المقاسات', 'إعادة طي وترتيب الطاولات'],
-    checklist: [
-      'تطبيق معيار مقاس الطي المعتمد (Folding Board)',
-      'تدرج الألوان الأفقي والعمودي على الطاولة (Color Balance)',
-      'ترتيب مقاسات الأكوام تصاعدياً من الأعلى للأسفل'
-    ],
-    notes: 'تمت إعادة طي القمصان وفق معايير مقاس الطي المعتمد (Folding Board)، وتنسيق تدرج الألوان من الفاتح إلى الكحلي الداكن مع ترتيب المقاسات تصاعدياً من S إلى XXL. يلزم متابعة تعبئة النواقص.'
-  },
-  {
-    id: 'sec_demo_3',
-    title: 'قسم الثياب البيضاء (White Thobes)',
-    status: 'management_action',
-    actionAssignee: 'فريق الصيانة المركزية',
-    actionDueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    beforeImg: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop&q=75',
-    afterImg: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=75',
-    tags: ['ترتيب تسلسل المقاسات', 'توحيد اتجاه المعاليق', 'صيانة الإضاءة'],
-    checklist: [
-      'تسلسل وترتيب المقاسات تصاعدياً (Size Sequence)',
-      'توحيد اتجاه ونوعية المعاليق (Hanger Consistency)',
-      'دقة بطاقات الأسعار والأكواد التعريفية على الياقة'
-    ],
-    notes: 'تم فرز الثياب البيضاء وتنسيق المعاليق الموحدة وترتيب المقاسات تصاعدياً، مع رفع طلب صيانة عاجل لوحدة إضاءة المسار العلوية المطفأة.'
-  }
-];
 
 // الحالة المركزية لتقرير المعرض (SAMX-VM State)
 export const currentAudit = {
@@ -428,19 +378,19 @@ export function loadAuditFromStorage() {
         currentAudit.auditorName = parsed.auditorName || currentAudit.auditorName;
         currentAudit.weekNumber = parsed.weekNumber || currentAudit.weekNumber;
         currentAudit.auditDate = parsed.auditDate || currentAudit.auditDate;
-        currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [...SAMPLE_DEMO_DATA];
+        currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [];
       } else {
-        currentAudit.sections = [...SAMPLE_DEMO_DATA];
+        currentAudit.sections = [];
       }
     } else {
-      currentAudit.sections = [...SAMPLE_DEMO_DATA];
+      currentAudit.sections = [];
       saveAuditToStorage();
     }
   } catch (e) {
-    currentAudit.sections = [...SAMPLE_DEMO_DATA];
+    currentAudit.sections = [];
   }
   if (!Array.isArray(currentAudit.sections)) {
-    currentAudit.sections = [...SAMPLE_DEMO_DATA];
+    currentAudit.sections = [];
   }
   return currentAudit;
 }
@@ -453,7 +403,6 @@ if (typeof window !== 'undefined') {
   window.modalState = modalState;
   window.STATUS_MAP = STATUS_MAP;
   window.VM_CATEGORY_CHECKLISTS = VM_CATEGORY_CHECKLISTS;
-  window.SAMPLE_DEMO_DATA = SAMPLE_DEMO_DATA;
   window.getBranches = getBranches;
   window.getSpecialists = getSpecialists;
   window.saveBranchesToStorage = saveBranchesToStorage;

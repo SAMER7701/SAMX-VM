@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.3.2
+ * Version: 1.3.3
  * Architecture: ES Modules Coordinator
  */
 
@@ -10,7 +10,6 @@ import {
   metadataCache,
   modalState,
   STATUS_MAP,
-  SAMPLE_DEMO_DATA,
   loadMetadata,
   getBranches,
   getSpecialists,
@@ -1545,18 +1544,7 @@ export function stopVoiceDictation() {
   }
 }
 
-// النسخ الاحتياطي والبيانات التجريبية
-export function loadSampleDemoData() {
-  if (currentAudit.sections.length > 0) {
-    if (!confirm('سيتم استبدال البيانات الحالية بنموذج المعرض التجريبي، هل ترغب في المتابعة؟')) return;
-  }
-  currentAudit.sections = JSON.parse(JSON.stringify(SAMPLE_DEMO_DATA));
-  saveAuditToStorage();
-  renderAuditCards();
-  switchTab('audit');
-  showToast('تم تحميل التقرير التجريبي بنجاح', 'success');
-}
-
+// النسخ الاحتياطي وإدارة مسودة التقرير
 export function confirmResetReport() {
   if (!confirm('هل أنت متأكد من رغبتك في تفريغ التقرير وبدء زيارة ميدانية جديدة؟')) return;
   currentAudit.id = 'samx_' + Date.now();
@@ -1745,7 +1733,6 @@ if (typeof window !== 'undefined') {
   window.initSpeechRecognition = initSpeechRecognition;
   window.toggleVoiceDictation = toggleVoiceDictation;
   window.stopVoiceDictation = stopVoiceDictation;
-  window.loadSampleDemoData = loadSampleDemoData;
   window.confirmResetReport = confirmResetReport;
   window.exportJsonBackup = exportJsonBackup;
   window.importJsonBackup = importJsonBackup;

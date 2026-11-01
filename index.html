@@ -130,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.2</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.3</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -493,7 +493,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           <!-- تصدير ملف النسخة الاحتياطية -->
           <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
@@ -544,23 +544,6 @@
             <button onclick="confirmResetReport()" class="w-full bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
               <span>تفريغ وبدء مسودة جديدة</span>
-            </button>
-          </div>
-
-          <!-- تحميل النموذج التجريبي -->
-          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
-                <i data-lucide="sparkles" class="w-4 h-4 text-gold-400"></i>
-                <span>تحميل نموذج تقرير تجريبي جاهز</span>
-              </div>
-              <p class="text-xs text-slate-400 leading-relaxed mb-4">
-                استعرض نموذجاً احترافياً متكاملاً لأقسام الملابس الرجالية والمانيكانات لتجربة الطباعة والمشاركة.
-              </p>
-            </div>
-            <button onclick="loadSampleDemoData()" class="w-full bg-corp-850 hover:bg-corp-800 text-slate-200 border border-corp-700 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95">
-              <i data-lucide="sparkles" class="w-4 h-4 text-gold-400"></i>
-              <span>تحميل بيانات المعرض التجريبي</span>
             </button>
           </div>
 
@@ -1061,8 +1044,12 @@
 
   <!-- ==================== المنطق البرمجي المجزأ (MODULAR ES MODULES) ==================== -->
   <!--
-    SAMX-VM Core Architecture v1.3.2
+    SAMX-VM Core Architecture v1.3.3
     Changelog:
+    - v1.3.3: Production Data Cleanliness & Template Removal:
+      * Completely removed sample/demo report template card from UI (النسخ الاحتياطي والأدوات).
+      * Rebalanced tools and backup grid into an elegant 3-column layout (JSON Export, Restore Draft, Start New Audit).
+      * Cleaned up all legacy demo data constants and handlers from src/store.js and src/main.js to enforce 100% manual field auditing.
     - v1.3.2: Strict Management Modal Tab Separation & Cloudflare D1 CRUD UX:
       * Fully decoupled Branches and Specialists view panels (#view-mgmt-branches & #view-mgmt-specialists) preventing any layout overlap.
       * Integrated dynamic Cloudflare D1 fetch upon modal opening with cloud connection indicator.
