@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.3.4
+ * Version: 1.3.5
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -14,6 +14,8 @@ import {
   getSpecialists,
   getStoreSections,
   getSectionStandards,
+  getQuickTags,
+  getQuickAssignees,
   saveAuditToStorage
 } from './store.js';
 
@@ -665,6 +667,136 @@ export function renderSectionManager() {
   }
 }
 
+// ==================== رندرة وسوم المعالجة السريعة (Quick Processing Tags) ====================
+export function renderQuickTagsList() {
+  const container = document.getElementById('modal-tags-list');
+  if (!container) return;
+
+  const tags = getQuickTags();
+  container.innerHTML = '';
+
+  tags.forEach(tag => {
+    const isSelected = modalState.activeModalTags && (
+      modalState.activeModalTags.includes(tag) || 
+      modalState.activeModalTags.some(t => t.trim().toLowerCase() === tag.trim().toLowerCase())
+    );
+
+    const chip = document.createElement('div');
+    chip.className = `group inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border transition select-none cursor-pointer ${
+      isSelected
+        ? 'bg-gold-500 text-slate-950 font-bold border-gold-400 shadow-sm'
+        : 'bg-corp-950 border-corp-700 text-slate-300 hover:border-gold-500/50 hover:text-slate-100'
+    }`;
+
+    // زر نص الوسم للتحديد السريع
+    const labelSpan = document.createElement('span');
+    labelSpan.innerText = tag;
+    labelSpan.className = 'py-0.5';
+    labelSpan.onclick = () => {
+      if (typeof window.toggleModalTag === 'function') {
+        window.toggleModalTag(chip, tag);
+      }
+    };
+    chip.appendChild(labelSpan);
+
+    // زر الحذف المصغر
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.title = `حذف وسم "${tag}"`;
+    delBtn.className = `w-4 h-4 rounded-full flex items-center justify-center text-[11px] font-black opacity-60 hover:opacity-100 hover:bg-rose-500 hover:text-white transition ${
+      isSelected ? 'text-slate-900' : 'text-slate-400'
+    }`;
+    delBtn.innerHTML = '×';
+    delBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.confirmDeleteQuickTag === 'function') {
+        window.confirmDeleteQuickTag(tag, e);
+      }
+    };
+    chip.appendChild(delBtn);
+
+    container.appendChild(chip);
+  });
+
+  // زر "+ وسم جديد"
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'text-xs px-2.5 py-1 rounded-lg border border-dashed border-gold-500/50 text-gold-400 hover:text-gold-300 hover:bg-gold-500/10 transition inline-flex items-center gap-1 font-bold';
+  addBtn.innerHTML = '<span class="text-sm font-black leading-none">+</span><span>وسم جديد</span>';
+  addBtn.onclick = () => {
+    if (typeof window.toggleInlineAddTag === 'function') {
+      window.toggleInlineAddTag(true);
+    }
+  };
+  container.appendChild(addBtn);
+
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+// ==================== رندرة خيارات المسؤول عن التنفيذ (Quick Assignees) ====================
+export function renderQuickAssigneesList() {
+  const container = document.getElementById('quick-assignees-container');
+  if (!container) return;
+
+  const assignees = getQuickAssignees();
+  const inputEl = document.getElementById('modal-action-assignee');
+  const currentValue = inputEl ? inputEl.value.trim() : '';
+
+  container.innerHTML = '';
+
+  assignees.forEach(role => {
+    const isSelected = (currentValue === role);
+    const item = document.createElement('div');
+    item.className = `group inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition cursor-pointer select-none ${
+      isSelected 
+        ? 'bg-gold-500 text-slate-950 font-bold border-gold-400 shadow-sm'
+        : 'bg-corp-850 hover:bg-corp-800 text-slate-300 border-corp-700 hover:border-gold-500/40'
+    }`;
+
+    const labelSpan = document.createElement('span');
+    labelSpan.innerText = role;
+    labelSpan.onclick = () => {
+      if (typeof window.setQuickAssignee === 'function') {
+        window.setQuickAssignee(role);
+      }
+    };
+    item.appendChild(labelSpan);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.title = `حذف "${role}" من الخيارات السريعة`;
+    delBtn.className = `w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold opacity-60 hover:opacity-100 hover:bg-rose-500 hover:text-white transition ${
+      isSelected ? 'text-slate-900' : 'text-slate-400'
+    }`;
+    delBtn.innerHTML = '×';
+    delBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.confirmDeleteQuickAssignee === 'function') {
+        window.confirmDeleteQuickAssignee(role, e);
+      }
+    };
+    item.appendChild(delBtn);
+
+    container.appendChild(item);
+  });
+
+  // زر "+ جهة"
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'text-[10px] px-2 py-0.5 rounded border border-dashed border-gold-500/40 text-gold-400 hover:text-gold-300 hover:bg-gold-500/10 font-bold flex items-center gap-0.5 transition';
+  addBtn.innerHTML = '<span>+ جهة تكليف</span>';
+  addBtn.onclick = () => {
+    if (typeof window.toggleInlineAddAssignee === 'function') {
+      window.toggleInlineAddAssignee(true);
+    }
+  };
+  container.appendChild(addBtn);
+}
+
 // عرض بطاقات الأقسام في شاشة الجولة الميدانية
 export function renderAuditCards(customSections = null) {
   const container = document.getElementById('audit-cards-container');
@@ -967,4 +1099,6 @@ if (typeof window !== 'undefined') {
   window.renderSectionManager = renderSectionManager;
   window.renderAuditCards = renderAuditCards;
   window.renderPrintSections = renderPrintSections;
+  window.renderQuickTagsList = renderQuickTagsList;
+  window.renderQuickAssigneesList = renderQuickAssigneesList;
 }

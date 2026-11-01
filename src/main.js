@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.3.4
+ * Version: 1.3.5
  * Architecture: ES Modules Coordinator
  */
 
@@ -22,6 +22,16 @@ import {
   updateSectionStandard,
   deleteSectionStandard,
   resetSectionStandards,
+  getQuickTags,
+  addQuickTag,
+  updateQuickTag,
+  deleteQuickTag,
+  resetQuickTags,
+  getQuickAssignees,
+  addQuickAssignee,
+  updateQuickAssignee,
+  deleteQuickAssignee,
+  resetQuickAssignees,
   addBranchItem,
   deleteBranchItem,
   addSpecialistItem,
@@ -45,7 +55,9 @@ import {
   renderCategoryChecklist,
   renderSectionManager,
   renderAuditCards,
-  renderPrintSections
+  renderPrintSections,
+  renderQuickTagsList,
+  renderQuickAssigneesList
 } from './renderers.js';
 
 import * as samxApi from './api.js';
@@ -704,6 +716,9 @@ export function openEntryModal(isEdit = false) {
     resetModalFields();
     const heading = document.getElementById('modal-heading');
     if (heading) heading.innerText = 'توثيق قسم بالمعرض (قبل / بعد)';
+  } else {
+    renderQuickTagsList();
+    renderQuickAssigneesList();
   }
   showModal('section-modal');
   if (window.lucide && typeof lucide.createIcons === 'function') {
@@ -739,6 +754,9 @@ export function resetModalFields() {
   const inlineStd = document.getElementById('inline-add-standard-container');
   if (inlineStd) inlineStd.classList.add('hidden');
 
+  toggleInlineAddTag(false);
+  toggleInlineAddAssignee(false);
+
   const notes = document.getElementById('modal-notes');
   if (notes) notes.value = '';
 
@@ -750,9 +768,8 @@ export function resetModalFields() {
   clearModalImage('before');
   clearModalImage('after');
   
-  document.querySelectorAll('#modal-tags-list .tag-chip').forEach(btn => {
-    btn.className = "tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition";
-  });
+  renderQuickTagsList();
+  renderQuickAssigneesList();
 
   if (modalState.isSpeechRecording) {
     stopVoiceDictation();
@@ -1041,14 +1058,103 @@ export async function confirmResetStandards(categoryName) {
   showToast('🔄 تم استعادة المعايير الافتراضية للقسم', 'success');
 }
 
-export function toggleModalTag(btn, tagName) {
-  if (modalState.activeModalTags.includes(tagName)) {
-    modalState.activeModalTags = modalState.activeModalTags.filter(t => t !== tagName);
-    btn.className = "tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition";
+// ==================== تفاعلات وسوم المعالجة السريعة (Tags Controller) ====================
+
+export function toggleModalTag(btnOrTag, maybeTag) {
+  const tagName = typeof maybeTag === 'string' ? maybeTag : (typeof btnOrTag === 'string' ? btnOrTag : '');
+  if (!tagName) return;
+
+  if (!Array.isArray(modalState.activeModalTags)) {
+    modalState.activeModalTags = [];
+  }
+
+  const idx = modalState.activeModalTags.indexOf(tagName);
+  if (idx !== -1) {
+    modalState.activeModalTags.splice(idx, 1);
   } else {
     modalState.activeModalTags.push(tagName);
-    btn.className = "tag-chip text-xs px-2.5 py-1 rounded-lg bg-gold-500 text-slate-950 font-bold border border-gold-400 shadow transition";
   }
+
+  renderQuickTagsList();
+}
+
+export function toggleInlineAddTag(show = null) {
+  const box = document.getElementById('inline-add-tag-box');
+  const input = document.getElementById('inline-tag-input');
+  if (!box) return;
+
+  const willShow = show !== null ? show : box.classList.contains('hidden');
+  if (willShow) {
+    box.classList.remove('hidden');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  } else {
+    box.classList.add('hidden');
+    if (input) input.value = '';
+  }
+}
+
+export function submitAddQuickTag() {
+  const input = document.getElementById('inline-tag-input');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('يرجى كتابة نص الوسم أولاً', 'error');
+    return;
+  }
+
+  const res = addQuickTag(val);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر إضافة الوسم', 'error');
+    return;
+  }
+
+  if (!modalState.activeModalTags.includes(val)) {
+    modalState.activeModalTags.push(val);
+  }
+
+  toggleInlineAddTag(false);
+  renderQuickTagsList();
+  showToast(`✨ تمت إضافة وسم "${val}" وتحديده بنجاح`, 'success');
+}
+
+export function confirmDeleteQuickTag(tagName, e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  if (!confirm(`هل أنت متأكد من حذف وسم "${tagName}"؟`)) {
+    return;
+  }
+
+  const res = deleteQuickTag(tagName);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر حذف الوسم', 'error');
+    return;
+  }
+
+  renderQuickTagsList();
+  showToast(`🗑️ تم حذف وسم "${tagName}"`, 'info');
+}
+
+export function openEditQuickTag(tagName, e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  const newName = prompt('تعديل نص الوسم:', tagName);
+  if (!newName || !newName.trim() || newName.trim() === tagName) return;
+
+  const res = updateQuickTag(tagName, newName.trim());
+  if (!res.success) {
+    showToast(res.reason || 'تعذر تعديل الوسم', 'error');
+    return;
+  }
+
+  renderQuickTagsList();
+  showToast('✏️ تم تعديل الوسم بنجاح', 'success');
+}
+
+export function confirmResetQuickTags() {
+  if (!confirm('هل أنت متأكد من استعادة قائمة الوسوم الافتراضية؟')) return;
+  resetQuickTags();
+  renderQuickTagsList();
+  showToast('🔄 تم استعادة الوسوم الافتراضية', 'success');
 }
 
 export function toggleChecklistItem(standard) {
@@ -1073,9 +1179,98 @@ export function insertChecklistToNotes() {
   showToast('تم إدراج معايير الـ VM في الملاحظات', 'success');
 }
 
+// ==================== تفاعلات جهات التكليف (Assignees Controller) ====================
+
 export function setQuickAssignee(role) {
   const el = document.getElementById('modal-action-assignee');
   if (el) el.value = role;
+  renderQuickAssigneesList();
+}
+
+export function toggleInlineAddAssignee(show = null) {
+  const box = document.getElementById('inline-add-assignee-box');
+  const input = document.getElementById('inline-assignee-input');
+  if (!box) return;
+
+  const willShow = show !== null ? show : box.classList.contains('hidden');
+  if (willShow) {
+    box.classList.remove('hidden');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  } else {
+    box.classList.add('hidden');
+    if (input) input.value = '';
+  }
+}
+
+export function submitAddQuickAssignee() {
+  const input = document.getElementById('inline-assignee-input');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('يرجى كتابة المسمى أو جهة التكليف أولاً', 'error');
+    return;
+  }
+
+  const res = addQuickAssignee(val);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر إضافة جهة التكليف', 'error');
+    return;
+  }
+
+  setQuickAssignee(val);
+  toggleInlineAddAssignee(false);
+  renderQuickAssigneesList();
+  showToast(`✨ تمت إضافة جهة التكليف "${val}" واختيارها بنجاح`, 'success');
+}
+
+export function confirmDeleteQuickAssignee(roleName, e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  if (!confirm(`هل أنت متأكد من حذف "${roleName}" من قائمة الخيارات السريعة؟`)) {
+    return;
+  }
+
+  const res = deleteQuickAssignee(roleName);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر حذف جهة التكليف', 'error');
+    return;
+  }
+
+  const inputEl = document.getElementById('modal-action-assignee');
+  if (inputEl && inputEl.value === roleName) {
+    inputEl.value = '';
+  }
+
+  renderQuickAssigneesList();
+  showToast(`🗑️ تم حذف "${roleName}" من الخيارات السريعة`, 'info');
+}
+
+export function openEditQuickAssignee(roleName, e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  const newName = prompt('تعديل مسمى جهة التكليف:', roleName);
+  if (!newName || !newName.trim() || newName.trim() === roleName) return;
+
+  const res = updateQuickAssignee(roleName, newName.trim());
+  if (!res.success) {
+    showToast(res.reason || 'تعذر تعديل جهة التكليف', 'error');
+    return;
+  }
+
+  const inputEl = document.getElementById('modal-action-assignee');
+  if (inputEl && inputEl.value === roleName) {
+    inputEl.value = newName.trim();
+  }
+
+  renderQuickAssigneesList();
+  showToast('✏️ تم تعديل جهة التكليف بنجاح', 'success');
+}
+
+export function confirmResetQuickAssignees() {
+  if (!confirm('هل أنت متأكد من استعادة جهات التكليف السريعة الافتراضية؟')) return;
+  resetQuickAssignees();
+  renderQuickAssigneesList();
+  showToast('🔄 تم استعادة جهات التكليف الافتراضية', 'success');
 }
 
 export function setQuickDueDate(daysAhead) {
@@ -1328,12 +1523,8 @@ export function editSectionEntry(id) {
   }
 
   modalState.activeModalTags = [...(sec.tags || [])];
-  document.querySelectorAll('#modal-tags-list .tag-chip').forEach(btn => {
-    const text = btn.innerText.trim();
-    if (modalState.activeModalTags.some(t => t.includes(text) || text.includes(t))) {
-      btn.className = "tag-chip text-xs px-2.5 py-1 rounded-lg bg-gold-500 text-slate-950 font-bold border border-gold-400 shadow transition";
-    }
-  });
+  renderQuickTagsList();
+  renderQuickAssigneesList();
 
   if (window.lucide && typeof lucide.createIcons === 'function') {
     try { lucide.createIcons(); } catch(e){}
@@ -2048,6 +2239,18 @@ if (typeof window !== 'undefined') {
   window.openEditStandardModal = openEditStandardModal;
   window.confirmDeleteStandard = confirmDeleteStandard;
   window.confirmResetStandards = confirmResetStandards;
+  window.toggleInlineAddTag = toggleInlineAddTag;
+  window.submitAddQuickTag = submitAddQuickTag;
+  window.confirmDeleteQuickTag = confirmDeleteQuickTag;
+  window.openEditQuickTag = openEditQuickTag;
+  window.confirmResetQuickTags = confirmResetQuickTags;
+  window.toggleInlineAddAssignee = toggleInlineAddAssignee;
+  window.submitAddQuickAssignee = submitAddQuickAssignee;
+  window.confirmDeleteQuickAssignee = confirmDeleteQuickAssignee;
+  window.openEditQuickAssignee = openEditQuickAssignee;
+  window.confirmResetQuickAssignees = confirmResetQuickAssignees;
+  window.renderQuickTagsList = renderQuickTagsList;
+  window.renderQuickAssigneesList = renderQuickAssigneesList;
   window.bootApp = bootApp;
 }
 

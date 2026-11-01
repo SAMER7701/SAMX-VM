@@ -130,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.4</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.5</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -786,14 +786,34 @@
             <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">مطلوب للمتابعة</span>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="space-y-1">
-              <label class="block text-[11px] font-bold text-slate-300">المسؤول عن التنفيذ (Assignee):</label>
-              <input type="text" id="modal-action-assignee" placeholder="مثال: مدير المعرض، مشرف القسم، مسؤول الصيانة..." class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-500 focus:ring-1 outline-none">
-              <div class="flex flex-wrap gap-1 mt-1">
-                <button type="button" onclick="setQuickAssignee('مدير المعرض')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">مدير المعرض</button>
-                <button type="button" onclick="setQuickAssignee('مشرف القسم')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">مشرف القسم</button>
-                <button type="button" onclick="setQuickAssignee('فريق الصيانة')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">فريق الصيانة</button>
-                <button type="button" onclick="setQuickAssignee('إدارة التشغيل')" class="text-[10px] px-2 py-0.5 bg-corp-850 hover:bg-corp-800 text-slate-300 rounded border border-corp-700">إدارة التشغيل</button>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-[11px] font-bold text-slate-300">المسؤول عن التنفيذ (Assignee):</label>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="toggleInlineAddAssignee()" class="text-[10px] text-gold-400 hover:text-gold-300 font-bold flex items-center gap-0.5" title="إضافة جهة تكليف جديدة">
+                    <span>+ إضافة جهة</span>
+                  </button>
+                  <span class="text-slate-600 text-[10px]">|</span>
+                  <button type="button" onclick="confirmResetQuickAssignees()" class="text-[10px] text-slate-500 hover:text-slate-300 transition" title="استعادة الجهات الافتراضية">استعادة</button>
+                </div>
+              </div>
+              <input type="text" id="modal-action-assignee" oninput="renderQuickAssigneesList()" placeholder="مثال: مدير المعرض، مشرف القسم، مسؤول الصيانة..." class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-500 focus:ring-1 outline-none">
+              
+              <!-- صندوق إضافة جهة تكليف جديدة مضمن (Inline Add Assignee) -->
+              <div id="inline-add-assignee-box" class="hidden p-2.5 rounded-xl bg-corp-900 border border-gold-500/40 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-bold text-gold-400">إضافة جهة تكليف سريعة جديدة:</span>
+                  <button type="button" onclick="toggleInlineAddAssignee(false)" class="text-xs text-slate-400 hover:text-white px-1">✕</button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <input type="text" id="inline-assignee-input" placeholder="اكتب المسمى (مثال: مشرف المستودع، مدير المنطقة)..." class="flex-1 bg-corp-950 border border-corp-700 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-gold-500" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAddQuickAssignee();}">
+                  <button type="button" onclick="submitAddQuickAssignee()" class="px-3 py-1 bg-gold-500 hover:bg-gold-400 text-slate-950 text-xs font-bold rounded-lg shrink-0 transition">حفظ</button>
+                </div>
+              </div>
+
+              <!-- أزرار جهات التكليف السريعة الديناميكية -->
+              <div class="flex flex-wrap gap-1 mt-1" id="quick-assignees-container">
+                <!-- يتم توليدها ديناميكياً عبر renderQuickAssigneesList() -->
               </div>
             </div>
             <div class="space-y-1">
@@ -812,18 +832,30 @@
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <label class="block text-xs font-bold text-slate-200">وسوم المعالجة السريعة (انقر للتحديد):</label>
-            <span class="text-[10px] text-slate-400">تساعد في التحليل الإحصائي</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="toggleInlineAddTag()" class="text-[11px] text-gold-400 hover:text-gold-300 font-bold flex items-center gap-1">
+                <span>+ إضافة وسم</span>
+              </button>
+              <span class="text-slate-600 text-[10px]">|</span>
+              <button type="button" onclick="confirmResetQuickTags()" class="text-[10px] text-slate-500 hover:text-slate-300 transition" title="استعادة الوسوم الافتراضية">استعادة</button>
+            </div>
           </div>
+
+          <!-- صندوق إضافة وسم جديد مضمن (Inline Add Tag) -->
+          <div id="inline-add-tag-box" class="hidden p-2.5 rounded-xl bg-corp-950 border border-gold-500/40 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-gold-400">إضافة وسم معالجة جديد:</span>
+              <button type="button" onclick="toggleInlineAddTag(false)" class="text-xs text-slate-400 hover:text-white px-1">✕</button>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <input type="text" id="inline-tag-input" placeholder="اكتب اسم الوسم (مثال: ضبط فترينة العطور، تجديد إعلانات الصيف)..." class="flex-1 bg-corp-900 border border-corp-700 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-gold-500" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAddQuickTag();}">
+              <button type="button" onclick="submitAddQuickTag()" class="px-3 py-1 bg-gold-500 hover:bg-gold-400 text-slate-950 text-xs font-bold rounded-lg shrink-0 transition">إضافة وتحديد</button>
+            </div>
+          </div>
+
+          <!-- قائمة الوسوم التفاعلية الحية -->
           <div class="flex flex-wrap gap-1.5" id="modal-tags-list">
-            <button type="button" onclick="toggleModalTag(this, 'تناسق الألوان (Color Story)')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">تناسق الألوان</button>
-            <button type="button" onclick="toggleModalTag(this, 'تبديل طقم المانيكان')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">تبديل طقم المانيكان</button>
-            <button type="button" onclick="toggleModalTag(this, 'توجيه وزوايا الإضاءة')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">توجيه الإضاءة</button>
-            <button type="button" onclick="toggleModalTag(this, 'ترتيب تسلسل المقاسات')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">تسلسل المقاسات</button>
-            <button type="button" onclick="toggleModalTag(this, 'إعادة طي وترتيب الطاولات')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">إعادة طي الطاولات</button>
-            <button type="button" onclick="toggleModalTag(this, 'تعبئة النواقص والرفوف')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">تعبئة النواقص</button>
-            <button type="button" onclick="toggleModalTag(this, 'لوحات الأسعار والعروض (POSM)')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">لوحات الأسعار</button>
-            <button type="button" onclick="toggleModalTag(this, 'تنظيم غرف القياس والكاشير')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">منطقة الكاشير والقياس</button>
-            <button type="button" onclick="toggleModalTag(this, 'ضبط مسافات المعاليق (Hanger Spacing)')" class="tag-chip text-xs px-2.5 py-1 rounded-lg bg-corp-950 border border-corp-700 text-slate-300 transition">مسافات المعاليق</button>
+            <!-- يتم توليدها ديناميكياً عبر renderQuickTagsList() -->
           </div>
         </div>
 
@@ -1200,8 +1232,12 @@
 
   <!-- ==================== المنطق البرمجي المجزأ (MODULAR ES MODULES) ==================== -->
   <!--
-    SAMX-VM Core Architecture v1.3.4
+    SAMX-VM Core Architecture v1.3.5
     Changelog:
+    - v1.3.5: Section Audit Modal Tags & Assignees Customization (Full CRUD):
+      * Quick Processing Tags (وسوم المعالجة السريعة): Dynamic rendering, inline "+ وسم جديد" creation panel, single-click removal ("×"), and local persistence across sessions.
+      * Assignees & Followup (المسؤول عن التنفيذ): Dynamic role buttons, inline "+ إضافة جهة" creation panel, custom role deletion ("×"), free text typing, and instant selection.
+      * Fast Field Auditing UX: Immediate visual state feedback, clean mobile-responsive layout, and reset-to-defaults controls.
     - v1.3.4: Target Store Sections & VM Standards Full Customization (CRUD):
       * Full customization of Target Store Sections (Add new section, Edit/Rename section, Delete section) persistently saved in LocalStorage and synced with Cloudflare D1.
       * Full dynamic CRUD of VM Standards for each section (Add standard, Edit standard title/text, Delete standard, Reset to defaults).

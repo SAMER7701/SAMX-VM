@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.3.4
+ * Version: 1.3.5
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.3.4';
+export const APP_VERSION = '1.3.5';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
@@ -12,8 +12,31 @@ export const STORAGE_KEY_BRANCHES = 'samx_branches_clean_v1';
 export const STORAGE_KEY_SPECIALISTS = 'samx_specialists_clean_v1';
 export const STORAGE_KEY_SECTIONS = 'samx_store_sections_v2';
 export const STORAGE_KEY_CHECKLISTS = 'samx_vm_checklists_v2';
+export const STORAGE_KEY_TAGS = 'samx_quick_tags_v1';
+export const STORAGE_KEY_ASSIGNEES = 'samx_quick_assignees_v1';
 export const LEGACY_BRANCHES_KEY = 'samx_branches';
 export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
+
+// وسوم المعالجة السريعة الافتراضية
+export const DEFAULT_QUICK_TAGS = [
+  'تناسق الألوان (Color Story)',
+  'تبديل طقم المانيكان',
+  'توجيه وزوايا الإضاءة',
+  'ترتيب تسلسل المقاسات',
+  'إعادة طي وترتيب الطاولات',
+  'تعبئة النواقص والرفوف',
+  'لوحات الأسعار والعروض (POSM)',
+  'تنظيم غرف القياس والكاشير',
+  'ضبط مسافات المعاليق (Hanger Spacing)'
+];
+
+// جهات التكليف السريعة الافتراضية
+export const DEFAULT_QUICK_ASSIGNEES = [
+  'مدير المعرض',
+  'مشرف القسم',
+  'فريق الصيانة',
+  'إدارة التشغيل'
+];
 
 // الأقسام الافتراضية المعتمدة لمعارض التجزئة
 export const DEFAULT_STORE_SECTIONS = [
@@ -153,6 +176,8 @@ export const metadataCache = {
   specialists: [],
   sections: [],
   checklists: {},
+  quickTags: [],
+  quickAssignees: [],
   lastSyncedAt: null,
   syncStatus: 'idle'
 };
@@ -257,24 +282,60 @@ export async function loadMetadata() {
       }
     });
 
+    // تحميل وسوم المعالجة السريعة
+    let quickTags = [];
+    const storedTags = localStorage.getItem(STORAGE_KEY_TAGS);
+    if (storedTags) {
+      try {
+        const parsed = JSON.parse(storedTags);
+        if (Array.isArray(parsed) && parsed.length > 0) quickTags = parsed;
+      } catch (e) {
+        console.warn('Failed parsing storedTags', e);
+      }
+    }
+    if (quickTags.length === 0) {
+      quickTags = [...DEFAULT_QUICK_TAGS];
+    }
+
+    // تحميل جهات التكليف السريعة
+    let quickAssignees = [];
+    const storedAssignees = localStorage.getItem(STORAGE_KEY_ASSIGNEES);
+    if (storedAssignees) {
+      try {
+        const parsed = JSON.parse(storedAssignees);
+        if (Array.isArray(parsed) && parsed.length > 0) quickAssignees = parsed;
+      } catch (e) {
+        console.warn('Failed parsing storedAssignees', e);
+      }
+    }
+    if (quickAssignees.length === 0) {
+      quickAssignees = [...DEFAULT_QUICK_ASSIGNEES];
+    }
+
     metadataCache.branches = branches;
     metadataCache.specialists = specialists;
     metadataCache.sections = sections;
     metadataCache.checklists = VM_CATEGORY_CHECKLISTS;
+    metadataCache.quickTags = quickTags;
+    metadataCache.quickAssignees = quickAssignees;
 
     localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
     localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
     localStorage.setItem(STORAGE_KEY_SECTIONS, JSON.stringify(sections));
     localStorage.setItem(STORAGE_KEY_CHECKLISTS, JSON.stringify(VM_CATEGORY_CHECKLISTS));
+    localStorage.setItem(STORAGE_KEY_TAGS, JSON.stringify(quickTags));
+    localStorage.setItem(STORAGE_KEY_ASSIGNEES, JSON.stringify(quickAssignees));
 
     metadataCache.lastSyncedAt = new Date().toISOString();
-    return { branches, specialists, sections, checklists: VM_CATEGORY_CHECKLISTS };
+    return { branches, specialists, sections, checklists: VM_CATEGORY_CHECKLISTS, quickTags, quickAssignees };
   } catch (err) {
     console.error('loadMetadata error:', err);
     metadataCache.branches = [];
     metadataCache.specialists = [];
     metadataCache.sections = [...DEFAULT_STORE_SECTIONS];
-    return { branches: [], specialists: [], sections: [...DEFAULT_STORE_SECTIONS], checklists: VM_CATEGORY_CHECKLISTS };
+    metadataCache.quickTags = [...DEFAULT_QUICK_TAGS];
+    metadataCache.quickAssignees = [...DEFAULT_QUICK_ASSIGNEES];
+    return { branches: [], specialists: [], sections: [...DEFAULT_STORE_SECTIONS], checklists: VM_CATEGORY_CHECKLISTS, quickTags: [...DEFAULT_QUICK_TAGS], quickAssignees: [...DEFAULT_QUICK_ASSIGNEES] };
   }
 }
 
@@ -643,6 +704,170 @@ export async function deleteSpecialistItem(idOrName) {
   return { success: true, list: metadataCache.specialists };
 }
 
+// ==================== إدارة وسوم المعالجة السريعة (Quick Processing Tags CRUD) ====================
+
+export function getQuickTags() {
+  if (!Array.isArray(metadataCache.quickTags) || metadataCache.quickTags.length === 0) {
+    const stored = localStorage.getItem(STORAGE_KEY_TAGS);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) metadataCache.quickTags = parsed;
+      } catch (e) {}
+    }
+    if (!Array.isArray(metadataCache.quickTags) || metadataCache.quickTags.length === 0) {
+      metadataCache.quickTags = [...DEFAULT_QUICK_TAGS];
+    }
+  }
+  return metadataCache.quickTags;
+}
+
+export function saveQuickTagsToStorage(tags) {
+  if (!Array.isArray(tags)) return false;
+  metadataCache.quickTags = tags;
+  localStorage.setItem(STORAGE_KEY_TAGS, JSON.stringify(tags));
+  return true;
+}
+
+export function addQuickTag(tagName) {
+  const clean = (tagName || '').trim();
+  if (!clean) return { success: false, reason: 'يرجى كتابة نص الوسم' };
+
+  const list = getQuickTags();
+  if (list.some(t => t.toLowerCase() === clean.toLowerCase())) {
+    return { success: false, reason: 'هذا الوسم موجود مسبقاً في القائمة' };
+  }
+
+  list.push(clean);
+  saveQuickTagsToStorage(list);
+  return { success: true, item: clean, list };
+}
+
+export function updateQuickTag(oldName, newName) {
+  const cleanOld = (oldName || '').trim();
+  const cleanNew = (newName || '').trim();
+  if (!cleanOld || !cleanNew) return { success: false, reason: 'بيانات الوسم غير مكتملة' };
+
+  const list = getQuickTags();
+  const idx = list.indexOf(cleanOld);
+  if (idx === -1) return { success: false, reason: 'الوسم المراد تعديله غير موجود' };
+
+  list[idx] = cleanNew;
+  saveQuickTagsToStorage(list);
+
+  // تحديث الوسوم المحددة حالياً في المودال إن وجد
+  if (modalState.activeModalTags) {
+    const mIdx = modalState.activeModalTags.indexOf(cleanOld);
+    if (mIdx !== -1) modalState.activeModalTags[mIdx] = cleanNew;
+  }
+
+  // تحديث تقارير الأقسام النشطة
+  if (currentAudit && Array.isArray(currentAudit.sections)) {
+    let changed = false;
+    currentAudit.sections.forEach(sec => {
+      if (Array.isArray(sec.tags)) {
+        const sIdx = sec.tags.indexOf(cleanOld);
+        if (sIdx !== -1) {
+          sec.tags[sIdx] = cleanNew;
+          changed = true;
+        }
+      }
+    });
+    if (changed) saveAuditToStorage();
+  }
+
+  return { success: true, oldName: cleanOld, newName: cleanNew, list };
+}
+
+export function deleteQuickTag(tagName) {
+  const clean = (tagName || '').trim();
+  if (!clean) return { success: false, reason: 'اسم الوسم غير صحيح' };
+
+  const list = getQuickTags().filter(t => t !== clean);
+  saveQuickTagsToStorage(list);
+
+  if (modalState.activeModalTags) {
+    modalState.activeModalTags = modalState.activeModalTags.filter(t => t !== clean);
+  }
+
+  return { success: true, item: clean, list };
+}
+
+export function resetQuickTags() {
+  const list = [...DEFAULT_QUICK_TAGS];
+  saveQuickTagsToStorage(list);
+  return { success: true, list };
+}
+
+// ==================== إدارة جهات التكليف (Quick Assignees CRUD) ====================
+
+export function getQuickAssignees() {
+  if (!Array.isArray(metadataCache.quickAssignees) || metadataCache.quickAssignees.length === 0) {
+    const stored = localStorage.getItem(STORAGE_KEY_ASSIGNEES);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) metadataCache.quickAssignees = parsed;
+      } catch (e) {}
+    }
+    if (!Array.isArray(metadataCache.quickAssignees) || metadataCache.quickAssignees.length === 0) {
+      metadataCache.quickAssignees = [...DEFAULT_QUICK_ASSIGNEES];
+    }
+  }
+  return metadataCache.quickAssignees;
+}
+
+export function saveQuickAssigneesToStorage(assignees) {
+  if (!Array.isArray(assignees)) return false;
+  metadataCache.quickAssignees = assignees;
+  localStorage.setItem(STORAGE_KEY_ASSIGNEES, JSON.stringify(assignees));
+  return true;
+}
+
+export function addQuickAssignee(roleName) {
+  const clean = (roleName || '').trim();
+  if (!clean) return { success: false, reason: 'يرجى كتابة المسمى أو جهة التكليف' };
+
+  const list = getQuickAssignees();
+  if (list.some(r => r.toLowerCase() === clean.toLowerCase())) {
+    return { success: false, reason: 'هذه الجهة مسجلة مسبقاً في الخيارات السريعة' };
+  }
+
+  list.push(clean);
+  saveQuickAssigneesToStorage(list);
+  return { success: true, item: clean, list };
+}
+
+export function updateQuickAssignee(oldRole, newRole) {
+  const cleanOld = (oldRole || '').trim();
+  const cleanNew = (newRole || '').trim();
+  if (!cleanOld || !cleanNew) return { success: false, reason: 'بيانات جهة التكليف غير مكتملة' };
+
+  const list = getQuickAssignees();
+  const idx = list.indexOf(cleanOld);
+  if (idx === -1) return { success: false, reason: 'الجهة المراد تعديلها غير موجودة' };
+
+  list[idx] = cleanNew;
+  saveQuickAssigneesToStorage(list);
+
+  return { success: true, oldRole: cleanOld, newRole: cleanNew, list };
+}
+
+export function deleteQuickAssignee(roleName) {
+  const clean = (roleName || '').trim();
+  if (!clean) return { success: false, reason: 'جهة التكليف غير صحيحة' };
+
+  const list = getQuickAssignees().filter(r => r !== clean);
+  saveQuickAssigneesToStorage(list);
+  return { success: true, item: clean, list };
+}
+
+export function resetQuickAssignees() {
+  const list = [...DEFAULT_QUICK_ASSIGNEES];
+  saveQuickAssigneesToStorage(list);
+  return { success: true, list };
+}
+
 // حفظ التقرير في التخزين المحلي
 export function saveAuditToStorage() {
   try {
@@ -698,6 +923,8 @@ if (typeof window !== 'undefined') {
   window.modalState = modalState;
   window.STATUS_MAP = STATUS_MAP;
   window.VM_CATEGORY_CHECKLISTS = VM_CATEGORY_CHECKLISTS;
+  window.DEFAULT_QUICK_TAGS = DEFAULT_QUICK_TAGS;
+  window.DEFAULT_QUICK_ASSIGNEES = DEFAULT_QUICK_ASSIGNEES;
   window.getBranches = getBranches;
   window.getSpecialists = getSpecialists;
   window.saveBranchesToStorage = saveBranchesToStorage;
@@ -719,4 +946,16 @@ if (typeof window !== 'undefined') {
   window.updateSectionStandard = updateSectionStandard;
   window.deleteSectionStandard = deleteSectionStandard;
   window.resetSectionStandards = resetSectionStandards;
+  window.getQuickTags = getQuickTags;
+  window.saveQuickTagsToStorage = saveQuickTagsToStorage;
+  window.addQuickTag = addQuickTag;
+  window.updateQuickTag = updateQuickTag;
+  window.deleteQuickTag = deleteQuickTag;
+  window.resetQuickTags = resetQuickTags;
+  window.getQuickAssignees = getQuickAssignees;
+  window.saveQuickAssigneesToStorage = saveQuickAssigneesToStorage;
+  window.addQuickAssignee = addQuickAssignee;
+  window.updateQuickAssignee = updateQuickAssignee;
+  window.deleteQuickAssignee = deleteQuickAssignee;
+  window.resetQuickAssignees = resetQuickAssignees;
 }
