@@ -130,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.1</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.2</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -903,58 +903,108 @@
           </div>
           <div>
             <h3 class="font-bold text-sm text-white" id="management-modal-title">إدارة القوائم وفريق العمل</h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">إضافة وحذف الفروع وأخصائيي العرض مع التحديث المباشر</p>
+            <p class="text-[11px] text-slate-400 mt-0.5" id="management-modal-subtitle">إضافة وتحديث فروع المعارض مع المزامنة المباشرة لقاعدة بيانات D1</p>
           </div>
         </div>
-        <button type="button" onclick="closeManagementModal(true)" class="text-slate-400 hover:text-white p-1 rounded-full hover:bg-corp-850 transition" title="إغلاق">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <!-- مؤشر حالة مزامنة D1 السحابية في رأس النافذة -->
+          <span id="management-cloud-indicator" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-corp-950 text-slate-300 border border-corp-800">
+            <i data-lucide="cloud" class="w-3.5 h-3.5 text-gold-400"></i>
+            <span id="management-cloud-status">Cloudflare D1</span>
+          </span>
+          <button type="button" onclick="closeManagementModal(true)" class="text-slate-400 hover:text-white p-1 rounded-full hover:bg-corp-850 transition" title="إغلاق">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- ألسنة التبويب: [ إدارة الفروع ] و [ إدارة الأخصائيين ] -->
+      <!-- ألسنة التبويب: [ إدارة الفروع ] و [ إدارة الأخصائيين ] بتنقل قاطع وخالٍ من التداخل -->
       <div class="grid grid-cols-2 border-b border-corp-800 bg-corp-950/60 p-1.5 gap-1.5">
-        <button type="button" id="tab-btn-branches" onclick="openManagementModal('branches')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow">
+        <button type="button" id="tab-btn-branches" onclick="switchManagementTab('branches')" class="py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow-md">
           <i data-lucide="store" class="w-3.5 h-3.5"></i>
           <span>إدارة الفروع</span>
           <span id="badge-branches-count" class="bg-slate-950/20 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full">0</span>
         </button>
-        <button type="button" id="tab-btn-specialists" onclick="openManagementModal('specialists')" class="py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <button type="button" id="tab-btn-specialists" onclick="switchManagementTab('specialists')" class="py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
           <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
           <span>إدارة الأخصائيين</span>
           <span id="badge-specialists-count" class="bg-corp-800 text-slate-300 text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
         </button>
       </div>
 
-      <!-- محتوى التبويب النشط -->
-      <div class="p-4 overflow-y-auto space-y-4 flex-1">
-        <!-- الشريط العلوي للإضافة السريعة -->
-        <form onsubmit="event.preventDefault(); addEntity(currentModalTab);" class="flex gap-2">
-          <input type="text" id="management-input" placeholder="اكتب اسم الفرع الجديد..." class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
-          <button type="submit" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
-            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-            <span>إضافة +</span>
-          </button>
-        </form>
+      <!-- حاوية التنبيه الموضعي داخل النافذة (Inline Feedback Banner) -->
+      <div id="management-inline-feedback" class="hidden mx-4 mt-3 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"></div>
 
-        <!-- قائمة العناصر القابلة للتمرير مع زر الحذف الأحمر -->
-        <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
-          <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
-            <span id="management-list-header">قائمة الفروع المسجلة</span>
-            <span id="management-list-counter" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
-          </div>
-          <div id="management-items-list" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
-            <!-- يتم تعبئتها ديناميكياً بواسطة renderModalList() -->
+      <!-- محتوى التبويب النشط: قسمين منفصلين تماماً (STRICT SEPARATION) -->
+      <div class="p-4 overflow-y-auto space-y-4 flex-1">
+        
+        <!-- ==================== 1. تبويب إدارة الفروع (BRANCHES VIEW) ==================== -->
+        <div id="view-mgmt-branches" class="space-y-3">
+          <!-- نموذج إضافة فرع جديد -->
+          <form id="form-add-branch" onsubmit="event.preventDefault(); submitAddEntity('branches');" class="flex gap-2">
+            <div class="relative flex-1">
+              <input type="text" id="input-branch-name" placeholder="اكتب اسم المعرض أو الفرع الجديد..." class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none pr-8">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-gold-500/70 absolute right-2.5 top-2.5"></i>
+            </div>
+            <button type="submit" id="btn-submit-branch" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1.5 active:scale-95 shadow disabled:opacity-50 disabled:pointer-events-none">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span id="btn-submit-branch-text">إضافة +</span>
+            </button>
+          </form>
+
+          <!-- قائمة الفروع المسجلة -->
+          <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
+            <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="store" class="w-3.5 h-3.5 text-gold-400"></i>
+                <span>قائمة الفروع والمعارض</span>
+              </span>
+              <span id="counter-branches-list" class="bg-corp-950 text-gold-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+            </div>
+            <div id="list-mgmt-branches" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
+              <!-- يتم تعبئتها ديناميكياً بواسطة renderModalList() -->
+            </div>
           </div>
         </div>
+
+        <!-- ==================== 2. تبويب إدارة الأخصائيين (SPECIALISTS VIEW) ==================== -->
+        <div id="view-mgmt-specialists" class="hidden space-y-3">
+          <!-- نموذج إضافة أخصائي جديد -->
+          <form id="form-add-specialist" onsubmit="event.preventDefault(); submitAddEntity('specialists');" class="flex gap-2">
+            <div class="relative flex-1">
+              <input type="text" id="input-specialist-name" placeholder="اكتب اسم أخصائي / مسؤول العرض المرئي..." class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none pr-8">
+              <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-400/70 absolute right-2.5 top-2.5"></i>
+            </div>
+            <button type="submit" id="btn-submit-specialist" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition flex items-center gap-1.5 active:scale-95 shadow disabled:opacity-50 disabled:pointer-events-none">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span id="btn-submit-specialist-text">إضافة +</span>
+            </button>
+          </form>
+
+          <!-- قائمة الأخصائيين المسجلين -->
+          <div class="border border-corp-800 rounded-xl overflow-hidden bg-corp-950/70">
+            <div class="px-3 py-2 bg-corp-850/80 border-b border-corp-800 text-[11px] font-bold text-slate-300 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>فريق أخصائيي العرض المرئي (VM)</span>
+              </span>
+              <span id="counter-specialists-list" class="bg-corp-950 text-emerald-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+            </div>
+            <div id="list-mgmt-specialists" class="divide-y divide-corp-800/60 max-h-60 overflow-y-auto">
+              <!-- يتم تعبئتها ديناميكياً بواسطة renderModalList() -->
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- تذييل النافذة مع زر الإغلاق -->
+      <!-- تذييل النافذة مع زر الإغلاق وحالة الحفظ والمزامنة -->
       <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-between text-[11px] text-slate-400">
-        <span class="flex items-center gap-1">
-          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>تحديث فوري للقوائم المنسدلة وحفظ محلي</span>
+        <span class="flex items-center gap-1.5" id="mgmt-footer-status">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-gold-400"></i>
+          <span>مزامنة مباشرة مع Cloudflare D1 والتخزين المحلي</span>
         </span>
-        <button type="button" onclick="closeManagementModal(true)" class="px-4 py-1.5 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-lg font-bold text-xs transition">
+        <button type="button" onclick="closeManagementModal(true)" class="px-4 py-1.5 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-lg font-bold text-xs transition active:scale-95">
           إغلاق
         </button>
       </div>
@@ -1011,14 +1061,20 @@
 
   <!-- ==================== المنطق البرمجي المجزأ (MODULAR ES MODULES) ==================== -->
   <!--
-    SAMX-VM Core Architecture v1.3.0
+    SAMX-VM Core Architecture v1.3.2
     Changelog:
+    - v1.3.2: Strict Management Modal Tab Separation & Cloudflare D1 CRUD UX:
+      * Fully decoupled Branches and Specialists view panels (#view-mgmt-branches & #view-mgmt-specialists) preventing any layout overlap.
+      * Integrated dynamic Cloudflare D1 fetch upon modal opening with cloud connection indicator.
+      * Interactive loading states (spinners, disabled buttons, feedback banners) on "+ إضافة" and delete operations.
+      * Two-way synchronization between Cloudflare D1 API and resilient Local-first cache.
+    - v1.3.1: Cloudflare D1 Database binding and real database_id provisioning in wrangler.json.
     - v1.3.0: Decoupled monolithic index.html into clean, maintainable ES modules:
       * src/store.js: Local-first state management, conflict-free entity IDs, storage persistence, VM checklists, status maps.
       * src/renderers.js: High-performance UI renderers, audit cards, dynamic checklists, print layout, and toasts.
       * src/main.js: Central lifecycle coordinator, event delegation, canvas annotator, speech dictation, and print/export handlers.
       * Zero regression: Preserved all existing local storage keys and window scope bindings.
-    - v1.2.1: Integrated comprehensive retail VM field audit categories (White/Colored Thobes, Headgear, Perfumes/Sunglasses, Footwear, Underwear/Kids, Stock Room, Gondolas).
+    - v1.2.1: Integrated comprehensive retail VM field audit categories.
     - v1.2.0: Store Action & Task Tracker integration.
     - v1.1.0: Real-time management modal DOM updates, cinematic RTL layout, high z-index toasts.
     - v1.0.0: Initial release.

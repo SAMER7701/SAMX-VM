@@ -65,11 +65,12 @@ export async function fetchBranchesCloud() {
 /**
  * إضافة فرع جديد وحفظه سحابياً ومحلياً
  */
-export async function createBranchCloud(name) {
+export async function createBranchCloud(name, id = null) {
   const cleanName = String(name || '').trim();
   if (!cleanName) return { success: false, message: 'اسم الفرع مطلوب' };
 
-  const newBranch = { id: `br_${Date.now()}`, name: cleanName };
+  const entityId = id || `br_${Date.now()}`;
+  const newBranch = { id: entityId, name: cleanName };
 
   if (navigator.onLine) {
     try {
@@ -97,15 +98,18 @@ export async function createBranchCloud(name) {
 export async function deleteBranchCloud(id) {
   if (navigator.onLine && id) {
     try {
-      await fetch(`${API_BASE}/branches/${encodeURIComponent(id)}`, {
+      const res = await fetch(`${API_BASE}/branches/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         signal: AbortSignal.timeout(4000),
       });
+      if (res.ok) {
+        return { success: true, source: 'cloud_d1' };
+      }
     } catch (err) {
       console.warn('[SAMX-VM API] Failed to delete branch from D1:', err.message);
     }
   }
-  return { success: true };
+  return { success: true, source: 'local_storage' };
 }
 
 // ====================================================================
@@ -137,11 +141,12 @@ export async function fetchSpecialistsCloud() {
 /**
  * إضافة أخصائي جديد وحفظه سحابياً ومحلياً
  */
-export async function createSpecialistCloud(name) {
+export async function createSpecialistCloud(name, id = null) {
   const cleanName = String(name || '').trim();
   if (!cleanName) return { success: false, message: 'اسم الأخصائي مطلوب' };
 
-  const newSpecialist = { id: `sp_${Date.now()}`, name: cleanName };
+  const entityId = id || `sp_${Date.now()}`;
+  const newSpecialist = { id: entityId, name: cleanName };
 
   if (navigator.onLine) {
     try {
@@ -169,15 +174,18 @@ export async function createSpecialistCloud(name) {
 export async function deleteSpecialistCloud(id) {
   if (navigator.onLine && id) {
     try {
-      await fetch(`${API_BASE}/specialists/${encodeURIComponent(id)}`, {
+      const res = await fetch(`${API_BASE}/specialists/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         signal: AbortSignal.timeout(4000),
       });
+      if (res.ok) {
+        return { success: true, source: 'cloud_d1' };
+      }
     } catch (err) {
       console.warn('[SAMX-VM API] Failed to delete specialist from D1:', err.message);
     }
   }
-  return { success: true };
+  return { success: true, source: 'local_storage' };
 }
 
 // ====================================================================

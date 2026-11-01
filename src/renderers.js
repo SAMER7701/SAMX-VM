@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.3.0
+ * Version: 1.3.2
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -65,27 +65,61 @@ export function showToast(message, type = 'info') {
 }
 
 // إشعار تأكيد فوري ومباشر داخل النافذة المنبثقة
-export function showModalInlineFeedback(text) {
-  const form = document.querySelector('#management-modal form');
-  if (!form) return;
-  let feedback = document.getElementById('modal-inline-feedback');
+export function showModalInlineFeedback(text, type = 'success') {
+  let feedback = document.getElementById('management-inline-feedback');
   if (!feedback) {
-    feedback = document.createElement('div');
-    feedback.id = 'modal-inline-feedback';
-    feedback.className = 'mt-2.5 p-2.5 bg-emerald-950/90 border border-emerald-500/60 text-emerald-200 text-xs font-bold rounded-xl text-center shadow-lg transition-opacity duration-300 flex items-center justify-center gap-1.5';
-    form.parentNode.insertBefore(feedback, form.nextSibling);
+    feedback = document.getElementById('modal-inline-feedback');
   }
-  feedback.innerHTML = `<span>${text}</span>`;
+  if (!feedback) {
+    const modalBody = document.querySelector('#management-modal .overflow-y-auto') || document.querySelector('#management-modal');
+    if (modalBody) {
+      feedback = document.createElement('div');
+      feedback.id = 'management-inline-feedback';
+      modalBody.insertBefore(feedback, modalBody.firstChild);
+    }
+  }
+  if (!feedback) return;
+
+  let bgClass = 'bg-emerald-950/90 border-emerald-500/60 text-emerald-200';
+  let iconName = 'check-circle-2';
+  if (type === 'error') {
+    bgClass = 'bg-rose-950/90 border-rose-500/60 text-rose-200';
+    iconName = 'alert-triangle';
+  } else if (type === 'loading') {
+    bgClass = 'bg-amber-950/90 border-amber-500/60 text-amber-200';
+    iconName = 'loader-2';
+  } else if (type === 'info') {
+    bgClass = 'bg-sky-950/90 border-sky-500/60 text-sky-200';
+    iconName = 'info';
+  }
+
+  feedback.className = `p-2.5 my-2 border ${bgClass} text-xs font-bold rounded-xl text-center shadow-lg transition-all duration-300 flex items-center justify-center gap-2`;
+  feedback.innerHTML = `
+    <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 ${type === 'loading' ? 'animate-spin' : ''}"></i>
+    <span>${text}</span>
+  `;
   feedback.style.display = 'flex';
   feedback.style.opacity = '1';
+  feedback.classList.remove('hidden');
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
 
   if (window._feedbackTimeout) clearTimeout(window._feedbackTimeout);
-  window._feedbackTimeout = setTimeout(() => {
-    if (feedback) {
-      feedback.style.opacity = '0';
-      setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 300);
-    }
-  }, 2000);
+  if (type !== 'loading') {
+    window._feedbackTimeout = setTimeout(() => {
+      if (feedback) {
+        feedback.style.opacity = '0';
+        setTimeout(() => { 
+          if (feedback) {
+            feedback.style.display = 'none';
+            feedback.classList.add('hidden');
+          }
+        }, 300);
+      }
+    }, 2800);
+  }
 }
 
 // تحديث مؤشرات الأداء السريعة (KPIs)
@@ -159,7 +193,7 @@ export function syncQuickDisplays() {
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
 
   const printTimestamp = document.getElementById('print-timestamp');
-  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.1`;
+  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.2`;
 
   updateKPIs();
 }
@@ -246,59 +280,142 @@ export function refreshSpecialistsUI() {
   renderInlineDrawerList();
 }
 
-// رسم عناصر القائمة في النافذة المنبثقة
+// رسم عناصر القائمة في النافذة المنبثقة مع العزل التام بين التبويبين
 export function renderModalList(targetTab = null) {
   try {
-    const container = document.getElementById('management-items-list');
-    const counter = document.getElementById('management-list-counter');
-    const badgeBranches = document.getElementById('badge-branches-count');
-    const badgeSpecialists = document.getElementById('badge-specialists-count');
-
     const branches = getBranches() || [];
     const specialists = getSpecialists() || [];
 
+    const badgeBranches = document.getElementById('badge-branches-count');
+    const badgeSpecialists = document.getElementById('badge-specialists-count');
+    const counterBranches = document.getElementById('counter-branches-list');
+    const counterSpecialists = document.getElementById('counter-specialists-list');
+    const legacyCounter = document.getElementById('management-list-counter');
+
     if (badgeBranches) badgeBranches.innerText = branches.length;
     if (badgeSpecialists) badgeSpecialists.innerText = specialists.length;
+    if (counterBranches) counterBranches.innerText = branches.length;
+    if (counterSpecialists) counterSpecialists.innerText = specialists.length;
 
     const activeTab = targetTab || modalState.currentModalTab || 'branches';
-    const items = (activeTab === 'branches') ? branches : specialists;
-    if (counter) counter.innerText = items.length;
-    if (!container) return;
-
-    if (items.length === 0) {
-      container.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا توجد عناصر مسجلة حالياً</div>`;
-      return;
+    if (legacyCounter) {
+      legacyCounter.innerText = (activeTab === 'branches') ? branches.length : specialists.length;
     }
 
-    container.innerHTML = items.map((item, index) => {
-      const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
-      const id = typeof item === 'object' && item && item.id ? item.id : '';
-      const activeName = (modalState.currentModalTab === 'branches') ? currentAudit.branchName : currentAudit.auditorName;
-      const isCurrent = activeName && String(activeName).trim().toLowerCase() === String(name).trim().toLowerCase();
-
-      const iconName = (modalState.currentModalTab === 'branches') ? 'map-pin' : 'user';
-      const iconColor = (modalState.currentModalTab === 'branches') ? 'text-gold-400' : 'text-emerald-400';
-      const activeBadgeText = (modalState.currentModalTab === 'branches') ? 'المحدد حالياً' : 'المسؤول النشط';
-      const activeBadgeClass = (modalState.currentModalTab === 'branches') 
-        ? 'bg-gold-500/20 text-gold-400 border-gold-500/30' 
-        : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-
-      return `
-        <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
-          <div class="flex items-center gap-2 min-w-0">
-            <i data-lucide="${iconName}" class="w-3.5 h-3.5 ${iconColor} shrink-0"></i>
-            <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
-              <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${name}</span>
-              ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800" title="معرف">${id}</span>` : ''}
-            </div>
-            ${isCurrent ? `<span class="${activeBadgeClass} text-[10px] font-bold px-1.5 py-0.5 rounded border">${activeBadgeText}</span>` : ''}
+    // 1. رسم قائمة الفروع المخصصة
+    const branchesContainer = document.getElementById('list-mgmt-branches');
+    if (branchesContainer) {
+      if (branches.length === 0) {
+        branchesContainer.innerHTML = `
+          <div class="p-6 text-center text-xs text-slate-500 space-y-1">
+            <i data-lucide="map-pin-off" class="w-6 h-6 mx-auto text-slate-600 mb-1"></i>
+            <p>لا توجد فروع مسجلة حتى الآن.</p>
+            <p class="text-[10px] text-slate-600">أضف فرعك الأول من الحقل أعلاه ليتم حفظه في D1 محلياً وسحابياً.</p>
           </div>
-          <button type="button" onclick="deleteEntity('${modalState.currentModalTab}', ${index})" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </div>
-      `;
-    }).join('');
+        `;
+      } else {
+        branchesContainer.innerHTML = branches.map((item, index) => {
+          const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
+          const id = typeof item === 'object' && item && item.id ? item.id : `br_${index}`;
+          const isCurrent = currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(name).trim().toLowerCase();
+
+          return `
+            <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/60 transition group">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-gold-500/10 text-gold-400 flex items-center justify-center shrink-0">
+                  <i data-lucide="store" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs text-slate-100 truncate ${isCurrent ? 'font-bold text-gold-400' : 'font-medium'}">${name}</span>
+                  ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800" title="معرف D1">${id}</span>` : ''}
+                </div>
+                ${isCurrent ? `<span class="bg-gold-500/20 text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gold-400"></span>المعرض المحدد</span>` : ''}
+              </div>
+              <button type="button" onclick="deleteEntity('branches', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90" title="حذف الفرع">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 2. رسم قائمة الأخصائيين المخصصة
+    const specialistsContainer = document.getElementById('list-mgmt-specialists');
+    if (specialistsContainer) {
+      if (specialists.length === 0) {
+        specialistsContainer.innerHTML = `
+          <div class="p-6 text-center text-xs text-slate-500 space-y-1">
+            <i data-lucide="user-x" class="w-6 h-6 mx-auto text-slate-600 mb-1"></i>
+            <p>لا يوجد أخصائيو عرض مسجلون حتى الآن.</p>
+            <p class="text-[10px] text-slate-600">أضف اسم الأخصائي من الحقل أعلاه لبدء توثيق الزيارات.</p>
+          </div>
+        `;
+      } else {
+        specialistsContainer.innerHTML = specialists.map((item, index) => {
+          const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
+          const id = typeof item === 'object' && item && item.id ? item.id : `sp_${index}`;
+          const isCurrent = currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(name).trim().toLowerCase();
+
+          return `
+            <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/60 transition group">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                  <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs text-slate-100 truncate ${isCurrent ? 'font-bold text-emerald-400' : 'font-medium'}">${name}</span>
+                  ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800" title="معرف D1">${id}</span>` : ''}
+                </div>
+                ${isCurrent ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>المسؤول النشط</span>` : ''}
+              </div>
+              <button type="button" onclick="deleteEntity('specialists', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90" title="حذف الأخصائي">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 3. رسم الحاوية القديمة كـ Fallback للتوافق التام
+    const legacyContainer = document.getElementById('management-items-list');
+    if (legacyContainer) {
+      const items = (activeTab === 'branches') ? branches : specialists;
+      if (items.length === 0) {
+        legacyContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">لا توجد عناصر مسجلة حالياً</div>`;
+      } else {
+        legacyContainer.innerHTML = items.map((item, index) => {
+          const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
+          const id = typeof item === 'object' && item && item.id ? item.id : '';
+          const activeName = (activeTab === 'branches') ? currentAudit.branchName : currentAudit.auditorName;
+          const isCurrent = activeName && String(activeName).trim().toLowerCase() === String(name).trim().toLowerCase();
+
+          const iconName = (activeTab === 'branches') ? 'map-pin' : 'user';
+          const iconColor = (activeTab === 'branches') ? 'text-gold-400' : 'text-emerald-400';
+          const activeBadgeText = (activeTab === 'branches') ? 'المحدد حالياً' : 'المسؤول النشط';
+          const activeBadgeClass = (activeTab === 'branches') 
+            ? 'bg-gold-500/20 text-gold-400 border-gold-500/30' 
+            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+
+          return `
+            <div class="px-3 py-2.5 flex items-center justify-between gap-2 hover:bg-corp-850/50 transition">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="${iconName}" class="w-3.5 h-3.5 ${iconColor} shrink-0"></i>
+                <div class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs text-slate-200 truncate ${isCurrent ? 'font-bold text-gold-300' : ''}">${name}</span>
+                  ${id ? `<span class="text-[9px] font-mono text-slate-500 bg-corp-900 px-1 py-0.2 rounded border border-corp-800">${id}</span>` : ''}
+                </div>
+                ${isCurrent ? `<span class="${activeBadgeClass} text-[10px] font-bold px-1.5 py-0.5 rounded border">${activeBadgeText}</span>` : ''}
+              </div>
+              <button type="button" onclick="deleteEntity('${activeTab}', '${id || index}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
 
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       try { window.lucide.createIcons(); } catch(e){}

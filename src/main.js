@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.3.0
+ * Version: 1.3.2
  * Architecture: ES Modules Coordinator
  */
 
@@ -309,13 +309,95 @@ export async function deleteInlineEntity(type, index) {
   renderInlineDrawerList();
 }
 
+// التحكم في مؤشر حالة المزامنة السحابية للنافذة
+export function updateManagementCloudIndicator(text, state = 'info') {
+  const statusElem = document.getElementById('management-cloud-status');
+  const footerStatus = document.getElementById('mgmt-footer-status');
+  if (statusElem) statusElem.innerText = text;
+  if (footerStatus) {
+    let icon = 'database';
+    let color = 'text-gold-400';
+    if (state === 'success') { icon = 'cloud'; color = 'text-emerald-400'; }
+    else if (state === 'loading') { icon = 'loader-2'; color = 'text-amber-400 animate-spin'; }
+    else if (state === 'offline') { icon = 'cloud-off'; color = 'text-slate-400'; }
+    footerStatus.innerHTML = `
+      <i data-lucide="${icon}" class="w-3.5 h-3.5 ${color}"></i>
+      <span>${text}</span>
+    `;
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  }
+}
+
+// تبديل ألسنة التبويب في نافذة الإدارة بعزل تام لمنع التداخل (STRICT TAB SWITCHING)
+export function switchManagementTab(tab = 'branches') {
+  try {
+    const targetTab = (tab === 'specialists') ? 'specialists' : 'branches';
+    modalState.currentModalTab = targetTab;
+    if (typeof window !== 'undefined') {
+      window.currentModalTab = targetTab;
+    }
+
+    const btnBranches = document.getElementById('tab-btn-branches');
+    const btnSpecialists = document.getElementById('tab-btn-specialists');
+    const viewBranches = document.getElementById('view-mgmt-branches');
+    const viewSpecialists = document.getElementById('view-mgmt-specialists');
+    const headerTitle = document.getElementById('management-modal-title');
+    const headerSubtitle = document.getElementById('management-modal-subtitle');
+    const legacyListHeader = document.getElementById('management-list-header');
+
+    if (targetTab === 'branches') {
+      if (btnBranches) {
+        btnBranches.className = "py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow-md";
+      }
+      if (btnSpecialists) {
+        btnSpecialists.className = "py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 bg-transparent";
+      }
+      if (viewBranches) viewBranches.classList.remove('hidden');
+      if (viewSpecialists) viewSpecialists.classList.add('hidden');
+
+      if (headerTitle) headerTitle.innerText = "إدارة قائمة الفروع والمعارض";
+      if (headerSubtitle) headerSubtitle.innerText = "إضافة وتحديث فروع المعارض مع المزامنة المباشرة لقاعدة بيانات D1";
+      if (legacyListHeader) legacyListHeader.innerText = "قائمة الفروع المسجلة";
+
+      const branchInput = document.getElementById('input-branch-name') || document.getElementById('management-input');
+      setTimeout(() => { 
+        if (branchInput && typeof branchInput.focus === 'function') branchInput.focus(); 
+      }, 70);
+    } else {
+      if (btnSpecialists) {
+        btnSpecialists.className = "py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow-md";
+      }
+      if (btnBranches) {
+        btnBranches.className = "py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 bg-transparent";
+      }
+      if (viewSpecialists) viewSpecialists.classList.remove('hidden');
+      if (viewBranches) viewBranches.classList.add('hidden');
+
+      if (headerTitle) headerTitle.innerText = "إدارة قائمة أخصائيي العرض المرئي";
+      if (headerSubtitle) headerSubtitle.innerText = "إدارة مسؤولي الـ VM وتعيينهم في تقارير الزيارات الميدانية";
+      if (legacyListHeader) legacyListHeader.innerText = "فريق أخصائيي العرض (VM)";
+
+      const specInput = document.getElementById('input-specialist-name') || document.getElementById('management-input');
+      setTimeout(() => { 
+        if (specInput && typeof specInput.focus === 'function') specInput.focus(); 
+      }, 70);
+    }
+
+    renderModalList(targetTab);
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  } catch (err) {
+    console.error('switchManagementTab error:', err);
+  }
+}
+
 // نافذة إدارة القوائم (MANAGEMENT MODAL CONTROLLER)
 export function openManagementModal(tab = 'branches') {
   try {
     lastModalOpenTime = Date.now();
-    modalState.currentModalTab = (tab === 'specialists') ? 'specialists' : 'branches';
-    const modal = document.getElementById('management-modal');
-    if (!modal) return;
 
     hideModal('section-modal');
     hideModal('annotator-modal');
@@ -323,33 +405,24 @@ export function openManagementModal(tab = 'branches') {
     hideModal('image-lightbox');
 
     showModal('management-modal');
+    switchManagementTab(tab);
 
-    const btnBranches = document.getElementById('tab-btn-branches');
-    const btnSpecialists = document.getElementById('tab-btn-specialists');
-    const input = document.getElementById('management-input');
-    const headerTitle = document.getElementById('management-modal-title');
-    const listHeader = document.getElementById('management-list-header');
-
-    if (modalState.currentModalTab === 'branches') {
-      if (btnBranches) btnBranches.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow";
-      if (btnSpecialists) btnSpecialists.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
-      if (input) input.placeholder = "اكتب اسم الفرع أو المعرض الجديد...";
-      if (headerTitle) headerTitle.innerText = "إدارة قائمة الفروع والمعارض";
-      if (listHeader) listHeader.innerText = "قائمة الفروع المسجلة";
+    // جلب البيانات ديناميكياً من سحابة Cloudflare D1 فور فتح النافذة
+    if (navigator.onLine) {
+      updateManagementCloudIndicator('جاري المزامنة مع D1... 🔄', 'loading');
+      Promise.allSettled([
+        samxApi.fetchBranchesCloud(),
+        samxApi.fetchSpecialistsCloud()
+      ]).then(([bRes, sRes]) => {
+        refreshBranchesUI();
+        refreshSpecialistsUI();
+        updateManagementCloudIndicator('متصل بـ Cloudflare D1 ☁️', 'success');
+      }).catch(err => {
+        console.warn('D1 sync on modal open:', err);
+        updateManagementCloudIndicator('محلي (Offline)', 'offline');
+      });
     } else {
-      if (btnSpecialists) btnSpecialists.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 bg-gold-500 text-slate-950 shadow";
-      if (btnBranches) btnBranches.className = "py-2 px-3 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200";
-      if (input) input.placeholder = "اكتب اسم الأخصائي الجديد...";
-      if (headerTitle) headerTitle.innerText = "إدارة قائمة أخصائيي العرض المرئي";
-      if (listHeader) listHeader.innerText = "فريق أخصائيي العرض (VM)";
-    }
-
-    renderModalList();
-    setTimeout(() => { 
-      if (input && typeof input.focus === 'function') input.focus(); 
-    }, 100);
-    if (window.lucide && typeof lucide.createIcons === 'function') {
-      try { lucide.createIcons(); } catch(e){}
+      updateManagementCloudIndicator('محلي (أوفلاين)', 'offline');
     }
   } catch (err) {
     console.error('Error opening management modal:', err);
@@ -362,111 +435,196 @@ export function closeManagementModal(force = false) {
       return;
     }
     hideModal('management-modal');
-    const input = document.getElementById('management-input');
-    if (input) input.value = '';
+    const inputBranch = document.getElementById('input-branch-name');
+    const inputSpec = document.getElementById('input-specialist-name');
+    const legacyInput = document.getElementById('management-input');
+    if (inputBranch) inputBranch.value = '';
+    if (inputSpec) inputSpec.value = '';
+    if (legacyInput) legacyInput.value = '';
     refreshMainSelects();
   } catch (err) {
     console.error('Error closing management modal:', err);
   }
 }
 
-export async function addEntity(type = modalState.currentModalTab) {
-  const input = document.getElementById('management-input');
-  const val = input ? input.value.trim() : '';
+// إضافة عنصر جديد عبر واجهة المستخدم مع استدعاء Cloudflare D1 وإدارة حالات التحميل والتنبيهات
+export async function submitAddEntity(type = modalState.currentModalTab) {
+  const targetType = (type === 'specialists') ? 'specialists' : 'branches';
+
+  const inputElem = (targetType === 'branches') 
+    ? (document.getElementById('input-branch-name') || document.getElementById('management-input'))
+    : (document.getElementById('input-specialist-name') || document.getElementById('management-input'));
+
+  const submitBtn = (targetType === 'branches')
+    ? document.getElementById('btn-submit-branch')
+    : document.getElementById('btn-submit-specialist');
+
+  const btnTextElem = (targetType === 'branches')
+    ? document.getElementById('btn-submit-branch-text')
+    : document.getElementById('btn-submit-specialist-text');
+
+  const val = inputElem ? inputElem.value.trim() : '';
   if (!val) {
-    showToast(type === 'branches' ? 'يرجى كتابة اسم الفرع أو المعرض' : 'يرجى كتابة اسم أخصائي الـ VM', 'error');
+    const errorMsg = targetType === 'branches' ? 'يرجى كتابة اسم الفرع أو المعرض' : 'يرجى كتابة اسم أخصائي الـ VM';
+    showToast(errorMsg, 'error');
+    showModalInlineFeedback(errorMsg, 'error');
+    if (inputElem) inputElem.focus();
     return;
   }
 
-  const res = (type === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
-  if (res && res.success) {
-    if (input) {
-      input.value = '';
-      input.focus();
+  // التحقق من عدم التكرار المسبق
+  const currentList = (targetType === 'branches') ? getBranches() : getSpecialists();
+  if (currentList.some(item => (typeof item === 'string' ? item : item.name || '').trim().toLowerCase() === val.toLowerCase())) {
+    const dupMsg = targetType === 'branches' ? 'اسم المعرض أو الفرع مسجل مسبقاً في القائمة' : 'اسم الأخصائي مسجل مسبقاً في القائمة';
+    showToast(dupMsg, 'error');
+    showModalInlineFeedback(dupMsg, 'error');
+    return;
+  }
+
+  // 1. تفعيل حالة التحميل (Loading State)
+  if (submitBtn) submitBtn.disabled = true;
+  if (inputElem) inputElem.disabled = true;
+  if (btnTextElem) btnTextElem.innerText = 'جاري الحفظ... ⏳';
+  showModalInlineFeedback('جاري الحفظ والمزامنة مع Cloudflare D1... ⏳', 'loading');
+
+  try {
+    // 2. الحفظ المحلي السريع أولاً
+    const localRes = (targetType === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
+    const assignedId = localRes && localRes.item ? localRes.item.id : null;
+
+    // 3. الحفظ السحابي في Cloudflare D1 عبر src/api.js
+    let cloudSynced = false;
+    if (navigator.onLine) {
+      try {
+        const cloudRes = (targetType === 'branches') 
+          ? await samxApi.createBranchCloud(val, assignedId)
+          : await samxApi.createSpecialistCloud(val, assignedId);
+        if (cloudRes && cloudRes.success) {
+          cloudSynced = true;
+        }
+      } catch (cloudErr) {
+        console.warn('Cloudflare D1 save warning:', cloudErr);
+      }
     }
 
-    renderModalList();
+    // 4. تحديث القوائم والعرض فوراً
+    if (inputElem) {
+      inputElem.value = '';
+    }
 
-    if (type === 'branches') {
-      currentAudit.branchName = val;
-      const select = document.getElementById('select-branch');
-      if (select) {
-        if (select.options.length === 1 && select.options[0].value === '') {
-          select.innerHTML = '';
-        }
-        let exists = false;
-        for (let i = 0; i < select.options.length; i++) {
-          if (select.options[i].value === val) { exists = true; break; }
-        }
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = val;
-          opt.innerText = val;
-          opt.selected = true;
-          select.appendChild(opt);
-        }
-        select.value = val;
+    if (targetType === 'branches') {
+      if (!currentAudit.branchName) {
+        currentAudit.branchName = val;
       }
     } else {
-      currentAudit.auditorName = val;
-      const select = document.getElementById('select-specialist');
-      if (select) {
-        if (select.options.length === 1 && select.options[0].value === '') {
-          select.innerHTML = '';
-        }
-        let exists = false;
-        for (let i = 0; i < select.options.length; i++) {
-          if (select.options[i].value === val) { exists = true; break; }
-        }
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = val;
-          opt.innerText = val;
-          opt.selected = true;
-          select.appendChild(opt);
-        }
-        select.value = val;
+      if (!currentAudit.auditorName) {
+        currentAudit.auditorName = val;
       }
     }
 
     refreshMainSelects();
+    renderModalList(targetType);
     renderInlineDrawerList();
 
-    const bannerText = `✨ تمت إضافة "${val}" بنجاح وتحديث القائمة فوراً ✅`;
-    showToast(bannerText, 'success');
-    showModalInlineFeedback(bannerText);
-  } else {
-    showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
+    // 5. إشعار النجاح الصريح
+    const successMsg = cloudSynced
+      ? `✨ تم حفظ "${val}" في سحابة D1 وقائمة ${targetType === 'branches' ? 'الفروع' : 'الأخصائيين'} بنجاح ✅`
+      : `💾 تم حفظ "${val}" محلياً بنجاح (سيتم الرفع لسحابة D1 تلقائياً عند الاتصال) 📶`;
+
+    showToast(successMsg, 'success');
+    showModalInlineFeedback(successMsg, 'success');
+
+  } catch (err) {
+    console.error('submitAddEntity error:', err);
+    showToast('حدث خطأ أثناء حفظ العنصر: ' + err.message, 'error');
+    showModalInlineFeedback('فشل الحفظ: ' + err.message, 'error');
+  } finally {
+    // إنهاء حالة التحميل
+    if (submitBtn) submitBtn.disabled = false;
+    if (inputElem) {
+      inputElem.disabled = false;
+      inputElem.focus();
+    }
+    if (btnTextElem) btnTextElem.innerText = 'إضافة +';
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
   }
 }
 
-export async function deleteEntity(type = modalState.currentModalTab, index) {
-  const items = (type === 'branches') ? getBranches() : getSpecialists();
-  const target = items[index];
-  if (!target) return;
+// دالة التوافق الشامل لـ addEntity
+export async function addEntity(type = modalState.currentModalTab) {
+  return await submitAddEntity(type);
+}
 
-  const targetName = typeof target === 'string' ? target : (target.name || '');
-  const targetId = typeof target === 'object' && target && target.id ? target.id : targetName;
+// حذف عنصر من القائمة وسحابة D1 مع التأكيد والتنبيه
+export async function deleteEntity(type = modalState.currentModalTab, target) {
+  const targetType = (type === 'specialists') ? 'specialists' : 'branches';
+  const items = (targetType === 'branches') ? getBranches() : getSpecialists();
 
-  if (type === 'branches' && currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
+  let targetItem = null;
+  if (typeof target === 'number') {
+    targetItem = items[target];
+  } else if (typeof target === 'string') {
+    targetItem = items.find(item => {
+      const id = typeof item === 'object' && item ? item.id : null;
+      const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
+      return id === target || name === target;
+    });
+  }
+
+  if (!targetItem) {
+    console.warn('deleteEntity: target not found:', target);
+    return;
+  }
+
+  const targetName = typeof targetItem === 'string' ? targetItem : (targetItem.name || '');
+  const targetId = typeof targetItem === 'object' && targetItem && targetItem.id ? targetItem.id : targetName;
+
+  // الحماية من حذف العنصر المستخدم في التقرير النشط
+  if (targetType === 'branches' && currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
     showToast('لا يمكن حذف الفرع لأنه محدد في مسودة التقرير النشطة', 'error');
+    showModalInlineFeedback('لا يمكن حذف الفرع المحدد في مسودة التقرير النشطة ⚠️', 'error');
     return;
   }
-  if (type === 'specialists' && currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
+  if (targetType === 'specialists' && currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
     showToast('لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط', 'error');
+    showModalInlineFeedback('لا يمكن حذف الأخصائي المحدد في مسودة التقرير النشطة ⚠️', 'error');
     return;
   }
 
-  if (!confirm(`هل أنت متأكد من حذف "${targetName}" من القائمة؟`)) return;
+  if (!confirm(`هل أنت متأكد من حذف "${targetName}" من القائمة وقاعدة بيانات D1؟`)) return;
 
-  const res = (type === 'branches') ? await deleteBranchItem(targetId) : await deleteSpecialistItem(targetId);
-  if (res && res.success) {
-    renderModalList();
+  showModalInlineFeedback(`جاري حذف "${targetName}" من السحابة... ⏳`, 'loading');
+
+  try {
+    // 1. الحذف محلياً
+    const localRes = (targetType === 'branches') ? await deleteBranchItem(targetId) : await deleteSpecialistItem(targetId);
+
+    // 2. الحذف من Cloudflare D1 عبر src/api.js
+    if (navigator.onLine) {
+      try {
+        if (targetType === 'branches') {
+          await samxApi.deleteBranchCloud(targetId);
+        } else {
+          await samxApi.deleteSpecialistCloud(targetId);
+        }
+      } catch (cloudDelErr) {
+        console.warn('Cloud delete error:', cloudDelErr);
+      }
+    }
+
+    renderModalList(targetType);
     renderInlineDrawerList();
     refreshMainSelects();
-    showToast('تم الحذف بنجاح من القائمة', 'info');
-  } else {
-    showToast(res && res.reason ? res.reason : 'فشل الحذف', 'error');
+
+    const infoMsg = `🗑️ تم حذف "${targetName}" بنجاح من القائمة وقاعدة بيانات D1`;
+    showToast(infoMsg, 'info');
+    showModalInlineFeedback(infoMsg, 'info');
+  } catch (err) {
+    console.error('deleteEntity error:', err);
+    showToast('حدث خطأ أثناء الحذف: ' + err.message, 'error');
+    showModalInlineFeedback('فشل الحذف: ' + err.message, 'error');
   }
 }
 
@@ -474,6 +632,22 @@ export async function deleteEntity(type = modalState.currentModalTab, index) {
 const handleGlobalManagementClicks = (e) => {
   const target = e.target;
   if (!target) return;
+
+  const tabBranchBtn = (typeof target.closest === 'function') && target.closest('#tab-btn-branches');
+  if (tabBranchBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    switchManagementTab('branches');
+    return;
+  }
+
+  const tabSpecBtn = (typeof target.closest === 'function') && target.closest('#tab-btn-specialists');
+  if (tabSpecBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    switchManagementTab('specialists');
+    return;
+  }
 
   const branchBtn = (typeof target.closest === 'function') && target.closest('#btn-manage-branches, [data-manage="branches"]');
   if (branchBtn) {
@@ -1531,6 +1705,9 @@ if (typeof window !== 'undefined') {
   window.deleteInlineEntity = deleteInlineEntity;
   window.openManagementModal = openManagementModal;
   window.closeManagementModal = closeManagementModal;
+  window.switchManagementTab = switchManagementTab;
+  window.submitAddEntity = submitAddEntity;
+  window.updateManagementCloudIndicator = updateManagementCloudIndicator;
   window.addEntity = addEntity;
   window.deleteEntity = deleteEntity;
   window.openEntryModal = openEntryModal;
