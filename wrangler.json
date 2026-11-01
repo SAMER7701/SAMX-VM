@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "samx-vm-db",
-      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      "database_id": "d3d6315f-9cfb-494c-8796-3df2907655c2"
     }
   ],
   "r2_buckets": [
