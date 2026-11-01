@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.3.5
+ * Version: 1.3.6
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -169,23 +169,40 @@ export function updateKPIs() {
 
 // مزامنة عروض تفاصيل المعرض في الهيدر والتقرير المطبوع
 export function syncQuickDisplays() {
-  const branchDisplay = currentAudit.branchName || 'لم يتم تحديد الفرع';
+  const branchDisplay = currentAudit.branchName || 'لم يتم تحديد المعرض';
   const auditorDisplay = currentAudit.auditorName || 'لم يتم تحديد الأخصائي';
+  const dateDisplay = currentAudit.auditDate || new Date().toISOString().split('T')[0];
 
   const quickStore = document.getElementById('quick-store-name');
   if (quickStore) quickStore.innerText = branchDisplay;
 
   const quickWeek = document.getElementById('quick-audit-week');
   if (quickWeek) quickWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
+
+  // استخلاص اسم المعرض والفرع بشكل نظيف للترويسة الرسمية
+  let storeName = branchDisplay;
+  let branchName = branchDisplay;
+  if (branchDisplay.includes(' - ')) {
+    const parts = branchDisplay.split(' - ');
+    storeName = parts[0].trim();
+    branchName = parts.slice(1).join(' - ').trim();
+  } else if (branchDisplay.includes('-')) {
+    const parts = branchDisplay.split('-');
+    storeName = parts[0].trim();
+    branchName = parts.slice(1).join('-').trim();
+  }
+
+  const printStoreTitle = document.getElementById('print-header-store-title');
+  if (printStoreTitle) printStoreTitle.innerText = storeName;
+
+  const printBranch = document.getElementById('print-header-branch');
+  if (printBranch) printBranch.innerText = branchName;
   
   const printStore = document.getElementById('print-header-store');
   if (printStore) printStore.innerText = branchDisplay;
 
-  const printWeek = document.getElementById('print-header-week');
-  if (printWeek) printWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
-
   const printDate = document.getElementById('print-header-date');
-  if (printDate) printDate.innerText = currentAudit.auditDate || '';
+  if (printDate) printDate.innerText = dateDisplay;
 
   const printAuditor = document.getElementById('print-header-auditor');
   if (printAuditor) printAuditor.innerText = auditorDisplay;
@@ -197,7 +214,7 @@ export function syncQuickDisplays() {
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
 
   const printTimestamp = document.getElementById('print-timestamp');
-  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.2`;
+  if (printTimestamp) printTimestamp.innerText = `منصة SAMX-VM • الإصدار v1.3.6 • ${dateDisplay}`;
 
   updateKPIs();
 }
@@ -994,55 +1011,65 @@ export function renderPrintSections(customSections = null) {
 
   sections.forEach((sec, idx) => {
     const item = document.createElement('div');
-    item.className = "print-card print-break-inside-avoid border border-slate-200 rounded-xl p-4 bg-white shadow-sm";
+    item.className = "print-card print-break-inside-avoid border border-slate-300 rounded-2xl p-4 md:p-5 bg-white shadow-sm mb-6";
     
     const tagsBadge = (sec.tags || []).map(t => `
-      <span class="bg-slate-100 text-slate-800 border border-slate-300 text-[10px] px-2 py-0.5 rounded font-semibold inline-block">
+      <span class="bg-slate-100 text-slate-800 border border-slate-300 text-[10px] px-2 py-0.5 rounded font-bold inline-block">
         ${t}
       </span>
     `).join(' ');
 
     item.innerHTML = `
-      <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
-        <h4 class="font-black text-slate-900 text-sm md:text-base flex items-center gap-2 flex-wrap">
-          <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
-          <span>${sec.title}</span>
+      <!-- عنوان القسم البارز بتسلسل هرمي واضح -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-3.5 px-4 rounded-xl flex items-center justify-between flex-wrap gap-2.5 mb-4 shadow-sm border border-slate-700">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 font-black text-sm flex items-center justify-center shadow-md">#${idx + 1}</span>
+          <h3 class="text-base md:text-lg font-black text-white tracking-wide">${sec.title}</h3>
           ${getStatusBadgeHtml(sec.status || 'resolved', true)}
-        </h4>
-        <div class="flex flex-wrap gap-1">${tagsBadge}</div>
+        </div>
+        ${tagsBadge ? `<div class="flex flex-wrap gap-1.5">${tagsBadge}</div>` : ''}
       </div>
 
+      <!-- صور قبل وبعد بحجم عريض وبارز مع تناسق الأبعاد -->
       <div class="grid grid-cols-2 gap-4 mb-4">
         <!-- اليمين: قبل التعديل -->
-        <div>
-          <div class="text-xs font-black text-rose-800 mb-1.5 flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
-            <span>الوضع السابق (Before Audit)</span>
+        <div class="flex flex-col">
+          <div class="bg-rose-50 text-rose-900 border border-rose-300 px-3 py-1.5 rounded-t-xl text-xs font-black flex items-center justify-between shadow-xs">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block"></span>
+              <span>الوضع السابق (Before Audit)</span>
+            </span>
+            <span class="text-[10px] bg-rose-200/90 px-1.5 py-0.5 rounded font-black text-rose-900">قبل</span>
           </div>
-          <div class="aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden border-2 border-rose-300/80 bg-slate-50 shadow-sm">
-            <img src="${sec.beforeImg}" class="w-full h-full object-cover">
+          <div class="w-full aspect-[4/3] min-h-[260px] md:min-h-[340px] rounded-b-xl overflow-hidden border-2 border-t-0 border-rose-400 bg-slate-100 shadow-sm flex items-center justify-center">
+            <img src="${sec.beforeImg}" alt="قبل التعديل" class="w-full h-full object-cover">
           </div>
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
-        <div>
-          <div class="text-xs font-black text-emerald-800 mb-1.5 flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-            <span>بعد التنفيذ والتعديل (After VM Action)</span>
+        <div class="flex flex-col">
+          <div class="bg-emerald-50 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-t-xl text-xs font-black flex items-center justify-between shadow-xs">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+              <span>بعد التنفيذ والتعديل (After VM Action)</span>
+            </span>
+            <span class="text-[10px] bg-emerald-200/90 px-1.5 py-0.5 rounded font-black text-emerald-900">بعد</span>
           </div>
-          <div class="aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden border-2 border-emerald-300/80 bg-slate-50 shadow-sm">
-            <img src="${sec.afterImg}" class="w-full h-full object-cover">
+          <div class="w-full aspect-[4/3] min-h-[260px] md:min-h-[340px] rounded-b-xl overflow-hidden border-2 border-t-0 border-emerald-500 bg-slate-100 shadow-sm flex items-center justify-center">
+            <img src="${sec.afterImg}" alt="بعد التعديل" class="w-full h-full object-cover">
           </div>
         </div>
       </div>
 
       <!-- معايير الـ VM المطبقة في التقرير الرسمي -->
       ${sec.checklist && sec.checklist.length > 0 ? `
-        <div class="mb-2 p-2 rounded-lg bg-amber-50/80 border border-amber-200">
-          <span class="text-[10px] font-bold text-amber-900 block mb-1">معايير الـ VM المؤكدة ميدانياً (${sec.checklist.length}):</span>
-          <div class="flex flex-wrap gap-1">
+        <div class="mb-3 p-2.5 rounded-xl bg-amber-50/90 border border-amber-300 shadow-xs">
+          <span class="text-[11px] font-bold text-amber-950 block mb-1.5 flex items-center gap-1">
+            <span>معايير الـ VM المعتمدة والمحققة (${sec.checklist.length}):</span>
+          </span>
+          <div class="flex flex-wrap gap-1.5">
             ${sec.checklist.map(c => `
-              <span class="bg-white text-slate-800 border border-amber-300 text-[9px] px-1.5 py-0.5 rounded font-medium">
+              <span class="bg-white text-slate-900 border border-amber-300 text-[10px] px-2 py-0.5 rounded font-semibold">
                 ✓ ${c}
               </span>
             `).join('')}
@@ -1052,26 +1079,26 @@ export function renderPrintSections(customSections = null) {
 
       <!-- صندوق متابعة وتكليف الإجراء في تقرير الطباعة الرسمي -->
       ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-        <div class="mb-3 p-2.5 rounded-xl border-2 ${
+        <div class="mb-3.5 p-3 rounded-xl border-2 ${
           sec.status === 'store_followup' 
             ? 'bg-amber-50 border-amber-300 text-amber-950' 
             : 'bg-rose-50 border-rose-300 text-rose-950'
-        } text-xs font-semibold shadow-sm">
-          <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200">
-            <span class="font-black flex items-center gap-1 text-[11px] ${sec.status === 'store_followup' ? 'text-amber-900' : 'text-rose-900'}">
+        } text-xs font-semibold shadow-xs">
+          <div class="flex items-center justify-between pb-1.5 mb-2 border-b border-slate-200">
+            <span class="font-black flex items-center gap-1.5 text-xs ${sec.status === 'store_followup' ? 'text-amber-900' : 'text-rose-900'}">
               <span>${sec.status === 'store_followup' ? '⚠️ تكليف متابعة موجه لإدارة المعرض' : '🚨 طلب إجراء صيانة وتدخل إداري عاجل'}</span>
             </span>
             <span class="text-[10px] px-2 py-0.5 rounded font-black bg-white border ${sec.status === 'store_followup' ? 'border-amber-400 text-amber-800' : 'border-rose-400 text-rose-800'}">إجراء رسمي</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <div class="grid grid-cols-2 gap-3 text-xs">
             <div>👤 المسؤول عن التنفيذ: <strong class="underline font-black">${sec.actionAssignee || 'مدير المعرض'}</strong></div>
             <div>📅 تاريخ الإنجاز المستهدف: <strong class="underline font-black">${sec.actionDueDate || 'خلال أسبوع'}</strong></div>
           </div>
         </div>
       ` : ''}
 
-      <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-800 leading-relaxed">
-        <span class="font-bold text-slate-900 block mb-0.5">تفاصيل ومبررات التعديل الميداني:</span>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-800 leading-relaxed shadow-xs">
+        <span class="font-black text-slate-900 block mb-0.5">تفاصيل ومبررات التعديل الميداني:</span>
         <p>${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}</p>
       </div>
     `;
