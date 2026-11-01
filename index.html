@@ -130,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.0.0</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.2.0</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -1010,6 +1010,16 @@
 
   <!-- ==================== المنطق البرمجي الكامل (VANILLA JAVASCRIPT) ==================== -->
   <script>
+    /**
+     * SAMX-VM Core Architecture
+     * Version: 1.2.0 (Auto-incremented)
+     * Changelog:
+     * - v1.2.0: Store Action & Task Tracker integration (assignee & target due date tracking with quick selectors for store followup & management action).
+     * - v1.1.0: Real-time management modal DOM updates, cinematic RTL layout (Before/After), print footer toggle, high z-index toasts.
+     * - v1.0.0: Initial release with local-first storage and single-file consolidation.
+     */
+    const APP_VERSION = '1.2.0';
+
     // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
     let lastModalOpenTime = 0;
 
@@ -2157,7 +2167,7 @@
       if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
 
       const printTimestamp = document.getElementById('print-timestamp');
-      if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.0.0`;
+      if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.2.0`;
 
       // تحديث المؤشرات
       updateKPIs();
@@ -2839,20 +2849,31 @@
             </div>
           ` : ''}
 
-          <!-- التزام وبيانات متابعة الإجراء إن وجد -->
+          <!-- صندوق متابعة وتكليف الإجراء والمهمة -->
           ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-            <div class="mb-3 p-2.5 rounded-xl border ${
-              sec.status === 'store_followup' ? 'bg-amber-950/30 border-amber-500/40 text-amber-200' : 'bg-rose-950/30 border-rose-500/40 text-rose-200'
-            } text-xs flex flex-wrap items-center justify-between gap-2 shadow-inner">
-              <div class="flex items-center gap-2">
-                <i data-lucide="${sec.status === 'store_followup' ? 'clock' : 'alert-triangle'}" class="w-4 h-4 text-amber-400 shrink-0"></i>
-                <span class="font-bold">المسؤول عن التنفيذ:</span>
-                <span class="bg-corp-950 px-2 py-0.5 rounded-md text-white font-semibold border border-corp-800">${sec.actionAssignee || 'مدير المعرض'}</span>
+            <div class="mb-3.5 p-3 rounded-2xl border ${
+              sec.status === 'store_followup' 
+                ? 'bg-amber-950/40 border-amber-500/50 text-amber-200' 
+                : 'bg-rose-950/40 border-rose-500/50 text-rose-200'
+            } text-xs shadow-md">
+              <div class="flex items-center justify-between flex-wrap gap-2 pb-2 mb-2 border-b border-corp-800/80">
+                <span class="font-black flex items-center gap-1.5 ${sec.status === 'store_followup' ? 'text-amber-400' : 'text-rose-400'}">
+                  <i data-lucide="${sec.status === 'store_followup' ? 'clock' : 'alert-triangle'}" class="w-4 h-4"></i>
+                  <span>${sec.status === 'store_followup' ? 'مهمة متابعة ملزمة للفرع' : 'طلب إجراء صيانة / تدخل إداري'}</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${sec.status === 'store_followup' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                  قيد المتابعة
+                </span>
               </div>
-              <div class="flex items-center gap-2">
-                <i data-lucide="calendar" class="w-4 h-4 text-amber-400 shrink-0"></i>
-                <span class="font-bold">تاريخ الإنجاز المطلوب:</span>
-                <span class="bg-corp-950 px-2 py-0.5 rounded-md text-gold-400 font-bold border border-corp-800">${sec.actionDueDate || 'خلال أسبوع'}</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-400 font-medium">👤 المسؤول عن التنفيذ:</span>
+                  <span class="font-bold text-white bg-corp-950 px-2 py-0.5 rounded-lg border border-corp-800">${sec.actionAssignee || 'مدير المعرض'}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-400 font-medium">📅 تاريخ الإنجاز المستهدف:</span>
+                  <span class="font-bold text-gold-400 bg-corp-950 px-2 py-0.5 rounded-lg border border-corp-800">${sec.actionDueDate || 'خلال أسبوع'}</span>
+                </div>
               </div>
             </div>
           ` : ''}
@@ -2946,13 +2967,23 @@
             </div>
           ` : ''}
 
-          <!-- التزام المتابعة والتكليف في التقرير المطبوع -->
+          <!-- صندوق متابعة وتكليف الإجراء في تقرير الطباعة الرسمي -->
           ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-            <div class="mb-2 p-2 rounded-lg border ${
-              sec.status === 'store_followup' ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-rose-50 border-rose-300 text-rose-900'
-            } text-[11px] flex flex-wrap items-center justify-between gap-2 font-semibold">
-              <span>👤 المسؤول عن التنفيذ: <strong class="underline">${sec.actionAssignee || 'مدير المعرض'}</strong></span>
-              <span>📅 تاريخ الإنجاز المستهدف: <strong class="underline">${sec.actionDueDate || 'خلال أسبوع'}</strong></span>
+            <div class="mb-3 p-2.5 rounded-xl border-2 ${
+              sec.status === 'store_followup' 
+                ? 'bg-amber-50 border-amber-300 text-amber-950' 
+                : 'bg-rose-50 border-rose-300 text-rose-950'
+            } text-xs font-semibold shadow-sm">
+              <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200">
+                <span class="font-black flex items-center gap-1 text-[11px] ${sec.status === 'store_followup' ? 'text-amber-900' : 'text-rose-900'}">
+                  <span>${sec.status === 'store_followup' ? '⚠️ تكليف متابعة موجه لإدارة المعرض' : '🚨 طلب إجراء صيانة وتدخل إداري عاجل'}</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded font-black bg-white border ${sec.status === 'store_followup' ? 'border-amber-400 text-amber-800' : 'border-rose-400 text-rose-800'}">إجراء رسمي</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-[11px]">
+                <div>👤 المسؤول عن التنفيذ: <strong class="underline font-black">${sec.actionAssignee || 'مدير المعرض'}</strong></div>
+                <div>📅 تاريخ الإنجاز المستهدف: <strong class="underline font-black">${sec.actionDueDate || 'خلال أسبوع'}</strong></div>
+              </div>
             </div>
           ` : ''}
 
