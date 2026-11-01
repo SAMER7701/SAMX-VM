@@ -326,6 +326,73 @@ export async function getAuditCloud(id) {
   }
 }
 
+// ====================================================================
+// 4. مزامنة أقسام المعرض ومعايير الـ VM (SECTIONS & STANDARDS API)
+// ====================================================================
+
+/**
+ * جلب أقسام المعرض ومعاييرها من سحابة D1
+ */
+export async function fetchSectionsCloud() {
+  if (navigator.onLine) {
+    try {
+      const res = await fetch(`${API_BASE}/sections`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const body = await res.json();
+        if (body.success && Array.isArray(body.data)) {
+          return { success: true, data: body.data };
+        }
+      }
+    } catch (e) {
+      console.warn('fetchSectionsCloud offline fallback:', e.message);
+    }
+  }
+  return { success: false, error: 'الخادم السحابي غير متصل' };
+}
+
+/**
+ * حفظ أو تعديل قسم ومعاييره في سحابة D1
+ */
+export async function saveSectionCloud(name, standards = [], oldName = null, id = null) {
+  if (!navigator.onLine) {
+    return { success: false, message: 'سيتم الحفظ محلياً والمزامنة عند عودة الاتصال' };
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, standards, oldName, id }),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    const body = await res.json();
+    return { success: res.ok && body.success, data: body.data };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * حذف قسم من سحابة D1
+ */
+export async function deleteSectionCloud(nameOrId) {
+  if (!navigator.onLine) {
+    return { success: false, message: 'سيتم الحذف محلياً' };
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/sections/${encodeURIComponent(nameOrId)}`, {
+      method: 'DELETE',
+      signal: AbortSignal.timeout(5000),
+    });
+    const body = await res.json();
+    return { success: res.ok && body.success };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 // الجسر العام للنطاق البرمجي
 if (typeof window !== 'undefined') {
   window.samxApi = {
@@ -336,6 +403,9 @@ if (typeof window !== 'undefined') {
     fetchSpecialistsCloud,
     createSpecialistCloud,
     deleteSpecialistCloud,
+    fetchSectionsCloud,
+    saveSectionCloud,
+    deleteSectionCloud,
     uploadImageToR2,
     saveAuditCloud,
     listAuditsCloud,

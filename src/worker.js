@@ -154,6 +154,66 @@ async function handleApiRequest(pathname, method, request, env) {
   }
 
   // ==========================================
+  // مسارات أقسام المعرض ومعايير الـ VM (SECTIONS & STANDARDS CRUD)
+  // ==========================================
+  if (pathname === '/api/sections') {
+    try {
+      await env.DB.prepare(
+        `CREATE TABLE IF NOT EXISTS store_sections (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          standards_json TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      ).run();
+    } catch (e) {
+      console.warn('Table create store_sections warning:', e);
+    }
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT id, name, standards_json, created_at, updated_at FROM store_sections ORDER BY name ASC'
+      ).all();
+      return jsonResponse({ success: true, data: results || [] });
+    }
+
+    if (method === 'POST') {
+      const body = await request.json();
+      const name = (body.name || '').trim();
+      const oldName = (body.oldName || '').trim();
+      const id = body.id || `sec_${Date.now()}`;
+      const standardsJson = JSON.stringify(body.standards || []);
+
+      if (!name) {
+        return errorResponse('اسم القسم مطلوب');
+      }
+
+      if (oldName && oldName !== name) {
+        await env.DB.prepare('DELETE FROM store_sections WHERE name = ?').bind(oldName).run();
+      }
+
+      await env.DB.prepare(
+        `INSERT INTO store_sections (id, name, standards_json, updated_at) 
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(name) DO UPDATE SET 
+           standards_json = excluded.standards_json, 
+           updated_at = CURRENT_TIMESTAMP`
+      ).bind(id, name, standardsJson).run();
+
+      return jsonResponse({ success: true, data: { id, name, standards: body.standards || [] } }, 201);
+    }
+  }
+
+  if (pathname.startsWith('/api/sections/')) {
+    const rawTarget = decodeURIComponent(pathname.replace('/api/sections/', '').trim());
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM store_sections WHERE id = ? OR name = ?').bind(rawTarget, rawTarget).run();
+      return jsonResponse({ success: true, message: 'تم حذف القسم بنجاح' });
+    }
+  }
+
+  // ==========================================
   // مسارات تقارير المعاينة (AUDIT REPORTS)
   // ==========================================
   if (pathname === '/api/audits') {

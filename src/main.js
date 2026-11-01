@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.3.3
+ * Version: 1.3.4
  * Architecture: ES Modules Coordinator
  */
 
@@ -13,6 +13,15 @@ import {
   loadMetadata,
   getBranches,
   getSpecialists,
+  getStoreSections,
+  addStoreSection,
+  updateStoreSection,
+  deleteStoreSection,
+  getSectionStandards,
+  addSectionStandard,
+  updateSectionStandard,
+  deleteSectionStandard,
+  resetSectionStandards,
   addBranchItem,
   deleteBranchItem,
   addSpecialistItem,
@@ -32,7 +41,9 @@ import {
   refreshSpecialistsUI,
   renderModalList,
   renderInlineDrawerList,
+  populateSectionTypeSelect,
   renderCategoryChecklist,
+  renderSectionManager,
   renderAuditCards,
   renderPrintSections
 } from './renderers.js';
@@ -149,12 +160,15 @@ export async function bootApp() {
     }
   } catch(e) {}
 
+  try { populateSectionTypeSelect(); } catch(e) {}
+
   // مزامنة سحابية غير معطلة في الخلفية عند توفر الإنترنت (Cloudflare D1 Sync)
   if (navigator.onLine) {
     samxApi.checkCloudHealth().then(status => {
       if (status && status.online) {
         samxApi.fetchBranchesCloud().then(() => refreshBranchesUI());
         samxApi.fetchSpecialistsCloud().then(() => refreshSpecialistsUI());
+        samxApi.fetchSectionsCloud().then(() => populateSectionTypeSelect());
       }
     }).catch(() => {});
   }
@@ -681,6 +695,9 @@ export function openEntryModal(isEdit = false) {
   hideModal('management-modal');
   hideModal('annotator-modal');
   hideModal('validation-check-modal');
+  hideModal('section-manager-modal');
+
+  populateSectionTypeSelect();
 
   if (!isEdit) {
     modalState.editingSectionId = null;
@@ -706,6 +723,7 @@ export function resetModalFields() {
   modalState.activeModalChecklist = [];
   setModalStatus('resolved');
   
+  populateSectionTypeSelect();
   const typeSelect = document.getElementById('modal-section-type');
   if (typeSelect) {
     typeSelect.selectedIndex = 0;
@@ -715,6 +733,12 @@ export function resetModalFields() {
   if (customWrapper) customWrapper.classList.add('hidden');
   const customTitle = document.getElementById('modal-custom-title');
   if (customTitle) customTitle.value = '';
+
+  const inlineSec = document.getElementById('inline-add-section-container');
+  if (inlineSec) inlineSec.classList.add('hidden');
+  const inlineStd = document.getElementById('inline-add-standard-container');
+  if (inlineStd) inlineStd.classList.add('hidden');
+
   const notes = document.getElementById('modal-notes');
   if (notes) notes.value = '';
 
@@ -744,6 +768,277 @@ export function handleSectionTypeChange(val) {
     if (customWrapper) customWrapper.classList.add('hidden');
     renderCategoryChecklist(val);
   }
+}
+
+// ==================== إدارة وتخصيص أقسام المعرض ومعايير الـ VM ====================
+
+export function openSectionManagerModal(initialSection = null) {
+  const sections = getStoreSections();
+  modalState.selectedManagerSection = initialSection || (sections.length > 0 ? sections[0] : '');
+  renderSectionManager();
+  showModal('section-manager-modal');
+}
+
+export function closeSectionManagerModal() {
+  hideModal('section-manager-modal');
+  const typeSelect = document.getElementById('modal-section-type');
+  const currentVal = typeSelect ? typeSelect.value : null;
+  populateSectionTypeSelect(currentVal);
+}
+
+export function selectManagerSection(sectionName) {
+  modalState.selectedManagerSection = sectionName;
+  renderSectionManager();
+}
+
+export async function submitAddStoreSection(source = 'manager') {
+  let input = null;
+  if (source === 'inline') {
+    input = document.getElementById('inline-add-section-input');
+  } else {
+    input = document.getElementById('sec-mgr-add-section-input');
+  }
+
+  const name = input ? input.value.trim() : '';
+  if (!name) {
+    showToast('يرجى كتابة اسم القسم الجديد', 'error');
+    return;
+  }
+
+  const res = addStoreSection(name);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر إضافة القسم', 'error');
+    return;
+  }
+
+  if (input) input.value = '';
+
+  // مزامنة مع سحابة D1 إن أمكن
+  try {
+    samxApi.saveSectionCloud(name, getSectionStandards(name));
+  } catch(e){}
+
+  populateSectionTypeSelect(name);
+  const typeSelect = document.getElementById('modal-section-type');
+  if (typeSelect) {
+    typeSelect.value = name;
+    renderCategoryChecklist(name);
+  }
+
+  if (source === 'inline') {
+    toggleInlineAddSection(false);
+  }
+
+  modalState.selectedManagerSection = name;
+  renderSectionManager();
+  showToast(`✨ تمت إضافة قسم "${name}" بنجاح`, 'success');
+}
+
+export function toggleInlineAddSection(forceState = null) {
+  const container = document.getElementById('inline-add-section-container');
+  if (!container) return;
+  const isHidden = container.classList.contains('hidden');
+  const shouldShow = (forceState !== null) ? forceState : isHidden;
+
+  if (shouldShow) {
+    container.classList.remove('hidden');
+    const input = document.getElementById('inline-add-section-input');
+    if (input) input.focus();
+  } else {
+    container.classList.add('hidden');
+    const input = document.getElementById('inline-add-section-input');
+    if (input) input.value = '';
+  }
+}
+
+export async function promptRenameSection(sectionName) {
+  const newName = prompt(`تعديل اسم القسم:`, sectionName);
+  if (!newName || !newName.trim() || newName.trim() === sectionName) return;
+
+  const cleanNew = newName.trim();
+  const res = updateStoreSection(sectionName, cleanNew);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر تعديل اسم القسم', 'error');
+    return;
+  }
+
+  try {
+    samxApi.saveSectionCloud(cleanNew, getSectionStandards(cleanNew), sectionName);
+  } catch(e){}
+
+  populateSectionTypeSelect(cleanNew);
+  modalState.selectedManagerSection = cleanNew;
+  renderSectionManager();
+  renderAuditCards();
+
+  const typeSelect = document.getElementById('modal-section-type');
+  if (typeSelect && typeSelect.value === cleanNew) {
+    renderCategoryChecklist(cleanNew);
+  }
+
+  showToast(`✏️ تم تحديث اسم القسم إلى "${cleanNew}"`, 'success');
+}
+
+export async function confirmDeleteStoreSection(sectionName) {
+  const isUsed = currentAudit.sections.some(s => s.title === sectionName);
+  if (isUsed) {
+    if (!confirm(`تنبيه: قسم "${sectionName}" مستخدم في الجولة الحالية! هل ترغب في حذفه من قائمة الأقسام المعتمدة رغم ذلك؟`)) {
+      return;
+    }
+  } else {
+    if (!confirm(`هل أنت متأكد من حذف قسم "${sectionName}" وجميع معاييره المرتبطة؟`)) {
+      return;
+    }
+  }
+
+  const res = deleteStoreSection(sectionName);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر حذف القسم', 'error');
+    return;
+  }
+
+  try {
+    samxApi.deleteSectionCloud(sectionName);
+  } catch(e){}
+
+  const sections = getStoreSections();
+  modalState.selectedManagerSection = sections.length > 0 ? sections[0] : '';
+  populateSectionTypeSelect();
+  renderSectionManager();
+
+  const typeSelect = document.getElementById('modal-section-type');
+  if (typeSelect) {
+    renderCategoryChecklist(typeSelect.value);
+  }
+
+  showToast(`🗑️ تم حذف قسم "${sectionName}"`, 'info');
+}
+
+// ----------------- إدارة معايير الـ VM (VM Standards) -----------------
+
+export function openInlineAddStandard() {
+  const container = document.getElementById('inline-add-standard-container');
+  if (!container) return;
+  container.classList.remove('hidden');
+  const input = document.getElementById('inline-add-standard-input');
+  if (input) {
+    input.focus();
+  }
+}
+
+export function closeInlineAddStandard() {
+  const container = document.getElementById('inline-add-standard-container');
+  if (!container) return;
+  container.classList.add('hidden');
+  const input = document.getElementById('inline-add-standard-input');
+  if (input) input.value = '';
+}
+
+export async function submitAddStandard(source = 'form') {
+  let input = null;
+  let targetSection = null;
+
+  if (source === 'form') {
+    input = document.getElementById('inline-add-standard-input');
+    const typeSelect = document.getElementById('modal-section-type');
+    const typeVal = typeSelect ? typeSelect.value : '';
+    targetSection = (typeVal === '__custom_section__') ? 'default' : typeVal;
+  } else {
+    input = document.getElementById('sec-mgr-add-standard-input');
+    targetSection = modalState.selectedManagerSection;
+  }
+
+  const text = input ? input.value.trim() : '';
+  if (!text) {
+    showToast('يرجى كتابة نص المعيار بدقة', 'error');
+    return;
+  }
+
+  if (!targetSection) {
+    showToast('يرجى تحديد القسم المستهدف أولاً', 'error');
+    return;
+  }
+
+  const res = addSectionStandard(targetSection, text);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر إضافة المعيار', 'error');
+    return;
+  }
+
+  if (input) input.value = '';
+
+  // تفعيل المعيار المضاف فورياً في الاستمارة
+  if (source === 'form') {
+    if (!modalState.activeModalChecklist.includes(text)) {
+      modalState.activeModalChecklist.push(text);
+    }
+    renderCategoryChecklist(targetSection);
+    closeInlineAddStandard();
+  } else {
+    renderSectionManager();
+  }
+
+  try {
+    samxApi.saveSectionCloud(targetSection, getSectionStandards(targetSection));
+  } catch(e){}
+
+  showToast(`✅ تمت إضافة معيار: "${text}"`, 'success');
+}
+
+export async function openEditStandardModal(categoryName, standardText) {
+  const newText = prompt(`تعديل معيار العرض المرئي (VM Standard):\nالقسم: ${categoryName}`, standardText);
+  if (!newText || !newText.trim() || newText.trim() === standardText) return;
+
+  const cleanNew = newText.trim();
+  const res = updateSectionStandard(categoryName, standardText, cleanNew);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر تعديل المعيار', 'error');
+    return;
+  }
+
+  try {
+    samxApi.saveSectionCloud(categoryName, getSectionStandards(categoryName));
+  } catch(e){}
+
+  renderCategoryChecklist(categoryName);
+  renderSectionManager();
+  renderAuditCards();
+  showToast('✏️ تم تعديل المعيار بنجاح', 'success');
+}
+
+export async function confirmDeleteStandard(categoryName, standardText) {
+  if (!confirm(`هل أنت متأكد من حذف هذا المعيار من معايير قسم "${categoryName}"؟\n\n"${standardText}"`)) {
+    return;
+  }
+
+  const res = deleteSectionStandard(categoryName, standardText);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر حذف المعيار', 'error');
+    return;
+  }
+
+  try {
+    samxApi.saveSectionCloud(categoryName, getSectionStandards(categoryName));
+  } catch(e){}
+
+  renderCategoryChecklist(categoryName);
+  renderSectionManager();
+  showToast('🗑️ تم حذف المعيار', 'info');
+}
+
+export async function confirmResetStandards(categoryName) {
+  if (!confirm(`هل أنت متأكد من استعادة المعايير الافتراضية لقسم "${categoryName}"؟`)) {
+    return;
+  }
+
+  resetSectionStandards(categoryName);
+  try {
+    samxApi.saveSectionCloud(categoryName, getSectionStandards(categoryName));
+  } catch(e){}
+
+  renderCategoryChecklist(categoryName);
+  renderSectionManager();
+  showToast('🔄 تم استعادة المعايير الافتراضية للقسم', 'success');
 }
 
 export function toggleModalTag(btn, tagName) {
@@ -1740,6 +2035,19 @@ if (typeof window !== 'undefined') {
   window.printReport = printReport;
   window.shareWhatsAppSummary = shareWhatsAppSummary;
   window.setupNetworkStatusListener = setupNetworkStatusListener;
+  window.openSectionManagerModal = openSectionManagerModal;
+  window.closeSectionManagerModal = closeSectionManagerModal;
+  window.selectManagerSection = selectManagerSection;
+  window.submitAddStoreSection = submitAddStoreSection;
+  window.toggleInlineAddSection = toggleInlineAddSection;
+  window.promptRenameSection = promptRenameSection;
+  window.confirmDeleteStoreSection = confirmDeleteStoreSection;
+  window.openInlineAddStandard = openInlineAddStandard;
+  window.closeInlineAddStandard = closeInlineAddStandard;
+  window.submitAddStandard = submitAddStandard;
+  window.openEditStandardModal = openEditStandardModal;
+  window.confirmDeleteStandard = confirmDeleteStandard;
+  window.confirmResetStandards = confirmResetStandards;
   window.bootApp = bootApp;
 }
 

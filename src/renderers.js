@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.3.3
+ * Version: 1.3.4
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -12,6 +12,8 @@ import {
   VM_CATEGORY_CHECKLISTS,
   getBranches,
   getSpecialists,
+  getStoreSections,
+  getSectionStandards,
   saveAuditToStorage
 } from './store.js';
 
@@ -486,30 +488,181 @@ export function renderInlineDrawerList() {
   }
 }
 
-// عرض معايير الـ VM التفاعلية حسب القسم
+// ملء قائمة تحديد قسم المعرض ديناميكياً
+export function populateSectionTypeSelect(selectedVal = null) {
+  const select = document.getElementById('modal-section-type');
+  if (!select) return;
+
+  const sections = getStoreSections();
+  const currentVal = selectedVal || select.value || (sections.length > 0 ? sections[0] : '');
+
+  let html = '';
+  sections.forEach(sec => {
+    const isSelected = (sec === currentVal);
+    html += `<option value="${sec.replace(/"/g, '&quot;')}" ${isSelected ? 'selected' : ''}>${sec}</option>`;
+  });
+  html += `<option value="__custom_section__" ${currentVal === '__custom_section__' ? 'selected' : ''}>+ تصنيف أو زاوية مخصصة...</option>`;
+
+  select.innerHTML = html;
+  if (currentVal && (sections.includes(currentVal) || currentVal === '__custom_section__')) {
+    select.value = currentVal;
+  }
+}
+
+// عرض معايير الـ VM التفاعلية حسب القسم مع إمكانية التعديل والحذف المباشر
 export function renderCategoryChecklist(categoryName) {
   const container = document.getElementById('category-checklist-container');
   if (!container) return;
 
-  const standards = VM_CATEGORY_CHECKLISTS[categoryName] || VM_CATEGORY_CHECKLISTS['default'];
+  const effectiveCategory = (categoryName === '__custom_section__') ? 'default' : categoryName;
+  const standards = getSectionStandards(effectiveCategory);
 
-  container.innerHTML = standards.map(std => {
+  if (!standards || standards.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full py-4 text-center text-xs text-slate-400 bg-corp-900/40 rounded-xl border border-dashed border-corp-800">
+        <span>لا توجد معايير مسجلة لهذا القسم حالياً.</span>
+        <button type="button" onclick="openInlineAddStandard()" class="text-gold-400 font-bold underline mr-1 hover:text-gold-300">
+          انقر هنا لإضافة أول معيار +
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = standards.map((std, idx) => {
     const isChecked = modalState.activeModalChecklist.includes(std);
+    const escapedStd = std.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const escapedCat = effectiveCategory.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
     return `
-      <button type="button" onclick="toggleChecklistItem('${std.replace(/'/g, "\\'")}')" class="text-right p-2 rounded-xl text-[11px] font-semibold border transition flex items-start gap-2 ${
+      <div class="group relative rounded-xl text-[11px] font-semibold border transition flex items-center justify-between gap-1.5 p-1.5 ${
         isChecked
           ? 'bg-gold-500/15 border-gold-400 text-gold-300 ring-1 ring-gold-500 shadow-sm'
           : 'bg-corp-900 border-corp-800 text-slate-300 hover:border-corp-700'
       }">
-        <span class="w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${
-          isChecked
-            ? 'bg-gold-500 text-slate-950 border-gold-400 font-black text-xs'
-            : 'border-corp-700 bg-corp-950 text-transparent'
-        }">✓</span>
-        <span class="leading-tight">${std}</span>
-      </button>
+        <button type="button" onclick="toggleChecklistItem('${escapedStd}')" class="flex-1 text-right flex items-start gap-2 min-w-0 py-0.5">
+          <span class="w-4 h-4 rounded-md flex items-center justify-center shrink-0 mt-0.5 border ${
+            isChecked
+              ? 'bg-gold-500 text-slate-950 border-gold-400 font-black text-xs'
+              : 'border-corp-700 bg-corp-950 text-transparent'
+          }">✓</span>
+          <span class="leading-snug break-words">${std}</span>
+        </button>
+        <div class="flex items-center gap-0.5 shrink-0 pr-1">
+          <button type="button" onclick="openEditStandardModal('${escapedCat}', '${escapedStd}')" class="p-1 text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 rounded-lg transition" title="تعديل نص المعيار">
+            <i data-lucide="pencil" class="w-3 h-3"></i>
+          </button>
+          <button type="button" onclick="confirmDeleteStandard('${escapedCat}', '${escapedStd}')" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف المعيار">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+          </button>
+        </div>
+      </div>
     `;
   }).join('');
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
+}
+
+// رسم عناصر نافذة إدارة وتخصيص أقسام المعرض ومعايير الـ VM
+export function renderSectionManager() {
+  const sectionsListContainer = document.getElementById('sec-mgr-sections-list');
+  const standardsListContainer = document.getElementById('sec-mgr-standards-list');
+  const activeSectionTitle = document.getElementById('sec-mgr-active-section-title');
+  const sectionsCountBadge = document.getElementById('sec-mgr-sections-count');
+  const standardsCountBadge = document.getElementById('sec-mgr-standards-count');
+
+  const sections = getStoreSections();
+  if (sectionsCountBadge) sectionsCountBadge.innerText = sections.length;
+
+  if (!modalState.selectedManagerSection || !sections.includes(modalState.selectedManagerSection)) {
+    modalState.selectedManagerSection = sections.length > 0 ? sections[0] : '';
+  }
+
+  const currentSection = modalState.selectedManagerSection;
+  if (activeSectionTitle) {
+    activeSectionTitle.innerText = currentSection || 'اختر قسماً';
+  }
+
+  // 1. رسم قائمة الأقسام
+  if (sectionsListContainer) {
+    if (sections.length === 0) {
+      sectionsListContainer.innerHTML = '<div class="p-4 text-center text-xs text-slate-500">لا توجد أقسام مسجلة</div>';
+    } else {
+      sectionsListContainer.innerHTML = sections.map(sec => {
+        const isSelected = (sec === currentSection);
+        const standards = getSectionStandards(sec);
+        const escapedSec = sec.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+        return `
+          <div class="px-3 py-2.5 rounded-xl border flex items-center justify-between gap-2 transition cursor-pointer ${
+            isSelected 
+              ? 'bg-gold-500/15 border-gold-500/60 text-gold-300 font-bold shadow-sm'
+              : 'bg-corp-950/80 border-corp-800 text-slate-200 hover:border-corp-700'
+          }" onclick="selectManagerSection('${escapedSec}')">
+            <div class="min-w-0 flex-1 flex items-center gap-2">
+              <i data-lucide="layout-grid" class="w-3.5 h-3.5 ${isSelected ? 'text-gold-400' : 'text-slate-500'} shrink-0"></i>
+              <span class="text-xs truncate">${sec}</span>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-gold-500/20 text-gold-300' : 'bg-corp-850 text-slate-400'}">${standards.length}</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation();">
+              <button type="button" onclick="promptRenameSection('${escapedSec}')" class="p-1 text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 rounded-lg transition" title="تعديل اسم القسم">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="confirmDeleteStoreSection('${escapedSec}')" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف القسم">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. رسم معايير القسم المختار
+  if (standardsListContainer) {
+    if (!currentSection) {
+      standardsListContainer.innerHTML = '<div class="p-6 text-center text-xs text-slate-500">اختر قسماً من القائمة لعرض معاييره</div>';
+      if (standardsCountBadge) standardsCountBadge.innerText = '0';
+    } else {
+      const standards = getSectionStandards(currentSection);
+      if (standardsCountBadge) standardsCountBadge.innerText = standards.length;
+
+      if (standards.length === 0) {
+        standardsListContainer.innerHTML = `
+          <div class="p-6 text-center text-xs text-slate-400 border border-dashed border-corp-800 rounded-xl bg-corp-950/40">
+            <span>لا توجد معايير مسجلة لقسم "${currentSection}". اكتب معياراً في الحقل أعلاه وأضفه.</span>
+          </div>
+        `;
+      } else {
+        standardsListContainer.innerHTML = standards.map((std, idx) => {
+          const escapedStd = std.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          const escapedSec = currentSection.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return `
+            <div class="px-3 py-2 bg-corp-950/90 border border-corp-800 rounded-xl flex items-center justify-between gap-2 hover:border-corp-700 transition">
+              <div class="flex items-start gap-2 min-w-0 flex-1">
+                <span class="w-4 h-4 rounded bg-corp-850 text-gold-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">#${idx + 1}</span>
+                <span class="text-xs text-slate-200 leading-snug break-words">${std}</span>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="openEditStandardModal('${escapedSec}', '${escapedStd}')" class="p-1 text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 rounded-lg transition" title="تعديل المعيار">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="confirmDeleteStandard('${escapedSec}', '${escapedStd}')" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف المعيار">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
 }
 
 // عرض بطاقات الأقسام في شاشة الجولة الميدانية
@@ -809,7 +962,9 @@ if (typeof window !== 'undefined') {
   window.refreshSpecialistsUI = refreshSpecialistsUI;
   window.renderModalList = renderModalList;
   window.renderInlineDrawerList = renderInlineDrawerList;
+  window.populateSectionTypeSelect = populateSectionTypeSelect;
   window.renderCategoryChecklist = renderCategoryChecklist;
+  window.renderSectionManager = renderSectionManager;
   window.renderAuditCards = renderAuditCards;
   window.renderPrintSections = renderPrintSections;
 }

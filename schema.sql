@@ -37,7 +37,17 @@ CREATE TABLE IF NOT EXISTS audit_reports (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. الفهارس لتسريع الاستعلام والبحث
+-- 4. جدول أقسام المعرض ومعايير العرض المرئي (Store Sections & VM Standards)
+CREATE TABLE IF NOT EXISTS store_sections (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  standards_json TEXT, -- JSON array of standard checklist strings
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. الفهارس لتسريع الاستعلام والبحث
 CREATE INDEX IF NOT EXISTS idx_audit_branch ON audit_reports(branch_name);
 CREATE INDEX IF NOT EXISTS idx_audit_date ON audit_reports(audit_date);
 CREATE INDEX IF NOT EXISTS idx_audit_auditor ON audit_reports(auditor_name);
+CREATE INDEX IF NOT EXISTS idx_sections_name ON store_sections(name);

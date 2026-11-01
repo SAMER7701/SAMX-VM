@@ -1,17 +1,32 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.3.3
+ * Version: 1.3.4
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.3.3';
+export const APP_VERSION = '1.3.4';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
 export const STORAGE_KEY_BRANCHES = 'samx_branches_clean_v1';
 export const STORAGE_KEY_SPECIALISTS = 'samx_specialists_clean_v1';
+export const STORAGE_KEY_SECTIONS = 'samx_store_sections_v2';
+export const STORAGE_KEY_CHECKLISTS = 'samx_vm_checklists_v2';
 export const LEGACY_BRANCHES_KEY = 'samx_branches';
 export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
+
+// الأقسام الافتراضية المعتمدة لمعارض التجزئة
+export const DEFAULT_STORE_SECTIONS = [
+  'الواجهة الرئيسية والمانيكانات (Window Display)',
+  'قسم الثياب البيضاء (White Thobes)',
+  'قسم الثياب الملونة والشبابية (Colored & Youth Thobes)',
+  'قسم الأشمغة والغتر والمستلزمات (Headgear)',
+  'قسم العطور والنظارات (Perfumes & Sunglasses)',
+  'قسم الأحذية (Footwear)',
+  'قسم الملابس الداخلية والولادي (Underwear & Kids)',
+  'طاولات العرض المركزية والجدوال (Folded Tables / Gondolas)',
+  'المستودع وتنظيم المخزون الخلفي (Stock Room)'
+];
 
 // مصفوفات أولية فارغة تماماً (يتم إدارتها كلياً عبر واجهة المستخدم)
 export const SEED_BRANCHES = [];
@@ -45,8 +60,8 @@ export const STATUS_MAP = {
   }
 };
 
-// معايير التدقيق الميداني المعتمدة حسب كل قسم (Dynamic VM Category Checklists)
-export const VM_CATEGORY_CHECKLISTS = {
+// معايير التدقيق الميداني المعتمدة الافتراضية (Default VM Category Checklists)
+export const DEFAULT_VM_CATEGORY_CHECKLISTS = {
   'الواجهة الرئيسية والمانيكانات (Window Display)': [
     'سلامة ونظافة المانيكان وضبط التثبيت والوقفة',
     'تطبيق قصة الألوان المعتمدة للواجهة (Color Story)',
@@ -119,6 +134,9 @@ export const VM_CATEGORY_CHECKLISTS = {
   ]
 };
 
+// كائن المعايير الحي القابل للتخصيص والحفظ في التخزين المحلي (Dynamic VM Standards)
+export const VM_CATEGORY_CHECKLISTS = JSON.parse(JSON.stringify(DEFAULT_VM_CATEGORY_CHECKLISTS));
+
 // الحالة المركزية لتقرير المعرض (SAMX-VM State)
 export const currentAudit = {
   id: 'samx_' + Date.now(),
@@ -133,6 +151,8 @@ export const currentAudit = {
 export const metadataCache = {
   branches: [],
   specialists: [],
+  sections: [],
+  checklists: {},
   lastSyncedAt: null,
   syncStatus: 'idle'
 };
@@ -151,7 +171,9 @@ export const modalState = {
   currentModalTab: 'branches',
   currentDrawerTab: 'branches',
   isInlineDrawerOpen: false,
-  cardViewModes: {} // secId -> 'sideBySide' | 'slider'
+  cardViewModes: {}, // secId -> 'sideBySide' | 'slider'
+  selectedManagerSection: 'الواجهة الرئيسية والمانيكانات (Window Display)',
+  isManagingStandards: false
 };
 
 // مولد معرفات فريدة مقاومة للتعارض (Conflict-Free Entity ID)
@@ -172,11 +194,12 @@ export function calculateCurrentWeek() {
   }
 }
 
-// قراءة الفروع والأخصائيين من التخزين المحلي النظيف (Clean Storage)
+// قراءة الفروع والأخصائيين والأقسام والمعايير من التخزين المحلي النظيف (Clean Storage)
 export async function loadMetadata() {
   try {
     let branches = [];
     let specialists = [];
+    let sections = [];
 
     const storedBranches = localStorage.getItem(STORAGE_KEY_BRANCHES);
     if (storedBranches) {
@@ -198,19 +221,291 @@ export async function loadMetadata() {
       }
     }
 
+    // تحميل وتحديث الأقسام المعتمدة
+    const storedSections = localStorage.getItem(STORAGE_KEY_SECTIONS);
+    if (storedSections) {
+      try {
+        const parsed = JSON.parse(storedSections);
+        if (Array.isArray(parsed) && parsed.length > 0) sections = parsed;
+      } catch (e) {
+        console.warn('Failed parsing storedSections', e);
+      }
+    }
+    if (sections.length === 0) {
+      sections = [...DEFAULT_STORE_SECTIONS];
+    }
+
+    // تحميل وتحديث معايير الـ VM
+    const storedChecklists = localStorage.getItem(STORAGE_KEY_CHECKLISTS);
+    if (storedChecklists) {
+      try {
+        const parsed = JSON.parse(storedChecklists);
+        if (parsed && typeof parsed === 'object') {
+          Object.assign(VM_CATEGORY_CHECKLISTS, parsed);
+        }
+      } catch (e) {
+        console.warn('Failed parsing storedChecklists', e);
+      }
+    }
+
+    // التأكد من وجود معايير لكل قسم
+    sections.forEach(secName => {
+      if (!VM_CATEGORY_CHECKLISTS[secName] || !Array.isArray(VM_CATEGORY_CHECKLISTS[secName])) {
+        VM_CATEGORY_CHECKLISTS[secName] = DEFAULT_VM_CATEGORY_CHECKLISTS[secName] 
+          ? [...DEFAULT_VM_CATEGORY_CHECKLISTS[secName]] 
+          : [...(DEFAULT_VM_CATEGORY_CHECKLISTS['default'] || [])];
+      }
+    });
+
     metadataCache.branches = branches;
     metadataCache.specialists = specialists;
+    metadataCache.sections = sections;
+    metadataCache.checklists = VM_CATEGORY_CHECKLISTS;
+
     localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
     localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
+    localStorage.setItem(STORAGE_KEY_SECTIONS, JSON.stringify(sections));
+    localStorage.setItem(STORAGE_KEY_CHECKLISTS, JSON.stringify(VM_CATEGORY_CHECKLISTS));
 
     metadataCache.lastSyncedAt = new Date().toISOString();
-    return { branches, specialists };
+    return { branches, specialists, sections, checklists: VM_CATEGORY_CHECKLISTS };
   } catch (err) {
     console.error('loadMetadata error:', err);
     metadataCache.branches = [];
     metadataCache.specialists = [];
-    return { branches: [], specialists: [] };
+    metadataCache.sections = [...DEFAULT_STORE_SECTIONS];
+    return { branches: [], specialists: [], sections: [...DEFAULT_STORE_SECTIONS], checklists: VM_CATEGORY_CHECKLISTS };
   }
+}
+
+// حفظ المعايير في التخزين المحلي
+export function saveChecklistsToStorage() {
+  try {
+    metadataCache.checklists = VM_CATEGORY_CHECKLISTS;
+    localStorage.setItem(STORAGE_KEY_CHECKLISTS, JSON.stringify(VM_CATEGORY_CHECKLISTS));
+    return true;
+  } catch (e) {
+    console.error('saveChecklistsToStorage error:', e);
+    return false;
+  }
+}
+
+// حفظ الأقسام في التخزين المحلي
+export function saveSectionsToStorage(sections) {
+  if (!Array.isArray(sections)) return;
+  metadataCache.sections = sections;
+  localStorage.setItem(STORAGE_KEY_SECTIONS, JSON.stringify(sections));
+}
+
+// جلب قائمة أقسام المعرض المستهدفة
+export function getStoreSections() {
+  if (!Array.isArray(metadataCache.sections) || metadataCache.sections.length === 0) {
+    const stored = localStorage.getItem(STORAGE_KEY_SECTIONS);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          metadataCache.sections = parsed;
+        }
+      } catch (e) {}
+    }
+    if (!Array.isArray(metadataCache.sections) || metadataCache.sections.length === 0) {
+      metadataCache.sections = [...DEFAULT_STORE_SECTIONS];
+      saveSectionsToStorage(metadataCache.sections);
+    }
+  }
+  return metadataCache.sections;
+}
+
+// إضافة قسم معرض جديد
+export function addStoreSection(name, initialStandards = null) {
+  const clean = (name || '').trim();
+  if (!clean) return { success: false, reason: 'يرجى كتابة اسم القسم الجديد' };
+
+  const sections = getStoreSections();
+  if (sections.some(s => s.trim().toLowerCase() === clean.toLowerCase())) {
+    return { success: false, reason: 'هذا القسم مسجل مسبقاً في القائمة' };
+  }
+
+  sections.push(clean);
+  saveSectionsToStorage(sections);
+
+  // تهيئة معايير القسم الجديد
+  if (!VM_CATEGORY_CHECKLISTS[clean]) {
+    VM_CATEGORY_CHECKLISTS[clean] = Array.isArray(initialStandards) && initialStandards.length > 0
+      ? [...initialStandards]
+      : [...(DEFAULT_VM_CATEGORY_CHECKLISTS['default'] || [])];
+    saveChecklistsToStorage();
+  }
+
+  return { success: true, name: clean, list: sections };
+}
+
+// تعديل اسم قسم موجود ونقل معاييره تلقائياً
+export function updateStoreSection(oldName, newName) {
+  const cleanOld = (oldName || '').trim();
+  const cleanNew = (newName || '').trim();
+  if (!cleanOld || !cleanNew) return { success: false, reason: 'اسم القسم القديم والجديد مطلوبان' };
+  if (cleanOld === cleanNew) return { success: true, name: cleanNew };
+
+  const sections = getStoreSections();
+  const index = sections.findIndex(s => s.trim().toLowerCase() === cleanOld.toLowerCase());
+  if (index === -1) {
+    return { success: false, reason: 'القسم المراد تعديله غير موجود' };
+  }
+
+  if (sections.some((s, idx) => idx !== index && s.trim().toLowerCase() === cleanNew.toLowerCase())) {
+    return { success: false, reason: 'الاسم الجديد مستخدم مسبقاً لقسم آخر' };
+  }
+
+  sections[index] = cleanNew;
+  saveSectionsToStorage(sections);
+
+  // ترحيل المعايير الخاصة بالقسم إلى الاسم الجديد
+  if (VM_CATEGORY_CHECKLISTS[cleanOld]) {
+    VM_CATEGORY_CHECKLISTS[cleanNew] = VM_CATEGORY_CHECKLISTS[cleanOld];
+    delete VM_CATEGORY_CHECKLISTS[cleanOld];
+    saveChecklistsToStorage();
+  }
+
+  // تحديث الأقسام في مسودة التقرير النشطة إن وجدت
+  if (currentAudit && Array.isArray(currentAudit.sections)) {
+    let auditUpdated = false;
+    currentAudit.sections.forEach(sec => {
+      if (sec.title === cleanOld) {
+        sec.title = cleanNew;
+        auditUpdated = true;
+      }
+    });
+    if (auditUpdated) saveAuditToStorage();
+  }
+
+  return { success: true, oldName: cleanOld, newName: cleanNew, list: sections };
+}
+
+// حذف قسم من القائمة ومعاييره
+export function deleteStoreSection(name) {
+  const clean = (name || '').trim();
+  const sections = getStoreSections();
+  if (sections.length <= 1) {
+    return { success: false, reason: 'يجب الإبقاء على قسم واحد على الأقل في النظام' };
+  }
+
+  metadataCache.sections = sections.filter(s => s.trim().toLowerCase() !== clean.toLowerCase());
+  saveSectionsToStorage(metadataCache.sections);
+
+  if (VM_CATEGORY_CHECKLISTS[clean]) {
+    delete VM_CATEGORY_CHECKLISTS[clean];
+    saveChecklistsToStorage();
+  }
+
+  return { success: true, name: clean, list: metadataCache.sections };
+}
+
+// جلب معايير الـ VM لقسم محدد
+export function getSectionStandards(sectionName) {
+  const clean = (sectionName || '').trim();
+  if (VM_CATEGORY_CHECKLISTS[clean] && Array.isArray(VM_CATEGORY_CHECKLISTS[clean])) {
+    return VM_CATEGORY_CHECKLISTS[clean];
+  }
+  return DEFAULT_VM_CATEGORY_CHECKLISTS[clean] 
+    || DEFAULT_VM_CATEGORY_CHECKLISTS['default'] 
+    || [];
+}
+
+// إضافة معيار VM جديد لقسم
+export function addSectionStandard(sectionName, standardText) {
+  const cleanSec = (sectionName || '').trim();
+  const cleanStd = (standardText || '').trim();
+  if (!cleanSec || !cleanStd) return { success: false, reason: 'يرجى كتابة نص المعيار بدقة' };
+
+  if (!VM_CATEGORY_CHECKLISTS[cleanSec] || !Array.isArray(VM_CATEGORY_CHECKLISTS[cleanSec])) {
+    VM_CATEGORY_CHECKLISTS[cleanSec] = [...getSectionStandards(cleanSec)];
+  }
+
+  if (VM_CATEGORY_CHECKLISTS[cleanSec].some(s => s.trim().toLowerCase() === cleanStd.toLowerCase())) {
+    return { success: false, reason: 'هذا المعيار مضاف مسبقاً لهذا القسم' };
+  }
+
+  VM_CATEGORY_CHECKLISTS[cleanSec].push(cleanStd);
+  saveChecklistsToStorage();
+
+  return { success: true, sectionName: cleanSec, standard: cleanStd, list: VM_CATEGORY_CHECKLISTS[cleanSec] };
+}
+
+// تعديل نص معيار موجود
+export function updateSectionStandard(sectionName, oldStandard, newStandard) {
+  const cleanSec = (sectionName || '').trim();
+  const cleanOld = (oldStandard || '').trim();
+  const cleanNew = (newStandard || '').trim();
+  if (!cleanSec || !cleanOld || !cleanNew) return { success: false, reason: 'بيانات المعيار غير مكتملة' };
+  if (cleanOld === cleanNew) return { success: true, standard: cleanNew };
+
+  if (!VM_CATEGORY_CHECKLISTS[cleanSec] || !Array.isArray(VM_CATEGORY_CHECKLISTS[cleanSec])) {
+    VM_CATEGORY_CHECKLISTS[cleanSec] = [...getSectionStandards(cleanSec)];
+  }
+
+  const idx = VM_CATEGORY_CHECKLISTS[cleanSec].findIndex(s => s.trim() === cleanOld);
+  if (idx === -1) {
+    return { success: false, reason: 'المعيار المراد تعديله غير موجود' };
+  }
+
+  VM_CATEGORY_CHECKLISTS[cleanSec][idx] = cleanNew;
+  saveChecklistsToStorage();
+
+  // تحديث المعيار في القائمة المحددة حالياً في المودال إن كان مفعلاً
+  if (modalState.activeModalChecklist) {
+    const activeIdx = modalState.activeModalChecklist.indexOf(cleanOld);
+    if (activeIdx !== -1) {
+      modalState.activeModalChecklist[activeIdx] = cleanNew;
+    }
+  }
+
+  // تحديث المسودة النشطة
+  if (currentAudit && Array.isArray(currentAudit.sections)) {
+    let auditUpdated = false;
+    currentAudit.sections.forEach(sec => {
+      if (sec.checklist && Array.isArray(sec.checklist)) {
+        const cIdx = sec.checklist.indexOf(cleanOld);
+        if (cIdx !== -1) {
+          sec.checklist[cIdx] = cleanNew;
+          auditUpdated = true;
+        }
+      }
+    });
+    if (auditUpdated) saveAuditToStorage();
+  }
+
+  return { success: true, sectionName: cleanSec, oldStandard: cleanOld, newStandard: cleanNew, list: VM_CATEGORY_CHECKLISTS[cleanSec] };
+}
+
+// حذف معيار من قسم
+export function deleteSectionStandard(sectionName, standardText) {
+  const cleanSec = (sectionName || '').trim();
+  const cleanStd = (standardText || '').trim();
+  if (!cleanSec || !cleanStd) return { success: false, reason: 'بيانات المعيار غير مكتملة' };
+
+  if (!VM_CATEGORY_CHECKLISTS[cleanSec] || !Array.isArray(VM_CATEGORY_CHECKLISTS[cleanSec])) {
+    VM_CATEGORY_CHECKLISTS[cleanSec] = [...getSectionStandards(cleanSec)];
+  }
+
+  VM_CATEGORY_CHECKLISTS[cleanSec] = VM_CATEGORY_CHECKLISTS[cleanSec].filter(s => s.trim() !== cleanStd);
+  saveChecklistsToStorage();
+
+  if (modalState.activeModalChecklist) {
+    modalState.activeModalChecklist = modalState.activeModalChecklist.filter(s => s.trim() !== cleanStd);
+  }
+
+  return { success: true, sectionName: cleanSec, standard: cleanStd, list: VM_CATEGORY_CHECKLISTS[cleanSec] };
+}
+
+// استعادة المعايير الافتراضية لقسم محدد
+export function resetSectionStandards(sectionName) {
+  const cleanSec = (sectionName || '').trim();
+  const defaults = DEFAULT_VM_CATEGORY_CHECKLISTS[cleanSec] || DEFAULT_VM_CATEGORY_CHECKLISTS['default'] || [];
+  VM_CATEGORY_CHECKLISTS[cleanSec] = [...defaults];
+  saveChecklistsToStorage();
+  return { success: true, sectionName: cleanSec, list: VM_CATEGORY_CHECKLISTS[cleanSec] };
 }
 
 // حفظ وتحديث كاش الفروع محلياً
@@ -414,4 +709,14 @@ if (typeof window !== 'undefined') {
   window.saveAuditToStorage = saveAuditToStorage;
   window.loadAuditFromStorage = loadAuditFromStorage;
   window.loadMetadata = loadMetadata;
+  window.getStoreSections = getStoreSections;
+  window.saveSectionsToStorage = saveSectionsToStorage;
+  window.addStoreSection = addStoreSection;
+  window.updateStoreSection = updateStoreSection;
+  window.deleteStoreSection = deleteStoreSection;
+  window.getSectionStandards = getSectionStandards;
+  window.addSectionStandard = addSectionStandard;
+  window.updateSectionStandard = updateSectionStandard;
+  window.deleteSectionStandard = deleteSectionStandard;
+  window.resetSectionStandards = resetSectionStandards;
 }
