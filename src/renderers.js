@@ -159,7 +159,7 @@ export function syncQuickDisplays() {
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
 
   const printTimestamp = document.getElementById('print-timestamp');
-  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.0`;
+  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.1`;
 
   updateKPIs();
 }
@@ -247,7 +247,7 @@ export function refreshSpecialistsUI() {
 }
 
 // رسم عناصر القائمة في النافذة المنبثقة
-export function renderModalList() {
+export function renderModalList(targetTab = null) {
   try {
     const container = document.getElementById('management-items-list');
     const counter = document.getElementById('management-list-counter');
@@ -260,7 +260,8 @@ export function renderModalList() {
     if (badgeBranches) badgeBranches.innerText = branches.length;
     if (badgeSpecialists) badgeSpecialists.innerText = specialists.length;
 
-    const items = (modalState.currentModalTab === 'branches') ? branches : specialists;
+    const activeTab = targetTab || modalState.currentModalTab || 'branches';
+    const items = (activeTab === 'branches') ? branches : specialists;
     if (counter) counter.innerText = items.length;
     if (!container) return;
 
@@ -395,13 +396,15 @@ export function renderCategoryChecklist(categoryName) {
 }
 
 // عرض بطاقات الأقسام في شاشة الجولة الميدانية
-export function renderAuditCards() {
+export function renderAuditCards(customSections = null) {
   const container = document.getElementById('audit-cards-container');
   const emptyState = document.getElementById('audit-empty-state');
   if (!container) return;
   container.innerHTML = '';
 
-  if (!currentAudit.sections || currentAudit.sections.length === 0) {
+  const sections = Array.isArray(customSections) ? customSections : (currentAudit.sections || []);
+
+  if (sections.length === 0) {
     if (emptyState) emptyState.classList.remove('hidden');
     updateKPIs();
     return;
@@ -409,7 +412,7 @@ export function renderAuditCards() {
 
   if (emptyState) emptyState.classList.add('hidden');
 
-  currentAudit.sections.forEach((sec, idx) => {
+  sections.forEach((sec, idx) => {
     const card = document.createElement('div');
     card.className = "bg-corp-900 border border-corp-800 rounded-2xl p-4 md:p-5 shadow-md hover:border-corp-700 transition";
     
@@ -571,12 +574,14 @@ export function renderAuditCards() {
 }
 
 // عرض قائمة الأقسام في تقرير الطباعة الرسمي
-export function renderPrintSections() {
+export function renderPrintSections(customSections = null) {
   const container = document.getElementById('print-sections-container');
   if (!container) return;
   container.innerHTML = '';
 
-  if (!currentAudit.sections || currentAudit.sections.length === 0) {
+  const sections = Array.isArray(customSections) ? customSections : (currentAudit.sections || []);
+
+  if (sections.length === 0) {
     container.innerHTML = `
       <div class="text-center py-12 text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-xl p-6">
         لا توجد أقسام مسجلة حتى الآن في مسودة هذا التقرير. يرجى توثيق قسم واحد على الأقل للمعاينة.
@@ -585,7 +590,7 @@ export function renderPrintSections() {
     return;
   }
 
-  currentAudit.sections.forEach((sec, idx) => {
+  sections.forEach((sec, idx) => {
     const item = document.createElement('div');
     item.className = "print-card print-break-inside-avoid border border-slate-200 rounded-xl p-4 bg-white shadow-sm";
     

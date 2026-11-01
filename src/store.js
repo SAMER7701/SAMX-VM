@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.3.0
+ * Version: 1.3.1
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.3.1';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
@@ -263,6 +263,22 @@ export async function loadMetadata() {
   }
 }
 
+// حفظ وتحديث كاش الفروع محلياً
+export function saveBranchesToStorage(branches) {
+  if (!Array.isArray(branches)) return;
+  metadataCache.branches = branches;
+  localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
+  localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(branches.map(b => (b && b.name) ? b.name : b)));
+}
+
+// حفظ وتحديث كاش الأخصائيين محلياً
+export function saveSpecialistsToStorage(specialists) {
+  if (!Array.isArray(specialists)) return;
+  metadataCache.specialists = specialists;
+  localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
+  localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(specialists.map(s => (s && s.name) ? s.name : s)));
+}
+
 // دوال الوصول للقوائم (تسمح بإرجاع مصفوفة فارغة [])
 export function getBranches() {
   if (!Array.isArray(metadataCache.branches)) {
@@ -440,6 +456,8 @@ if (typeof window !== 'undefined') {
   window.SAMPLE_DEMO_DATA = SAMPLE_DEMO_DATA;
   window.getBranches = getBranches;
   window.getSpecialists = getSpecialists;
+  window.saveBranchesToStorage = saveBranchesToStorage;
+  window.saveSpecialistsToStorage = saveSpecialistsToStorage;
   window.addBranchItem = addBranchItem;
   window.deleteBranchItem = deleteBranchItem;
   window.addSpecialistItem = addSpecialistItem;

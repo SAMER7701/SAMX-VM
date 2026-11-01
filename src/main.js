@@ -38,6 +38,8 @@ import {
   renderPrintSections
 } from './renderers.js';
 
+import * as samxApi from './api.js';
+
 // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
 let lastModalOpenTime = 0;
 
@@ -147,6 +149,16 @@ export async function bootApp() {
       lucide.createIcons();
     }
   } catch(e) {}
+
+  // مزامنة سحابية غير معطلة في الخلفية عند توفر الإنترنت (Cloudflare D1 Sync)
+  if (navigator.onLine) {
+    samxApi.checkCloudHealth().then(status => {
+      if (status && status.online) {
+        samxApi.fetchBranchesCloud().then(() => refreshBranchesUI());
+        samxApi.fetchSpecialistsCloud().then(() => refreshSpecialistsUI());
+      }
+    }).catch(() => {});
+  }
 }
 
 // ربط الحقول بالبيانات وتفعيل التحديث الحي
@@ -1420,7 +1432,13 @@ export function importJsonBackup(event) {
 export function toggleReportFooter(show) {
   const footer = document.getElementById('print-signatures-footer');
   if (footer) {
-    footer.style.display = show ? 'grid' : 'none';
+    if (show) {
+      footer.classList.remove('hidden', 'no-print');
+      footer.style.display = 'grid';
+    } else {
+      footer.classList.add('hidden', 'no-print');
+      footer.style.display = 'none';
+    }
   }
 }
 
