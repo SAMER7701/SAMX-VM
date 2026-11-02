@@ -61,7 +61,7 @@ import {
 } from './renderers.js';
 
 import * as samxApi from './api.js';
-import { exportAuditToPptx } from './pptxExport.js';
+import { exportAuditToPptx, exportAuditToPptxA4, downloadPrebuiltA4Pptx } from './pptxExport.js';
 
 // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
 let lastModalOpenTime = 0;
@@ -2133,6 +2133,37 @@ export async function exportPptxReport() {
   }
 }
 
+export async function exportPptxA4Report() {
+  if (!modalState.isBypassingValidation) {
+    const passed = validateAuditQuality(() => {
+      exportPptxA4Report();
+    });
+    if (!passed) return;
+  }
+
+  const btn = document.getElementById('btn-export-pptx-a4');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-slate-950"></i><span>جارٍ إعداد A4...</span>`;
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  }
+
+  try {
+    await exportAuditToPptxA4();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
+    }
+  }
+}
+
 export function shareWhatsAppSummary() {
   let msg = `*تقرير العرض المرئي الأسبوعي (SAMX-VM Report)*\n`;
   msg += `🏪 *المعرض:* ${currentAudit.branchName}\n`;
@@ -2258,6 +2289,9 @@ if (typeof window !== 'undefined') {
   window.printReport = printReport;
   window.exportAuditToPptx = exportAuditToPptx;
   window.exportPptxReport = exportPptxReport;
+  window.exportAuditToPptxA4 = exportAuditToPptxA4;
+  window.exportPptxA4Report = exportPptxA4Report;
+  window.downloadPrebuiltA4Pptx = downloadPrebuiltA4Pptx;
   window.shareWhatsAppSummary = shareWhatsAppSummary;
   window.setupNetworkStatusListener = setupNetworkStatusListener;
   window.openSectionManagerModal = openSectionManagerModal;
