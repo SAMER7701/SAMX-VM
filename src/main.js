@@ -157,8 +157,73 @@ export function wireButtonListeners() {
   }
 }
 
+// ==================== إدارة الشاشة الترحيبية السينمائية (Cinematic Splash Screen Controller) ====================
+export function initSplashScreen() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+
+  // التحقق من تشغيل الشاشة مسبقاً خلال الجلسة الحالية
+  const hasSeenSplash = sessionStorage.getItem('samx_splash_shown');
+  if (hasSeenSplash) {
+    splash.classList.add('splash-hidden');
+    splash.style.display = 'none';
+    return;
+  }
+
+  // إخفاء تلقائي بعد 3.4 ثانية للتوافق مع مدة الأنيميشن السينمائي
+  if (splash._dismissTimer) {
+    clearTimeout(splash._dismissTimer);
+  }
+
+  splash._dismissTimer = setTimeout(() => {
+    dismissSplashScreen();
+  }, 3400);
+
+  // إمكانية الإغلاق السريع عبر زر الهروب Escape
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') {
+      dismissSplashScreen();
+      window.removeEventListener('keydown', handleKeydown);
+    }
+  };
+  window.addEventListener('keydown', handleKeydown);
+}
+
+export function dismissSplashScreen() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+
+  if (splash._dismissTimer) {
+    clearTimeout(splash._dismissTimer);
+    splash._dismissTimer = null;
+  }
+
+  try {
+    sessionStorage.setItem('samx_splash_shown', 'true');
+  } catch (e) {}
+
+  splash.classList.add('splash-hidden');
+  setTimeout(() => {
+    splash.style.display = 'none';
+  }, 600);
+}
+
+export function replaySplashScreen() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+
+  try {
+    sessionStorage.removeItem('samx_splash_shown');
+  } catch (e) {}
+
+  splash.style.display = 'flex';
+  splash.classList.remove('splash-hidden');
+  initSplashScreen();
+}
+
 // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية
 export async function bootApp() {
+  try { initSplashScreen(); } catch(e) {}
   try { await loadMetadata(); } catch(e) { console.warn('bootApp: loadMetadata error', e); }
   try { calculateCurrentWeek(); } catch(e) {}
   try { loadAuditFromStorage(); } catch(e) {}
@@ -2319,6 +2384,9 @@ if (typeof window !== 'undefined') {
   window.confirmResetQuickAssignees = confirmResetQuickAssignees;
   window.renderQuickTagsList = renderQuickTagsList;
   window.renderQuickAssigneesList = renderQuickAssigneesList;
+  window.initSplashScreen = initSplashScreen;
+  window.dismissSplashScreen = dismissSplashScreen;
+  window.replaySplashScreen = replaySplashScreen;
   window.bootApp = bootApp;
 }
 
