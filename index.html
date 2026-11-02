@@ -130,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.5</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.4.0</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -407,6 +407,10 @@
             <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
             <span>طباعة / حفظ PDF</span>
           </button>
+          <button onclick="exportPptxReport()" id="btn-export-pptx" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
+            <i data-lucide="presentation" class="w-4 h-4 text-slate-950"></i>
+            <span>تحميل عرض PowerPoint (PPTX)</span>
+          </button>
           <button onclick="shareWhatsAppSummary()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="share-2" class="w-4 h-4"></i>
             <span>مشاركة عبر واتساب</span>
@@ -489,14 +493,31 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
+          <!-- تصدير عرض PowerPoint الاحترافي -->
+          <div class="bg-corp-950 p-4 rounded-xl border border-amber-500/40 flex flex-col justify-between shadow-lg shadow-amber-500/5">
+            <div>
+              <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
+                <i data-lucide="presentation" class="w-4 h-4 text-amber-400"></i>
+                <span class="text-amber-300">عرض PowerPoint (PPTX)</span>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                توليد عرض تقديمي متكامل وقابل للتعديل بالكامل في Microsoft PowerPoint بصيغة 16:9 مع صور المقارنة والتحليلات.
+              </p>
+            </div>
+            <button onclick="exportPptxReport()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow">
+              <i data-lucide="presentation" class="w-4 h-4 text-slate-950"></i>
+              <span>تحميل PowerPoint (.pptx)</span>
+            </button>
+          </div>
+
           <!-- تصدير ملف النسخة الاحتياطية -->
           <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
                 <i data-lucide="download" class="w-4 h-4 text-gold-400"></i>
-                <span>تصدير نسخة احتياطية (JSON Backup)</span>
+                <span>تصدير نسخة احتياطية (JSON)</span>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed mb-4">
                 احفظ نسخة كاملة من التقرير الحالي بجميع صوره وبياناته في ملف JSON على جهازك للرجوع إليه لاحقاً.
@@ -504,7 +525,7 @@
             </div>
             <button onclick="exportJsonBackup()" class="w-full bg-corp-850 hover:bg-corp-800 text-gold-400 border border-gold-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95">
               <i data-lucide="download" class="w-4 h-4"></i>
-              <span>تحميل ملف التقرير (Download JSON)</span>
+              <span>تحميل ملف التقرير (JSON)</span>
             </button>
           </div>
 
@@ -513,7 +534,7 @@
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
                 <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
-                <span>استيراد تقرير سابق (Restore Draft)</span>
+                <span>استيراد تقرير سابق (Restore)</span>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed mb-4">
                 استعد مسودة تم حفظها مسبقاً لاستكمال الجولة أو التعديل عليها وطباعتها مجدداً.
@@ -530,7 +551,7 @@
           <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
-                <i data-lucide="file-plus" class="w-4 h-4 text-amber-400"></i>
+                <i data-lucide="file-plus" class="w-4 h-4 text-rose-400"></i>
                 <span>بدء تدقيق لمعرض جديد</span>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed mb-4">
@@ -1232,8 +1253,14 @@
 
   <!-- ==================== المنطق البرمجي المجزأ (MODULAR ES MODULES) ==================== -->
   <!--
-    SAMX-VM Core Architecture v1.3.5
+    SAMX-VM Core Architecture v1.4.0
     Changelog:
+    - v1.4.0: PowerPoint Presentation (.pptx) Native Client-Side Export:
+      * Fully integrated client-side presentation generator (pptxgenjs) creating executive 16:9 widescreen slides.
+      * Slide 1 (Cover / Summary): Dark corporate theme, Store/Branch headline, metadata cards (Week, Date, Auditor, Total Sections), and tour stats summary.
+      * Subsequent Slides: One dedicated slide per audit section with clean layout, section number, title, status badge, tags, side-by-side Before/After images with contrast banners, applied VM standards, followup tasks, and field notes.
+      * Final Slide: Official signatures & sign-off blocks for VM Specialist, Store Manager, and operational notes.
+      * Instant browser download with automatic file naming (e.g. تقرير_تدقيق_VM_فرع_العليا_أسبوع_43.pptx) and loading states.
     - v1.3.5: Section Audit Modal Tags & Assignees Customization (Full CRUD):
       * Quick Processing Tags (وسوم المعالجة السريعة): Dynamic rendering, inline "+ وسم جديد" creation panel, single-click removal ("×"), and local persistence across sessions.
       * Assignees & Followup (المسؤول عن التنفيذ): Dynamic role buttons, inline "+ إضافة جهة" creation panel, custom role deletion ("×"), free text typing, and instant selection.

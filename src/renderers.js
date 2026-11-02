@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.3.5
+ * Version: 1.4.0
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -197,7 +197,7 @@ export function syncQuickDisplays() {
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
 
   const printTimestamp = document.getElementById('print-timestamp');
-  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.3.5`;
+  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.4.0`;
 
   updateKPIs();
 }

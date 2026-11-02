@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.3.5
+ * Version: 1.4.0
  * Architecture: ES Modules Coordinator
  */
 
@@ -61,6 +61,7 @@ import {
 } from './renderers.js';
 
 import * as samxApi from './api.js';
+import { exportAuditToPptx } from './pptxExport.js';
 
 // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
 let lastModalOpenTime = 0;
@@ -2101,6 +2102,37 @@ export function printReport() {
   window.print();
 }
 
+export async function exportPptxReport() {
+  if (!modalState.isBypassingValidation) {
+    const passed = validateAuditQuality(() => {
+      exportPptxReport();
+    });
+    if (!passed) return;
+  }
+
+  const btn = document.getElementById('btn-export-pptx');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-slate-950"></i><span>جارٍ التوليد...</span>`;
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  }
+
+  try {
+    await exportAuditToPptx();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(e){}
+      }
+    }
+  }
+}
+
 export function shareWhatsAppSummary() {
   let msg = `*تقرير العرض المرئي الأسبوعي (SAMX-VM Report)*\n`;
   msg += `🏪 *المعرض:* ${currentAudit.branchName}\n`;
@@ -2224,6 +2256,8 @@ if (typeof window !== 'undefined') {
   window.importJsonBackup = importJsonBackup;
   window.toggleReportFooter = toggleReportFooter;
   window.printReport = printReport;
+  window.exportAuditToPptx = exportAuditToPptx;
+  window.exportPptxReport = exportPptxReport;
   window.shareWhatsAppSummary = shareWhatsAppSummary;
   window.setupNetworkStatusListener = setupNetworkStatusListener;
   window.openSectionManagerModal = openSectionManagerModal;
