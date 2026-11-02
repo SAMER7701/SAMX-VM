@@ -38,7 +38,11 @@ import {
   deleteSpecialistItem,
   saveAuditToStorage,
   loadAuditFromStorage,
-  calculateCurrentWeek
+  calculateCurrentWeek,
+  getBrandingSettings,
+  saveBrandingSettings,
+  resetBrandingSettings,
+  DEFAULT_BRANDING
 } from './store.js';
 
 import {
@@ -46,6 +50,8 @@ import {
   showModalInlineFeedback,
   updateKPIs,
   syncQuickDisplays,
+  syncBrandingUI,
+  updateBrandingLivePreview,
   refreshMainSelects,
   refreshBranchesUI,
   refreshSpecialistsUI,
@@ -62,6 +68,7 @@ import {
 
 import * as samxApi from './api.js';
 import { exportAuditToPptx, exportAuditToPptxA4, downloadPrebuiltA4Pptx } from './pptxExport.js';
+import { exportAuditToPdf } from './pdfExport.js';
 
 // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
 let lastModalOpenTime = 0;
@@ -228,6 +235,8 @@ export async function bootApp() {
   try { calculateCurrentWeek(); } catch(e) {}
   try { loadAuditFromStorage(); } catch(e) {}
   try { bindMetaInputs(); } catch(e) {}
+  try { syncBrandingUI(); } catch(e) {}
+  try { setupBrandingRealtimeListeners(); } catch(e) {}
   try { renderAuditCards(); } catch(e) {}
   try { setupNetworkStatusListener(); } catch(e) {}
   try { initSpeechRecognition(); } catch(e) {}
@@ -2156,6 +2165,185 @@ export function toggleReportFooter(show) {
   }
 }
 
+// ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity Controller) ====================
+let tempBrandingState = {
+  companyName: '',
+  companySubtitle: '',
+  logoData: '',
+  footerDisclaimer: ''
+};
+
+export function openBrandingModal() {
+  const current = getBrandingSettings();
+  tempBrandingState = { ...current };
+
+  const nameInput = document.getElementById('branding-input-company-name');
+  if (nameInput) nameInput.value = current.companyName || '';
+
+  const subInput = document.getElementById('branding-input-company-subtitle');
+  if (subInput) subInput.value = current.companySubtitle || '';
+
+  const discInput = document.getElementById('branding-input-disclaimer');
+  if (discInput) discInput.value = current.footerDisclaimer || '';
+
+  updateBrandingModalLogoPreview();
+  updateBrandingLivePreview(tempBrandingState);
+  showModal('branding-modal');
+}
+
+export function closeBrandingModal() {
+  hideModal('branding-modal');
+}
+
+export function updateBrandingModalLogoPreview() {
+  const logoPreviewBox = document.getElementById('branding-logo-current-preview');
+  const removeBtn = document.getElementById('branding-btn-remove-logo');
+  if (!logoPreviewBox) return;
+
+  if (tempBrandingState.logoData) {
+    logoPreviewBox.innerHTML = `
+      <img src="${tempBrandingState.logoData}" alt="الشعار الحالي" class="max-h-16 max-w-[180px] w-auto h-auto object-contain rounded border border-corp-700 bg-white/5 p-1" />
+    `;
+    if (removeBtn) removeBtn.classList.remove('hidden');
+  } else {
+    logoPreviewBox.innerHTML = `
+      <div class="text-xs text-slate-500 py-1 flex items-center gap-1.5">
+        <i data-lucide="image" class="w-4 h-4 text-slate-500"></i>
+        <span>لم يتم رفع شعار مخصص بعد (يتم استخدام شارة SAMX-VM الافتراضية)</span>
+      </div>
+    `;
+    if (removeBtn) removeBtn.classList.add('hidden');
+  }
+
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function handleBrandingLogoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('يرجى اختيار ملف صورة صالح (PNG, JPEG, WebP, SVG)', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawData = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      const maxDim = 800;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const optimizedData = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.9);
+      tempBrandingState.logoData = optimizedData;
+      updateBrandingModalLogoPreview();
+      updateBrandingLivePreview(tempBrandingState);
+      showToast('تم تحميل وتجهيز شعار الشركة بنجاح', 'success');
+    };
+    img.onerror = function() {
+      tempBrandingState.logoData = rawData;
+      updateBrandingModalLogoPreview();
+      updateBrandingLivePreview(tempBrandingState);
+    };
+    img.src = rawData;
+  };
+  reader.readAsDataURL(file);
+}
+
+export function removeBrandingLogo() {
+  tempBrandingState.logoData = '';
+  const fileInput = document.getElementById('branding-input-logo');
+  if (fileInput) fileInput.value = '';
+  updateBrandingModalLogoPreview();
+  updateBrandingLivePreview(tempBrandingState);
+  showToast('تمت إزالة الشعار واستعادة الشارة الافتراضية', 'info');
+}
+
+export function saveBrandingFromModal() {
+  const nameInput = document.getElementById('branding-input-company-name');
+  const subInput = document.getElementById('branding-input-company-subtitle');
+  const discInput = document.getElementById('branding-input-disclaimer');
+
+  const companyName = nameInput ? nameInput.value.trim() : tempBrandingState.companyName;
+  const companySubtitle = subInput ? subInput.value.trim() : tempBrandingState.companySubtitle;
+  const footerDisclaimer = discInput ? discInput.value.trim() : tempBrandingState.footerDisclaimer;
+
+  saveBrandingSettings({
+    companyName: companyName || 'SAMX-VM',
+    companySubtitle: companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري',
+    logoData: tempBrandingState.logoData || '',
+    footerDisclaimer: footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي'
+  });
+
+  syncBrandingUI();
+  syncQuickDisplays();
+  renderPrintSections();
+  closeBrandingModal();
+  showToast('✅ تم حفظ الهوية وتطبيقها بنجاح على تقارير PDF وPowerPoint!', 'success');
+}
+
+export function resetBrandingToDefault() {
+  if (!confirm('هل أنت متأكد من رغبتك في استعادة الهوية وشعار SAMX-VM الافتراضي؟')) return;
+
+  resetBrandingSettings();
+  const def = getBrandingSettings();
+  tempBrandingState = { ...def };
+
+  const nameInput = document.getElementById('branding-input-company-name');
+  if (nameInput) nameInput.value = def.companyName;
+
+  const subInput = document.getElementById('branding-input-company-subtitle');
+  if (subInput) subInput.value = def.companySubtitle;
+
+  const discInput = document.getElementById('branding-input-disclaimer');
+  if (discInput) discInput.value = def.footerDisclaimer;
+
+  const fileInput = document.getElementById('branding-input-logo');
+  if (fileInput) fileInput.value = '';
+
+  updateBrandingModalLogoPreview();
+  updateBrandingLivePreview(tempBrandingState);
+  syncBrandingUI();
+  syncQuickDisplays();
+  renderPrintSections();
+  closeBrandingModal();
+  showToast('تمت استعادة إعدادات الهوية الافتراضية لمنظومة SAMX-VM بنجاح', 'info');
+}
+
+export function setupBrandingRealtimeListeners() {
+  const nameInput = document.getElementById('branding-input-company-name');
+  const subInput = document.getElementById('branding-input-company-subtitle');
+  const discInput = document.getElementById('branding-input-disclaimer');
+
+  const onInput = () => {
+    tempBrandingState.companyName = nameInput ? nameInput.value : '';
+    tempBrandingState.companySubtitle = subInput ? subInput.value : '';
+    tempBrandingState.footerDisclaimer = discInput ? discInput.value : '';
+    updateBrandingLivePreview(tempBrandingState);
+  };
+
+  if (nameInput) nameInput.addEventListener('input', onInput);
+  if (subInput) subInput.addEventListener('input', onInput);
+  if (discInput) discInput.addEventListener('input', onInput);
+}
+
 export function printReport() {
   if (!modalState.isBypassingValidation) {
     const passed = validateAuditQuality(() => {
@@ -2163,8 +2351,19 @@ export function printReport() {
     });
     if (!passed) return;
   }
+  syncBrandingUI();
   renderPrintSections();
   window.print();
+}
+
+export async function exportPdfReport() {
+  if (!modalState.isBypassingValidation) {
+    const passed = validateAuditQuality(() => {
+      exportPdfReport();
+    });
+    if (!passed) return;
+  }
+  await exportAuditToPdf();
 }
 
 export async function exportPptxReport() {
@@ -2384,6 +2583,15 @@ if (typeof window !== 'undefined') {
   window.confirmResetQuickAssignees = confirmResetQuickAssignees;
   window.renderQuickTagsList = renderQuickTagsList;
   window.renderQuickAssigneesList = renderQuickAssigneesList;
+  window.openBrandingModal = openBrandingModal;
+  window.closeBrandingModal = closeBrandingModal;
+  window.handleBrandingLogoUpload = handleBrandingLogoUpload;
+  window.removeBrandingLogo = removeBrandingLogo;
+  window.saveBrandingFromModal = saveBrandingFromModal;
+  window.resetBrandingToDefault = resetBrandingToDefault;
+  window.setupBrandingRealtimeListeners = setupBrandingRealtimeListeners;
+  window.exportAuditToPdf = exportAuditToPdf;
+  window.exportPdfReport = exportPdfReport;
   window.initSplashScreen = initSplashScreen;
   window.dismissSplashScreen = dismissSplashScreen;
   window.replaySplashScreen = replaySplashScreen;

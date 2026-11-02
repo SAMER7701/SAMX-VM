@@ -635,9 +635,17 @@
             <input type="checkbox" id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
             <span>إدراج التوقيعات والاعتمادات الرسمية</span>
           </label>
+          <button onclick="exportPdfReport()" id="btn-export-pdf" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="تصدير وتحميل ملف PDF رسمي عالي الدقة">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            <span>تحميل PDF</span>
+          </button>
           <button onclick="printReport()" class="flex-1 sm:flex-none bg-slate-100 hover:bg-white text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
-            <span>طباعة / حفظ PDF</span>
+            <span>طباعة / نافذة PDF</span>
+          </button>
+          <button onclick="openBrandingModal()" class="flex-1 sm:flex-none bg-corp-850 hover:bg-corp-800 text-gold-400 border border-gold-500/30 font-bold text-xs px-3.5 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="تخصيص شعار واسم الشركة في التقارير">
+            <i data-lucide="palette" class="w-3.5 h-3.5 text-gold-400"></i>
+            <span>الهوية والشعار</span>
           </button>
           <button onclick="exportPptxA4Report()" id="btn-export-pptx-a4" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="file-check-2" class="w-4 h-4 text-slate-950"></i>
@@ -660,20 +668,24 @@
       <!-- ورقة التقرير التنفيذي المطبوع (A4 Print Container) -->
       <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-slate-200">
         
-        <!-- ترويسة التقرير الرسمية الفاخرة -->
+        <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
         <div class="border-b-2 border-slate-900 pb-5 mb-6">
           <div class="flex items-start justify-between gap-4">
-            <div>
-              <div class="inline-flex items-center gap-2 bg-slate-900 text-amber-400 text-xs font-black px-3 py-1 rounded-md mb-2 tracking-wider">
-                <span>SAMX-VM</span>
-                <span class="text-slate-400 font-normal">| تقرير التدقيق الميداني الأسبوعي</span>
+            <div class="flex items-center gap-3.5">
+              <!-- حاوية شعار الشركة الرسمي أو شارة النظام -->
+              <div id="print-header-logo-container" class="shrink-0"></div>
+              <div>
+                <div class="inline-flex items-center gap-2 bg-slate-900 text-amber-400 text-xs font-black px-3 py-1 rounded-md mb-1.5 tracking-wider">
+                  <span id="print-badge-company-name">SAMX-VM</span>
+                  <span class="text-slate-400 font-normal">| تقرير التدقيق الميداني الأسبوعي</span>
+                </div>
+                <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+                <p class="text-xs text-slate-600 mt-1 font-medium" id="print-header-subtitle">إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)</p>
               </div>
-              <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-              <p class="text-xs text-slate-600 mt-1 font-medium">إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)</p>
             </div>
 
             <!-- بطاقة بيانات التقرير الجانبية -->
-            <div class="text-left text-xs space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-[180px]">
+            <div class="text-left text-xs space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-[180px] shrink-0">
               <div><span class="text-slate-400">رقم الأسبوع:</span> <span class="font-black text-slate-900" id="print-header-week">الأسبوع 43</span></div>
               <div><span class="text-slate-400">تاريخ التدقيق:</span> <span class="font-bold text-slate-900" id="print-header-date">2026-10-30</span></div>
               <div><span class="text-slate-400">أخصائي الـ VM:</span> <span class="font-bold text-slate-900" id="print-header-auditor">أحمد المهندس</span></div>
@@ -706,9 +718,8 @@
           </div>
         </div>
 
-        <!-- وسم النظام الترويسي السفلي -->
         <div class="mt-8 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-          <span>تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية</span>
+          <span id="print-footer-disclaimer">تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية</span>
           <span id="print-timestamp">2026-10-30</span>
         </div>
 
@@ -812,6 +823,28 @@
             </button>
           </div>
 
+        </div>
+
+        <!-- بطاقة إدارة الهوية البصرية وشعار الشركة المخصص -->
+        <div class="mt-4 p-5 rounded-2xl bg-gradient-to-br from-corp-950 via-corp-900 to-corp-950 border border-gold-500/40 flex flex-col md:flex-row items-center justify-between gap-5 shadow-xl shadow-gold-500/5">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-gold-500/20 to-amber-600/10 text-gold-400 border border-gold-500/30 flex items-center justify-center shrink-0 shadow-inner">
+              <i data-lucide="palette" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-black text-white">إدارة الهوية البصرية وشعار الشركة (Company Branding)</h3>
+                <span class="bg-gold-500/10 border border-gold-500/30 text-gold-400 text-[10px] font-bold px-2 py-0.5 rounded-full">تخصيص كامل</span>
+              </div>
+              <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                تخصيص اسم الشركة، رفع الشعار الرسمي (Logo)، وضبط نصوص التذييل والاعتمادات لتنعكس تلقائياً في تقارير الطباعة، PDF، وعروض PowerPoint الميدانية.
+              </p>
+            </div>
+          </div>
+          <button type="button" onclick="openBrandingModal()" class="w-full md:w-auto bg-gradient-to-r from-gold-500 via-gold-400 to-amber-500 hover:from-gold-400 hover:to-amber-400 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg shadow-gold-500/20 flex items-center justify-center gap-2 transition active:scale-95 shrink-0">
+            <i data-lucide="sliders" class="w-4 h-4 text-slate-950"></i>
+            <span>تخصيص الهوية والشعار</span>
+          </button>
         </div>
 
         <!-- بطاقة إدارة أقسام المعرض والمعايير المعتمدة -->
@@ -1236,6 +1269,183 @@
       <div class="w-full max-h-[80vh] flex items-center justify-center overflow-hidden rounded-2xl bg-corp-950 border border-corp-800">
         <img id="lightbox-img" src="" class="max-h-[75vh] w-auto max-w-full object-contain">
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== نافذة إدارة الهوية البصرية وشعار الشركة (BRAND IDENTITY MODAL) ==================== -->
+  <div id="branding-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px);" onclick="if(event.target === this) closeBrandingModal();" class="p-2 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-4xl rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[94vh]" onclick="event.stopPropagation();">
+      
+      <!-- رأس النافذة -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 border border-gold-500/30 flex items-center justify-center shadow-inner">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-sm md:text-base text-white flex items-center gap-2">
+              <span>إدارة الهوية البصرية وشعار الشركة</span>
+              <span class="text-xs font-normal text-gold-400">(Company Branding)</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">تخصيص هوية التقارير لتلائم علامتك التجارية في مستندات PDF وعروض PowerPoint</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeBrandingModal()" class="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-corp-850 transition" title="إغلاق النافذة">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- محتوى النافذة المنقسم إلى جزأين: إدخال البيانات يميناً + معاينة حية فورية يساراً -->
+      <div class="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-y-auto divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-corp-800 p-4 md:p-6 gap-6">
+        
+        <!-- القسم الأيمن: حقول التخصيص (7 أعمدة) -->
+        <div class="md:col-span-7 space-y-4">
+          
+          <!-- حقل اسم الشركة -->
+          <div>
+            <label class="block text-xs font-bold text-slate-200 mb-1.5 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="building-2" class="w-3.5 h-3.5 text-gold-400"></i>
+                <span>اسم الشركة / العلامة التجارية (Company Name)</span>
+              </span>
+              <span class="text-[10px] text-gold-500/90 font-medium">* مطلوب</span>
+            </label>
+            <input type="text" id="branding-input-company-name" placeholder="مثال: مجموعة الشياكة للأزياء / العبداللطيف" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3.5 py-2.5 text-xs md:text-sm text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition placeholder:text-slate-500 font-semibold" />
+          </div>
+
+          <!-- حقل القسم أو المسمى الإداري -->
+          <div>
+            <label class="block text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="briefcase" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>المسمى الإداري / القسم الفرعي (Subtitle)</span>
+            </label>
+            <input type="text" id="branding-input-company-subtitle" placeholder="مثال: إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition placeholder:text-slate-500" />
+          </div>
+
+          <!-- منطقة رفع وإدارة الشعار (Logo Upload Dropzone) -->
+          <div>
+            <label class="block text-xs font-bold text-slate-200 mb-1.5 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="image" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>شعار الشركة الرسمي (Company Logo)</span>
+              </span>
+              <span class="text-[10px] text-slate-400">PNG شفاف، SVG، أو JPEG</span>
+            </label>
+
+            <!-- صندوق الشعار الحالي وأزرار الرفع -->
+            <div class="bg-corp-950 border border-corp-700 rounded-xl p-3 flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-3">
+                <div id="branding-logo-current-preview" class="flex-1">
+                  <!-- محتوى الشعار الحالي -->
+                </div>
+                <button type="button" id="branding-btn-remove-logo" onclick="removeBrandingLogo()" class="hidden text-rose-400 hover:text-rose-300 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-rose-500/30 hover:bg-rose-950/40 transition flex items-center gap-1 shrink-0">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>إزالة الشعار</span>
+                </button>
+              </div>
+
+              <label class="border-2 border-dashed border-corp-700 hover:border-gold-500/60 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1.5 bg-corp-900/50 hover:bg-corp-900">
+                <i data-lucide="upload-cloud" class="w-6 h-6 text-gold-400"></i>
+                <span class="text-xs font-bold text-slate-200">انقر لاختيار ملف الشعار أو اسحبه إلى هنا</span>
+                <span class="text-[10px] text-slate-400">يتم تحسين أبعاد الصورة وحفظها محلياً بأمان</span>
+                <input type="file" id="branding-input-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="handleBrandingLogoUpload(event)" class="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <!-- حقل نص التذييل والاعتماد الرسمي -->
+          <div>
+            <label class="block text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>نص التذييل والملاحظات الرسمية (Footer Disclaimer)</span>
+            </label>
+            <textarea id="branding-input-disclaimer" rows="2" placeholder="اكتب نص الاعتماد أو الملاحظة الرسمية المطبوعة أسفل كل تقرير..." class="w-full bg-corp-950 border border-corp-700 rounded-xl p-2.5 text-xs text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none leading-relaxed transition placeholder:text-slate-500"></textarea>
+          </div>
+
+        </div>
+
+        <!-- القسم الأيسر: المعاينة الحية الفورية (5 أعمدة) -->
+        <div class="md:col-span-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-3.5 h-3.5 text-gold-400"></i>
+              <span>معاينة حية فورية في التقرير (Live Preview)</span>
+            </span>
+            <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>مباشر</span>
+            </span>
+          </div>
+
+          <!-- ورقة مصغرة واقعية تماثل رأس صفحة A4 الحقيقية -->
+          <div class="bg-white text-slate-900 rounded-xl p-4 shadow-lg border border-slate-300 flex flex-col gap-3 select-none">
+            
+            <!-- ترويسة المعاينة -->
+            <div class="border-b-2 border-slate-900 pb-3 flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <div id="branding-preview-logo" class="shrink-0">
+                  <!-- الشعار الحي المصغر -->
+                </div>
+                <div>
+                  <div class="inline-flex items-center gap-1 bg-slate-900 text-amber-400 text-[9px] font-black px-2 py-0.5 rounded tracking-wider">
+                    <span id="branding-preview-name">SAMX-VM</span>
+                    <span class="text-slate-400 font-normal">| تدقيق أسبوعي</span>
+                  </div>
+                  <h4 class="text-xs font-black text-slate-950 mt-1">فرع العليا العام - الرياض</h4>
+                  <p class="text-[9px] text-slate-500" id="branding-preview-sub">إدارة العرض المرئي والتنسيق التجاري</p>
+                </div>
+              </div>
+              <div class="text-[9px] bg-slate-50 border border-slate-200 p-1.5 rounded text-left shrink-0">
+                <span class="text-slate-400 block">الأسبوع 43</span>
+                <span class="font-bold text-slate-800">2026-10-30</span>
+              </div>
+            </div>
+
+            <!-- بطاقة قسم توضيحي مصغر -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-2 text-[10px]">
+              <div class="font-bold text-slate-800 mb-1 flex items-center justify-between">
+                <span>#1 واجهة المعرض والمانيكانات</span>
+                <span class="bg-emerald-100 text-emerald-900 text-[9px] px-1.5 py-0.5 rounded font-bold">تم المعالجة ✅</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 my-1">
+                <div class="bg-rose-100/60 rounded h-10 flex items-center justify-center text-[8px] text-rose-700 font-bold border border-rose-200">الوضع السابق (Before)</div>
+                <div class="bg-emerald-100/60 rounded h-10 flex items-center justify-center text-[8px] text-emerald-700 font-bold border border-emerald-200">بعد التعديل (After VM)</div>
+              </div>
+            </div>
+
+            <!-- تذييل المعاينة المصغرة -->
+            <div class="border-t border-slate-200 pt-1.5 flex items-center justify-between text-[8px] text-slate-400">
+              <span id="branding-preview-disclaimer" class="truncate max-w-[180px]">تقرير تدقيق معتمد</span>
+              <span>A4 / PowerPoint</span>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-corp-950 border border-corp-800 text-[11px] text-slate-400 leading-relaxed">
+            <span class="text-gold-400 font-bold block mb-1">💡 أثر الهوية البصرية:</span>
+            يتم حفظ إعدادات الهوية محلياً ومزامنتها تلقائياً، لتظهر علامتك التجارية في كافة ملفات الـ PDF وعروض الـ PowerPoint وواجهة الطباعة.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- تذييل النافذة والأزرار -->
+      <div class="p-4 bg-corp-950 border-t border-corp-800 flex flex-wrap items-center justify-between gap-2.5">
+        <button type="button" onclick="resetBrandingToDefault()" class="text-rose-400 hover:text-rose-300 text-xs font-bold px-3 py-2 rounded-xl border border-rose-500/30 hover:bg-rose-950/40 transition flex items-center gap-1.5">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>استعادة الافتراضي (SAMX-VM)</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeBrandingModal()" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-4 py-2 rounded-xl border border-corp-700 transition">
+            <span>إلغاء</span>
+          </button>
+          <button type="button" onclick="saveBrandingFromModal()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-xs px-6 py-2 rounded-xl shadow-lg shadow-gold-500/20 transition active:scale-95 flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>حفظ وتطبيق الهوية</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 

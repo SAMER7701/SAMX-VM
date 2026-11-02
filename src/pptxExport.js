@@ -6,7 +6,7 @@
  */
 
 import pptxgen from 'pptxgenjs';
-import { currentAudit } from './store.js';
+import { currentAudit, getBrandingSettings } from './store.js';
 import { showToast } from './renderers.js';
 
 /**
@@ -107,11 +107,17 @@ export async function exportAuditToPptx() {
     const PptxConstructor = typeof pptxgen === 'function' ? pptxgen : (pptxgen.default || pptxgen);
     const pres = new PptxConstructor();
     
+    const branding = getBrandingSettings();
+    const companyName = branding.companyName || 'SAMX-VM';
+    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Field Audit Report';
+    const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق للمعايير المعتمدة';
+    const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
+
     pres.layout = 'LAYOUT_16x9';
-    pres.title = `SAMX-VM Audit - ${currentAudit.branchName || 'Store Audit'}`;
+    pres.title = `${companyName} Audit - ${currentAudit.branchName || 'Store Audit'}`;
     pres.subject = 'Visual Merchandising Field Audit Report';
     pres.author = currentAudit.auditorName || 'VM Specialist';
-    pres.company = 'SAMX-VM Retail Solutions';
+    pres.company = companyName;
 
     const branchName = currentAudit.branchName || 'معرض غير محدد';
     const auditorName = currentAudit.auditorName || 'أخصائي العرض المرئي';
@@ -148,30 +154,62 @@ export async function exportAuditToPptx() {
       line: { color: 'EAB308', width: 0 }
     });
 
-    // شعار وعنوان المنظومة
-    coverSlide.addShape(pres.ShapeType.roundRect, {
-      x: 0.6,
-      y: 0.5,
-      w: 3.2,
-      h: 0.5,
-      rectRadius: 0.1,
-      fill: { color: '1C2541' },
-      line: { color: 'EAB308', width: 1.2 }
-    });
-
-    coverSlide.addText('SAMX-VM | تقرير التدقيق الميداني', {
-      x: 0.6,
-      y: 0.5,
-      w: 3.2,
-      h: 0.5,
-      fontSize: 13,
-      fontFace: 'Arial',
-      bold: true,
-      color: 'FACC15',
-      align: 'center',
-      valign: 'middle',
-      rtlMode: true
-    });
+    // شعار وعنوان المنظومة / شعار الشركة المخصص
+    if (logoObj) {
+      coverSlide.addImage({
+        ...logoObj,
+        x: 0.6,
+        y: 0.45,
+        w: 2.2,
+        h: 0.65,
+        sizing: { type: 'contain', w: 2.2, h: 0.65 }
+      });
+      coverSlide.addShape(pres.ShapeType.roundRect, {
+        x: 3.0,
+        y: 0.5,
+        w: 6.4,
+        h: 0.5,
+        rectRadius: 0.1,
+        fill: { color: '1C2541' },
+        line: { color: 'EAB308', width: 1.2 }
+      });
+      coverSlide.addText(`${companyName} | تقرير التدقيق الميداني`, {
+        x: 3.0,
+        y: 0.5,
+        w: 6.4,
+        h: 0.5,
+        fontSize: 13,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    } else {
+      coverSlide.addShape(pres.ShapeType.roundRect, {
+        x: 0.6,
+        y: 0.5,
+        w: 3.4,
+        h: 0.5,
+        rectRadius: 0.1,
+        fill: { color: '1C2541' },
+        line: { color: 'EAB308', width: 1.2 }
+      });
+      coverSlide.addText(`${companyName} | تقرير التدقيق الميداني`, {
+        x: 0.6,
+        y: 0.5,
+        w: 3.4,
+        h: 0.5,
+        fontSize: 13,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    }
 
     // العنوان الرئيسي (اسم الفرع / المعرض)
     coverSlide.addText(branchName, {
@@ -189,7 +227,7 @@ export async function exportAuditToPptx() {
     });
 
     // العنوان الفرعي لإدارة الـ VM
-    coverSlide.addText('إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Field Audit Report', {
+    coverSlide.addText(companySubtitle, {
       x: 0.6,
       y: 2.1,
       w: 8.8,
@@ -198,7 +236,6 @@ export async function exportAuditToPptx() {
       fontFace: 'Arial',
       color: '94A3B8',
       align: 'right',
-      rtlMode: true
     });
 
     // 4 بطاقات بيانات سريعة متناسقة
@@ -795,13 +832,19 @@ export async function exportAuditToPptxA4() {
     const PptxConstructor = typeof pptxgen === 'function' ? pptxgen : (pptxgen.default || pptxgen);
     const pres = new PptxConstructor();
 
+    const branding = getBrandingSettings();
+    const companyName = branding.companyName || 'SAMX-VM';
+    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report (A4)';
+    const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق لمقاس A4 المطبوع • قابل للتعديل بالكامل';
+    const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
+
     // ضبط مقاس الشرائح إلى A4 طولي تماماً
     pres.defineLayout({ name: 'A4_PORTRAIT', width: 8.27, height: 11.69 });
     pres.layout = 'A4_PORTRAIT';
-    pres.title = `SAMX-VM A4 Audit - ${currentAudit.branchName || 'Store Audit'}`;
+    pres.title = `${companyName} A4 Audit - ${currentAudit.branchName || 'Store Audit'}`;
     pres.subject = 'Visual Merchandising Field Audit Report (A4 Portrait)';
     pres.author = currentAudit.auditorName || 'VM Specialist';
-    pres.company = 'SAMX-VM Retail Solutions';
+    pres.company = companyName;
 
     const branchName = currentAudit.branchName || 'معرض غير محدد';
     const auditorName = currentAudit.auditorName || 'أخصائي العرض المرئي';
@@ -838,37 +881,69 @@ export async function exportAuditToPptxA4() {
       line: { color: 'EAB308', width: 0 }
     });
 
-    // شارة المنظومة
-    coverSlide.addShape(pres.ShapeType.roundRect, {
-      x: 0.5,
-      y: 0.5,
-      w: 3.2,
-      h: 0.45,
-      rectRadius: 0.08,
-      fill: { color: '1C2541' },
-      line: { color: 'EAB308', width: 1.2 }
-    });
-
-    coverSlide.addText('SAMX-VM | التقرير الميداني A4', {
-      x: 0.5,
-      y: 0.5,
-      w: 3.2,
-      h: 0.45,
-      fontSize: 12,
-      fontFace: 'Arial',
-      bold: true,
-      color: 'FACC15',
-      align: 'center',
-      valign: 'middle',
-      rtlMode: true
-    });
+    // شعار المنظومة / شعار الشركة المخصص
+    if (logoObj) {
+      coverSlide.addImage({
+        ...logoObj,
+        x: 0.5,
+        y: 0.45,
+        w: 2.2,
+        h: 0.75,
+        sizing: { type: 'contain', w: 2.2, h: 0.75 }
+      });
+      coverSlide.addShape(pres.ShapeType.roundRect, {
+        x: 2.9,
+        y: 0.55,
+        w: 4.87,
+        h: 0.5,
+        rectRadius: 0.08,
+        fill: { color: '1C2541' },
+        line: { color: 'EAB308', width: 1.2 }
+      });
+      coverSlide.addText(`${companyName} | التقرير الميداني A4`, {
+        x: 2.9,
+        y: 0.55,
+        w: 4.87,
+        h: 0.5,
+        fontSize: 12,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    } else {
+      coverSlide.addShape(pres.ShapeType.roundRect, {
+        x: 0.5,
+        y: 0.5,
+        w: 3.4,
+        h: 0.45,
+        rectRadius: 0.08,
+        fill: { color: '1C2541' },
+        line: { color: 'EAB308', width: 1.2 }
+      });
+      coverSlide.addText(`${companyName} | التقرير الميداني A4`, {
+        x: 0.5,
+        y: 0.5,
+        w: 3.4,
+        h: 0.45,
+        fontSize: 12,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    }
 
     // اسم المعرض الرئيسي
     coverSlide.addText(branchName, {
       x: 0.5,
-      y: 1.15,
+      y: 1.25,
       w: 7.27,
-      h: 0.8,
+      h: 0.75,
       fontSize: 24,
       fontFace: 'Arial',
       bold: true,
@@ -878,9 +953,9 @@ export async function exportAuditToPptxA4() {
       rtlMode: true
     });
 
-    coverSlide.addText('إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report (A4)', {
+    coverSlide.addText(companySubtitle, {
       x: 0.5,
-      y: 1.95,
+      y: 2.05,
       w: 7.27,
       h: 0.35,
       fontSize: 11,
@@ -1035,6 +1110,18 @@ export async function exportAuditToPptxA4() {
         fill: { color: '0F172A' },
         line: { color: '1E293B', width: 1 }
       });
+
+      // شعار الشركة في ركن الهيدر (إن توفر)
+      if (logoObj) {
+        slide.addImage({
+          ...logoObj,
+          x: 0.65,
+          y: 0.48,
+          w: 1.4,
+          h: 0.75,
+          sizing: { type: 'contain', w: 1.4, h: 0.75 }
+        });
+      }
 
       // رقم القسم
       slide.addShape(pres.ShapeType.roundRect, {
@@ -1333,7 +1420,7 @@ export async function exportAuditToPptxA4() {
         rtlMode: true
       });
 
-      slide.addText(`${branchName}  •  الأسبوع ${weekNumber}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
+      slide.addText(`${companyName}  •  ${branchName}  •  الأسبوع ${weekNumber}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
         x: 0.5,
         y: 11.2,
         w: contentW,
@@ -1362,19 +1449,43 @@ export async function exportAuditToPptxA4() {
       line: { color: 'EAB308', width: 1.5 }
     });
 
-    finalSlide.addText('الاعتمادات والتوصيات الميدانية الرسمية | Official Sign-off', {
-      x: 0.6,
-      y: 0.8,
-      w: 7.07,
-      h: 0.8,
-      fontSize: 15,
-      fontFace: 'Arial',
-      bold: true,
-      color: 'FACC15',
-      align: 'center',
-      valign: 'middle',
-      rtlMode: true
-    });
+    if (logoObj) {
+      finalSlide.addImage({
+        ...logoObj,
+        x: 0.75,
+        y: 0.85,
+        w: 1.5,
+        h: 0.7,
+        sizing: { type: 'contain', w: 1.5, h: 0.7 }
+      });
+      finalSlide.addText(`${companyName} | الاعتمادات والتوصيات الرسمية`, {
+        x: 2.3,
+        y: 0.8,
+        w: 5.2,
+        h: 0.8,
+        fontSize: 14,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    } else {
+      finalSlide.addText(`${companyName} | الاعتمادات والتوصيات الميدانية الرسمية (Sign-off)`, {
+        x: 0.6,
+        y: 0.8,
+        w: 7.07,
+        h: 0.8,
+        fontSize: 15,
+        fontFace: 'Arial',
+        bold: true,
+        color: 'FACC15',
+        align: 'center',
+        valign: 'middle',
+        rtlMode: true
+      });
+    }
 
     const signCards = [
       {
@@ -1420,9 +1531,23 @@ export async function exportAuditToPptxA4() {
       });
     });
 
+    // تذييل الشريحة الختامية بنص التذييل المخصص
+    finalSlide.addText(`${companyName} • ${footerDisclaimer}`, {
+      x: 0.6,
+      y: 11.2,
+      w: 7.07,
+      h: 0.3,
+      fontSize: 8.5,
+      fontFace: 'Arial',
+      color: '64748B',
+      align: 'center',
+      rtlMode: true
+    });
+
     // حفظ وتنزيل
+    const cleanCompany = (companyName || 'SAMX_VM').replace(/[\\/:*?"<>|]/g, '_').trim();
     const cleanBranch = branchName.replace(/[\\/:*?"<>|]/g, '_').trim() || 'فرع';
-    const fileName = `تقرير_تدقيق_VM_A4_${cleanBranch}_أسبوع_${weekNumber}.pptx`;
+    const fileName = `تقرير_تدقيق_${cleanCompany}_A4_${cleanBranch}_أسبوع_${weekNumber}.pptx`;
 
     await pres.writeFile({ fileName });
 

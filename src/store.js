@@ -14,8 +14,17 @@ export const STORAGE_KEY_SECTIONS = 'samx_store_sections_v2';
 export const STORAGE_KEY_CHECKLISTS = 'samx_vm_checklists_v2';
 export const STORAGE_KEY_TAGS = 'samx_quick_tags_v1';
 export const STORAGE_KEY_ASSIGNEES = 'samx_quick_assignees_v1';
+export const STORAGE_KEY_BRANDING = 'samx_branding_v1';
 export const LEGACY_BRANCHES_KEY = 'samx_branches';
 export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
+
+// الهوية البصرية وشعار الشركة الافتراضي
+export const DEFAULT_BRANDING = {
+  companyName: 'SAMX-VM',
+  companySubtitle: 'إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)',
+  logoData: '', // Base64 Data URL للعلامة التجارية
+  footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
+};
 
 // وسوم المعالجة السريعة الافتراضية
 export const DEFAULT_QUICK_TAGS = [
@@ -915,6 +924,52 @@ export function loadAuditFromStorage() {
   return currentAudit;
 }
 
+// ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity & Logo) ====================
+export function getBrandingSettings() {
+  if (typeof localStorage === 'undefined') {
+    return { ...DEFAULT_BRANDING };
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_BRANDING);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        companyName: (parsed.companyName && parsed.companyName.trim()) || DEFAULT_BRANDING.companyName,
+        companySubtitle: parsed.companySubtitle !== undefined ? parsed.companySubtitle : DEFAULT_BRANDING.companySubtitle,
+        logoData: parsed.logoData || '',
+        footerDisclaimer: parsed.footerDisclaimer !== undefined ? parsed.footerDisclaimer : DEFAULT_BRANDING.footerDisclaimer
+      };
+    }
+  } catch (e) {
+    console.warn('getBrandingSettings: fallback to defaults', e);
+  }
+  return { ...DEFAULT_BRANDING };
+}
+
+export function saveBrandingSettings(settings = {}) {
+  try {
+    const current = getBrandingSettings();
+    const updated = {
+      companyName: settings.companyName !== undefined ? settings.companyName.trim() : current.companyName,
+      companySubtitle: settings.companySubtitle !== undefined ? settings.companySubtitle.trim() : current.companySubtitle,
+      logoData: settings.logoData !== undefined ? settings.logoData : current.logoData,
+      footerDisclaimer: settings.footerDisclaimer !== undefined ? settings.footerDisclaimer.trim() : current.footerDisclaimer
+    };
+    localStorage.setItem(STORAGE_KEY_BRANDING, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.error('saveBrandingSettings error:', e);
+    return null;
+  }
+}
+
+export function resetBrandingSettings() {
+  try {
+    localStorage.removeItem(STORAGE_KEY_BRANDING);
+  } catch (e) {}
+  return { ...DEFAULT_BRANDING };
+}
+
 // تصدير الحالة لدوال النطاق العام (Global Scope Protection)
 if (typeof window !== 'undefined') {
   window.APP_VERSION = APP_VERSION;
@@ -922,6 +977,10 @@ if (typeof window !== 'undefined') {
   window.metadataCache = metadataCache;
   window.modalState = modalState;
   window.STATUS_MAP = STATUS_MAP;
+  window.DEFAULT_BRANDING = DEFAULT_BRANDING;
+  window.getBrandingSettings = getBrandingSettings;
+  window.saveBrandingSettings = saveBrandingSettings;
+  window.resetBrandingSettings = resetBrandingSettings;
   window.VM_CATEGORY_CHECKLISTS = VM_CATEGORY_CHECKLISTS;
   window.DEFAULT_QUICK_TAGS = DEFAULT_QUICK_TAGS;
   window.DEFAULT_QUICK_ASSIGNEES = DEFAULT_QUICK_ASSIGNEES;

@@ -16,6 +16,7 @@ import {
   getSectionStandards,
   getQuickTags,
   getQuickAssignees,
+  getBrandingSettings,
   saveAuditToStorage
 } from './store.js';
 
@@ -199,7 +200,88 @@ export function syncQuickDisplays() {
   const printTimestamp = document.getElementById('print-timestamp');
   if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.4.0`;
 
+  syncBrandingUI();
   updateKPIs();
+}
+
+// مزامنة الهوية البصرية وشعار الشركة مع عناصر التقرير
+export function syncBrandingUI() {
+  const branding = getBrandingSettings();
+
+  // 1. شارة اسم الشركة في رأس تقرير الطباعة والمعاينة
+  const badgeCompanyName = document.getElementById('print-badge-company-name');
+  if (badgeCompanyName) {
+    badgeCompanyName.innerText = branding.companyName || 'SAMX-VM';
+  }
+
+  // 2. العنوان الفرعي للإدارة أو التنسيق التجاري
+  const headerSubtitle = document.getElementById('print-header-subtitle');
+  if (headerSubtitle) {
+    headerSubtitle.innerText = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)';
+  }
+
+  // 3. حاوية الشعار في التقرير الرسمي
+  const logoContainer = document.getElementById('print-header-logo-container');
+  if (logoContainer) {
+    if (branding.logoData) {
+      logoContainer.innerHTML = `
+        <div class="h-14 max-w-[190px] flex items-center justify-start overflow-hidden py-0.5">
+          <img src="${branding.logoData}" alt="${branding.companyName}" class="max-h-14 max-w-[190px] w-auto h-auto object-contain rounded drop-shadow-sm" />
+        </div>
+      `;
+      logoContainer.classList.remove('hidden');
+    } else {
+      logoContainer.innerHTML = `
+        <div class="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-sm">
+          <span>SX</span>
+        </div>
+      `;
+      logoContainer.classList.remove('hidden');
+    }
+  }
+
+  // 4. التذييل والملاحظات القانونية الرسمية
+  const footerDisclaimer = document.getElementById('print-footer-disclaimer');
+  if (footerDisclaimer) {
+    footerDisclaimer.innerText = branding.footerDisclaimer || 'تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية';
+  }
+
+  // 5. تحديث نافذة المعاينة الحية إن كانت مفتوحة
+  updateBrandingLivePreview();
+}
+
+// تحديث صندوق المعاينة الحية للهوية البصرية في نافذة الإعدادات
+export function updateBrandingLivePreview(tempOverrides = null) {
+  const branding = tempOverrides || getBrandingSettings();
+  
+  const previewLogo = document.getElementById('branding-preview-logo');
+  const previewName = document.getElementById('branding-preview-name');
+  const previewSub = document.getElementById('branding-preview-sub');
+  const previewDisc = document.getElementById('branding-preview-disclaimer');
+
+  if (previewName) {
+    previewName.innerText = branding.companyName || 'SAMX-VM';
+  }
+
+  if (previewSub) {
+    previewSub.innerText = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري';
+  }
+
+  if (previewDisc) {
+    previewDisc.innerText = branding.footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي';
+  }
+
+  if (previewLogo) {
+    if (branding.logoData) {
+      previewLogo.innerHTML = `<img src="${branding.logoData}" alt="شعار الشركة" class="max-h-12 max-w-[130px] w-auto h-auto object-contain rounded" />`;
+    } else {
+      previewLogo.innerHTML = `
+        <div class="w-10 h-10 rounded-lg bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-sm">
+          <span>SX</span>
+        </div>
+      `;
+    }
+  }
 }
 
 // تعبئة وتحديث القوائم المنسدلة في الشاشة الرئيسية
@@ -1108,4 +1190,6 @@ if (typeof window !== 'undefined') {
   window.renderPrintSections = renderPrintSections;
   window.renderQuickTagsList = renderQuickTagsList;
   window.renderQuickAssigneesList = renderQuickAssigneesList;
+  window.syncBrandingUI = syncBrandingUI;
+  window.updateBrandingLivePreview = updateBrandingLivePreview;
 }
