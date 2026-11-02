@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.3.6
+ * Version: 1.3.5
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.3.6';
+export const APP_VERSION = '1.3.5';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';

@@ -76,17 +76,13 @@
     }
 
     /* تحسينات الطباعة والتصدير كـ PDF */
-    @page {
-      size: A4 portrait;
-      margin: 10mm;
-    }
     @media print {
       body {
         background-color: #ffffff !important;
         color: #0f172a !important;
         padding-bottom: 0 !important;
       }
-      .no-print, header, nav, #toast-container, .modal-backdrop, #print-signatures-footer {
+      .no-print, header, nav, #toast-container, .modal-backdrop {
         display: none !important;
       }
       .print-only {
@@ -106,19 +102,13 @@
         max-width: 100% !important;
       }
       .print-break-inside-avoid {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
       }
       .print-card {
-        border: 1.5px solid #cbd5e1 !important;
+        border: 1px solid #cbd5e1 !important;
         box-shadow: none !important;
         margin-bottom: 1.5rem !important;
-        padding: 1rem !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-      }
-      .print-card img {
-        max-height: 420px !important;
       }
     }
   </style>
@@ -140,7 +130,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.6</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.3.5</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">نظام إدارة وتوثيق العرض المرئي والتنسيق التجاري للمعارض</p>
         </div>
@@ -409,6 +399,10 @@
         </div>
 
         <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition">
+            <input type="checkbox" id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+            <span>إدراج التوقيعات والاعتمادات الرسمية</span>
+          </label>
           <button onclick="printReport()" class="flex-1 sm:flex-none bg-slate-100 hover:bg-white text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
             <span>طباعة / حفظ PDF</span>
@@ -424,36 +418,28 @@
       </div>
 
       <!-- ورقة التقرير التنفيذي المطبوع (A4 Print Container) -->
-      <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200">
+      <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-slate-200">
         
-        <!-- ترويسة التقرير الرسمية المعتمدة (Clean Executive Header Info Box) -->
-        <div class="rounded-2xl border-2 border-slate-900 bg-slate-50 p-4 md:p-5 mb-6 shadow-sm">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-right">
-            <!-- 1. اسم المعرض -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <span class="text-[11px] font-bold text-slate-500 block mb-0.5">اسم المعرض:</span>
-              <span class="text-sm md:text-base font-black text-slate-950 block truncate" id="print-header-store-title">--</span>
+        <!-- ترويسة التقرير الرسمية الفاخرة -->
+        <div class="border-b-2 border-slate-900 pb-5 mb-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="inline-flex items-center gap-2 bg-slate-900 text-amber-400 text-xs font-black px-3 py-1 rounded-md mb-2 tracking-wider">
+                <span>SAMX-VM</span>
+                <span class="text-slate-400 font-normal">| تقرير التدقيق الميداني الأسبوعي</span>
+              </div>
+              <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+              <p class="text-xs text-slate-600 mt-1 font-medium">إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)</p>
             </div>
-            <!-- 2. الفرع -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <span class="text-[11px] font-bold text-slate-500 block mb-0.5">الفرع:</span>
-              <span class="text-sm md:text-base font-black text-slate-950 block truncate" id="print-header-branch">--</span>
-            </div>
-            <!-- 3. اسم الأخصائي -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <span class="text-[11px] font-bold text-slate-500 block mb-0.5">اسم الأخصائي:</span>
-              <span class="text-sm md:text-base font-black text-slate-950 block truncate" id="print-header-auditor">--</span>
-            </div>
-            <!-- 4. تاريخ التدقيق -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-              <span class="text-[11px] font-bold text-slate-500 block mb-0.5">تاريخ التدقيق:</span>
-              <span class="text-sm md:text-base font-black text-amber-700 block" id="print-header-date">--</span>
+
+            <!-- بطاقة بيانات التقرير الجانبية -->
+            <div class="text-left text-xs space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-[180px]">
+              <div><span class="text-slate-400">رقم الأسبوع:</span> <span class="font-black text-slate-900" id="print-header-week">الأسبوع 43</span></div>
+              <div><span class="text-slate-400">تاريخ التدقيق:</span> <span class="font-bold text-slate-900" id="print-header-date">2026-10-30</span></div>
+              <div><span class="text-slate-400">أخصائي الـ VM:</span> <span class="font-bold text-slate-900" id="print-header-auditor">أحمد المهندس</span></div>
+              <div><span class="text-slate-400">إجمالي الأقسام:</span> <span class="font-bold text-amber-700" id="print-header-count">0</span></div>
             </div>
           </div>
-          <!-- عناصر مخفية للحفاظ على التوافق البرمجي -->
-          <span id="print-header-store" class="hidden"></span>
-          <span id="print-header-week" class="hidden"></span>
-          <span id="print-header-count" class="hidden">0</span>
         </div>
 
         <!-- محتوى قائمة الأقسام الموثقة (Cards List) -->
@@ -461,10 +447,29 @@
           <!-- يتم حقن الأقسام ديناميكياً مع تنسيق الطباعة -->
         </div>
 
-        <!-- تذييل التقرير الرسمي المعتمد -->
-        <div class="mt-8 pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-500">
-          <span>منصة SAMX-VM • تقرير التنسيق والعرض المرئي الميداني</span>
-          <span id="print-timestamp">الإصدار v1.3.6</span>
+        <!-- تذييل التقرير والتوقيعات الرسمية -->
+        <div id="print-signatures-footer" class="print-break-inside-avoid mt-10 pt-6 border-t-2 border-slate-200 grid grid-cols-2 gap-8 text-xs text-slate-700">
+          <div>
+            <span class="font-bold text-slate-900 block mb-1">إعداد واعتماد أخصائي العرض المرئي (VM Specialist):</span>
+            <p class="text-[11px] text-slate-500 mb-2">أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.</p>
+            <div class="h-12 border-b-2 border-dashed border-slate-300 flex items-end pb-1">
+              <span class="font-black text-slate-900 text-sm" id="print-sign-auditor">أحمد المهندس</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="font-bold text-slate-900 block mb-1">ملاحظات واعتماد مدير المعرض (Store Manager):</span>
+            <p class="text-[11px] text-slate-500 mb-2">تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة.</p>
+            <div class="h-12 border-b-2 border-dashed border-slate-300 flex items-end pb-1 text-slate-400 text-[10px]">
+              التوقيع والختم: ................................................
+            </div>
+          </div>
+        </div>
+
+        <!-- وسم النظام الترويسي السفلي -->
+        <div class="mt-8 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+          <span>تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية</span>
+          <span id="print-timestamp">2026-10-30</span>
         </div>
 
       </div>
@@ -1227,13 +1232,8 @@
 
   <!-- ==================== المنطق البرمجي المجزأ (MODULAR ES MODULES) ==================== -->
   <!--
-    SAMX-VM Core Architecture v1.3.6
+    SAMX-VM Core Architecture v1.3.5
     Changelog:
-    - v1.3.6: Professional PDF Report Template Refinement:
-      * Header Cleanup: Completely removed generic subtitles, timestamps, and week number from the print layout. Added clean, executive 4-column info box (Store Name, Branch, Specialist, Audit Date).
-      * Maximize Audit Images: Greatly enlarged Before / After comparison images (aspect 4:3 with min-height 280-360px) with custom color-coded top banners and high-contrast borders for crisp visual merchandising presentation.
-      * Prominent Section Headings: Enhanced typographic hierarchy with bold slate & gold numbering badges and clear section title typography.
-      * Footer & Signatures: Completely removed approval signatures, and cleaned up the print footer to keep only essential version and date details without historical errors.
     - v1.3.5: Section Audit Modal Tags & Assignees Customization (Full CRUD):
       * Quick Processing Tags (وسوم المعالجة السريعة): Dynamic rendering, inline "+ وسم جديد" creation panel, single-click removal ("×"), and local persistence across sessions.
       * Assignees & Followup (المسؤول عن التنفيذ): Dynamic role buttons, inline "+ إضافة جهة" creation panel, custom role deletion ("×"), free text typing, and instant selection.
