@@ -1,0 +1,60 @@
+{
+  "branches": [
+    {
+      "id": "br_1",
+      "name": "فرع النخيل مول",
+      "code": "NKH-01",
+      "city": "الرياض"
+    },
+    {
+      "id": "br_2",
+      "name": "فرع بانوراما مول",
+      "code": "PAN-02",
+      "city": "الرياض"
+    },
+    {
+      "id": "br_3",
+      "name": "فرع رد سي مول",
+      "code": "RSM-03",
+      "city": "جدة"
+    },
+    {
+      "id": "br_4",
+      "name": "فرع مجمع العرب",
+      "code": "ARB-04",
+      "city": "جدة"
+    },
+    {
+      "id": "br_5",
+      "name": "فرع الظهران مول",
+      "code": "DHR-05",
+      "city": "الظهران"
+    }
+  ],
+  "specialists": [
+    {
+      "id": "sp_1",
+      "name": "سمير سلطان",
+      "email": "sameer@samx.vm",
+      "phone": "0501234567"
+    },
+    {
+      "id": "sp_2",
+      "name": "أحمد الغامدي",
+      "email": "ahmed@samx.vm",
+      "phone": "0502345678"
+    },
+    {
+      "id": "sp_3",
+      "name": "فيصل العتيبي",
+      "email": "faisal@samx.vm",
+      "phone": "0503456789"
+    },
+    {
+      "id": "sp_4",
+      "name": "محمد الشهري",
+      "email": "mohammed@samx.vm",
+      "phone": "0504567890"
+    }
+  ]
+}

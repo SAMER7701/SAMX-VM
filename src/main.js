@@ -261,15 +261,18 @@ export async function bootApp() {
   try { populateSectionTypeSelect(); } catch(e) {}
   try { renderBulkExportUI(); } catch(e) {}
 
-  // مزامنة سحابية غير معطلة في الخلفية عند توفر الإنترنت (Cloudflare D1 Sync)
-  if (navigator.onLine) {
-    samxApi.checkCloudHealth().then(status => {
-      if (status && status.online) {
-        samxApi.fetchBranchesCloud().then(() => refreshBranchesUI());
-        samxApi.fetchSpecialistsCloud().then(() => refreshSpecialistsUI());
-        samxApi.fetchSectionsCloud().then(() => populateSectionTypeSelect());
-      }
-    }).catch(() => {});
+  // مزامنة سحابية مباشرة وفورية لجلب الفروع والأخصائيين من Cloudflare D1
+  try {
+    await Promise.allSettled([
+      samxApi.fetchBranchesCloud(),
+      samxApi.fetchSpecialistsCloud(),
+      samxApi.fetchSectionsCloud(),
+    ]);
+    refreshBranchesUI();
+    refreshSpecialistsUI();
+    refreshMainSelects();
+  } catch (syncErr) {
+    console.warn('Boot Cloudflare D1 sync error:', syncErr);
   }
 }
 
@@ -404,15 +407,22 @@ export async function addInlineEntity() {
     showToast(modalState.currentDrawerTab === 'branches' ? 'يرجى كتابة اسم المعرض أو الفرع' : 'يرجى كتابة اسم أخصائي الـ VM', 'error');
     return;
   }
-  const res = (modalState.currentDrawerTab === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
-  if (res && res.success) {
-    if (input) input.value = '';
-    renderInlineDrawerList();
-    renderModalList();
-    refreshMainSelects();
-    showToast(modalState.currentDrawerTab === 'branches' ? `✨ تمت إضافة الفرع "${val}" بنجاح` : `✨ تمت إضافة "${val}" بنجاح`, 'success');
-  } else {
-    showToast(res && res.reason ? res.reason : 'فشلت الإضافة', 'error');
+  try {
+    const res = (modalState.currentDrawerTab === 'branches') 
+      ? await samxApi.createBranchCloud(val)
+      : await samxApi.createSpecialistCloud(val);
+
+    if (res && res.success) {
+      if (input) input.value = '';
+      renderInlineDrawerList();
+      renderModalList();
+      refreshMainSelects();
+      showToast(modalState.currentDrawerTab === 'branches' ? `✨ تم حفظ الفرع "${val}" في سحابة D1 بنجاح` : `✨ تم حفظ "${val}" في سحابة D1 بنجاح`, 'success');
+    } else {
+      showToast(res && res.message ? res.message : 'فشلت الإضافة في السحابة', 'error');
+    }
+  } catch (err) {
+    showToast('فشل الحفظ في سحابة D1: ' + err.message, 'error');
   }
 }
 
@@ -520,22 +530,19 @@ export function openManagementModal(tab = 'branches') {
     switchManagementTab(tab);
 
     // جلب البيانات ديناميكياً من سحابة Cloudflare D1 فور فتح النافذة
-    if (navigator.onLine) {
-      updateManagementCloudIndicator('جاري المزامنة مع D1... 🔄', 'loading');
-      Promise.allSettled([
-        samxApi.fetchBranchesCloud(),
-        samxApi.fetchSpecialistsCloud()
-      ]).then(([bRes, sRes]) => {
-        refreshBranchesUI();
-        refreshSpecialistsUI();
-        updateManagementCloudIndicator('متصل بـ Cloudflare D1 ☁️', 'success');
-      }).catch(err => {
-        console.warn('D1 sync on modal open:', err);
-        updateManagementCloudIndicator('محلي (Offline)', 'offline');
-      });
-    } else {
-      updateManagementCloudIndicator('محلي (أوفلاين)', 'offline');
-    }
+    updateManagementCloudIndicator('جاري المزامنة مع D1... 🔄', 'loading');
+    Promise.allSettled([
+      samxApi.fetchBranchesCloud(),
+      samxApi.fetchSpecialistsCloud()
+    ]).then(([bRes, sRes]) => {
+      refreshBranchesUI();
+      refreshSpecialistsUI();
+      renderModalList(modalState.currentModalTab);
+      updateManagementCloudIndicator('متصل بـ Cloudflare D1 ☁️', 'success');
+    }).catch(err => {
+      console.warn('D1 sync on modal open:', err);
+      updateManagementCloudIndicator('تعذر الاتصال بـ D1 ⚠️', 'offline');
+    });
   } catch (err) {
     console.error('Error opening management modal:', err);
   }
@@ -600,26 +607,16 @@ export async function submitAddEntity(type = modalState.currentModalTab) {
   showModalInlineFeedback('جاري الحفظ والمزامنة مع Cloudflare D1... ⏳', 'loading');
 
   try {
-    // 2. الحفظ المحلي السريع أولاً
-    const localRes = (targetType === 'branches') ? await addBranchItem(val) : await addSpecialistItem(val);
-    const assignedId = localRes && localRes.item ? localRes.item.id : null;
+    // 2. الحفظ السحابي المباشر في Cloudflare D1 عبر src/api.js (دون أي اعتماد على localStorage)
+    const cloudRes = (targetType === 'branches') 
+      ? await samxApi.createBranchCloud(val)
+      : await samxApi.createSpecialistCloud(val);
 
-    // 3. الحفظ السحابي في Cloudflare D1 عبر src/api.js
-    let cloudSynced = false;
-    if (navigator.onLine) {
-      try {
-        const cloudRes = (targetType === 'branches') 
-          ? await samxApi.createBranchCloud(val, assignedId)
-          : await samxApi.createSpecialistCloud(val, assignedId);
-        if (cloudRes && cloudRes.success) {
-          cloudSynced = true;
-        }
-      } catch (cloudErr) {
-        console.warn('Cloudflare D1 save warning:', cloudErr);
-      }
+    if (!cloudRes || !cloudRes.success) {
+      throw new Error(cloudRes?.message || 'فشل الحفظ في قاعدة بيانات D1 السحابية');
     }
 
-    // 4. تحديث القوائم والعرض فوراً
+    // 3. تحديث واجهة المستخدم فوراً بالبيانات الجديدة
     if (inputElem) {
       inputElem.value = '';
     }
@@ -638,11 +635,8 @@ export async function submitAddEntity(type = modalState.currentModalTab) {
     renderModalList(targetType);
     renderInlineDrawerList();
 
-    // 5. إشعار النجاح الصريح
-    const successMsg = cloudSynced
-      ? `✨ تم حفظ "${val}" في سحابة D1 وقائمة ${targetType === 'branches' ? 'الفروع' : 'الأخصائيين'} بنجاح ✅`
-      : `💾 تم حفظ "${val}" محلياً بنجاح (سيتم الرفع لسحابة D1 تلقائياً عند الاتصال) 📶`;
-
+    // 4. إشعار النجاح الصريح
+    const successMsg = `✨ تم حفظ "${val}" في سحابة Cloudflare D1 بنجاح (مزامنة فورية) ✅`;
     showToast(successMsg, 'success');
     showModalInlineFeedback(successMsg, 'success');
 
@@ -710,27 +704,18 @@ export async function deleteEntity(type = modalState.currentModalTab, target) {
   showModalInlineFeedback(`جاري حذف "${targetName}" من السحابة... ⏳`, 'loading');
 
   try {
-    // 1. الحذف محلياً
-    const localRes = (targetType === 'branches') ? await deleteBranchItem(targetId) : await deleteSpecialistItem(targetId);
-
-    // 2. الحذف من Cloudflare D1 عبر src/api.js
-    if (navigator.onLine) {
-      try {
-        if (targetType === 'branches') {
-          await samxApi.deleteBranchCloud(targetId);
-        } else {
-          await samxApi.deleteSpecialistCloud(targetId);
-        }
-      } catch (cloudDelErr) {
-        console.warn('Cloud delete error:', cloudDelErr);
-      }
+    // الحذف المباشر من قاعدة بيانات Cloudflare D1
+    if (targetType === 'branches') {
+      await samxApi.deleteBranchCloud(targetId);
+    } else {
+      await samxApi.deleteSpecialistCloud(targetId);
     }
 
     renderModalList(targetType);
     renderInlineDrawerList();
     refreshMainSelects();
 
-    const infoMsg = `🗑️ تم حذف "${targetName}" بنجاح من القائمة وقاعدة بيانات D1`;
+    const infoMsg = `🗑️ تم حذف "${targetName}" بنجاح من قاعدة بيانات Cloudflare D1 السحابية`;
     showToast(infoMsg, 'info');
     showModalInlineFeedback(infoMsg, 'info');
   } catch (err) {

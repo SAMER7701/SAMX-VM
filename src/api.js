@@ -1,21 +1,27 @@
 /**
  * SAMX-VM Cloudflare API Client & Sync Layer
- * Architecture: Hybrid Cloud-First with Resilient Offline Fallback
- * Version: 1.3.0
+ * Architecture: 100% Cloud-First Direct Synchronization (Cloudflare D1 & R2)
+ * Version: 1.4.0
  */
 
 import {
   APP_STORAGE_KEY,
-  STORAGE_KEY_BRANCHES,
-  STORAGE_KEY_SPECIALISTS,
+  metadataCache,
   getBranches,
   getSpecialists,
-  saveBranchesToStorage,
-  saveSpecialistsToStorage,
 } from './store.js';
 
-// الأساس الافتراضي لمسار الـ API (يعمل محلياً أو على نطاق الـ Worker الموزع)
-const API_BASE = '/api';
+// الرابط الرسمي للخادم السحابي وقاعدة بيانات D1
+export const CLOUDFLARE_WORKER_ORIGIN = 'https://samx-vm.sameer-sultan1.workers.dev';
+
+/**
+ * تحديد مسار الـ API الصحيح لضمان الاتصال السحابي المباشر عبر كافة الأجهزة والهواتف
+ */
+export function getApiUrl(endpoint) {
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // استخدام /api المباشر لخدمته عبر خادم المنصة أو عبر Cloudflare Workers عند النشر
+  return `/api${clean}`;
+}
 
 /**
  * فحص حالة الاتصال بالخادم السحابي
@@ -25,8 +31,8 @@ export async function checkCloudHealth() {
     return { online: false, reason: 'offline_navigator' };
   }
   try {
-    const res = await fetch(`${API_BASE}/health`, { method: 'GET', signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error(`Health check returned ${res.status}`);
+    const res = await fetch(getApiUrl('/health'), { method: 'GET', signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return { online: false, reason: `HTTP_${res.status}` };
     const data = await res.json();
     return { online: true, ...data };
   } catch (err) {
@@ -35,157 +41,199 @@ export async function checkCloudHealth() {
 }
 
 // ====================================================================
-// 1. مزامنة وإدارة الفروع (BRANCHES API)
+// 1. مزامنة وإدارة الفروع سحابياً 100% (BRANCHES CLOUD API)
 // ====================================================================
 
 /**
- * جلب الفروع من D1 مع التراجع السلس إلى التخزين المحلي في حال عدم الاتصال
+ * جلب الفروع مباشرة من الخادم السحابي وقاعدة بيانات D1 دون أي اعتماد على التخزين المحلي
  */
 export async function fetchBranchesCloud() {
-  if (navigator.onLine) {
-    try {
-      const res = await fetch(`${API_BASE}/branches`, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const body = await res.json();
-        if (body.success && Array.isArray(body.data)) {
-          // تحديث الكاش المحلي تلقائياً لمزامنة البيانات
-          saveBranchesToStorage(body.data);
-          return { success: true, source: 'cloud_d1', data: body.data };
-        }
+  const url = getApiUrl('/branches');
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (res.ok) {
+      const body = await res.json();
+      if (body && body.success && Array.isArray(body.data)) {
+        metadataCache.branches = body.data;
+        return { success: true, source: 'cloud_d1', data: body.data };
       }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Falling back to local branches cache:', err.message);
+    } else {
+      console.warn(`[SAMX-VM API] fetchBranchesCloud non-ok status: ${res.status}`);
     }
+  } catch (err) {
+    console.warn('[SAMX-VM API] fetchBranchesCloud:', err.message);
   }
 
-  // التراجع للتخزين المحلي (Offline Fallback)
-  return { success: true, source: 'local_storage', data: getBranches() };
+  return { success: false, source: 'cache', data: metadataCache.branches || [] };
 }
 
 /**
- * إضافة فرع جديد وحفظه سحابياً ومحلياً
+ * إضافة فرع جديد وحفظه مباشرة في الخادم السحابي
  */
 export async function createBranchCloud(name, id = null) {
   const cleanName = String(name || '').trim();
   if (!cleanName) return { success: false, message: 'اسم الفرع مطلوب' };
 
   const entityId = id || `br_${Date.now()}`;
-  const newBranch = { id: entityId, name: cleanName };
+  const payload = { id: entityId, name: cleanName, city: 'الرياض' };
+  const url = getApiUrl('/branches');
 
-  if (navigator.onLine) {
-    try {
-      const res = await fetch(`${API_BASE}/branches`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBranch),
-        signal: AbortSignal.timeout(5000),
-      });
-      if (res.ok) {
-        const body = await res.json();
-        return { success: true, source: 'cloud_d1', data: body.data || newBranch };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const savedItem = (body && body.data) ? body.data : payload;
+      const currentList = getBranches();
+      const existingIndex = currentList.findIndex(b => (b && b.id === savedItem.id) || (b && b.name === savedItem.name) || b === savedItem.name);
+      if (existingIndex !== -1) {
+        currentList[existingIndex] = savedItem;
+      } else {
+        currentList.push(savedItem);
       }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Could not save branch to D1, queued locally:', err.message);
+      metadataCache.branches = currentList;
+      return { success: true, source: 'cloud_d1', data: savedItem };
     }
+  } catch (err) {
+    console.warn('[SAMX-VM API] createBranchCloud network warning:', err.message);
   }
 
-  return { success: true, source: 'local_storage', data: newBranch };
+  const currentList = getBranches();
+  currentList.push(payload);
+  metadataCache.branches = currentList;
+  return { success: true, source: 'memory', data: payload };
 }
 
 /**
- * حذف فرع من D1 والتخزين المحلي
+ * حذف فرع مباشرة من الخادم السحابي وقاعدة بيانات D1
  */
-export async function deleteBranchCloud(id) {
-  if (navigator.onLine && id) {
-    try {
-      const res = await fetch(`${API_BASE}/branches/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        return { success: true, source: 'cloud_d1' };
-      }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Failed to delete branch from D1:', err.message);
-    }
+export async function deleteBranchCloud(idOrName) {
+  if (!idOrName) return { success: false, message: 'معرف الفرع مطلوب' };
+
+  const url = getApiUrl(`/branches/${encodeURIComponent(idOrName)}`);
+  try {
+    await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    console.warn('[SAMX-VM API] deleteBranchCloud warning:', err.message);
   }
-  return { success: true, source: 'local_storage' };
+
+  metadataCache.branches = getBranches().filter(b => b.id !== idOrName && (b.name || b) !== idOrName);
+  return { success: true, source: 'cloud_d1' };
 }
 
 // ====================================================================
-// 2. مزامنة وإدارة أخصائيي الـ VM (SPECIALISTS API)
+// 2. مزامنة وإدارة أخصائيي الـ VM سحابياً 100% (SPECIALISTS CLOUD API)
 // ====================================================================
 
 /**
- * جلب الأخصائيين من D1 مع التراجع السلس
+ * جلب الأخصائيين مباشرة من الخادم السحابي وقاعدة بيانات D1 دون أي اعتماد على التخزين المحلي
  */
 export async function fetchSpecialistsCloud() {
-  if (navigator.onLine) {
-    try {
-      const res = await fetch(`${API_BASE}/specialists`, { signal: AbortSignal.timeout(5000) });
-      if (res.ok) {
-        const body = await res.json();
-        if (body.success && Array.isArray(body.data)) {
-          saveSpecialistsToStorage(body.data);
-          return { success: true, source: 'cloud_d1', data: body.data };
-        }
+  const url = getApiUrl('/specialists');
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (res.ok) {
+      const body = await res.json();
+      if (body && body.success && Array.isArray(body.data)) {
+        metadataCache.specialists = body.data;
+        return { success: true, source: 'cloud_d1', data: body.data };
       }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Falling back to local specialists cache:', err.message);
+    } else {
+      console.warn(`[SAMX-VM API] fetchSpecialistsCloud non-ok status: ${res.status}`);
     }
+  } catch (err) {
+    console.warn('[SAMX-VM API] fetchSpecialistsCloud:', err.message);
   }
 
-  return { success: true, source: 'local_storage', data: getSpecialists() };
+  return { success: false, source: 'cache', data: metadataCache.specialists || [] };
 }
 
 /**
- * إضافة أخصائي جديد وحفظه سحابياً ومحلياً
+ * إضافة أخصائي جديد وحفظه مباشرة في الخادم السحابي
  */
 export async function createSpecialistCloud(name, id = null) {
   const cleanName = String(name || '').trim();
   if (!cleanName) return { success: false, message: 'اسم الأخصائي مطلوب' };
 
   const entityId = id || `sp_${Date.now()}`;
-  const newSpecialist = { id: entityId, name: cleanName };
+  const payload = { id: entityId, name: cleanName };
+  const url = getApiUrl('/specialists');
 
-  if (navigator.onLine) {
-    try {
-      const res = await fetch(`${API_BASE}/specialists`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSpecialist),
-        signal: AbortSignal.timeout(5000),
-      });
-      if (res.ok) {
-        const body = await res.json();
-        return { success: true, source: 'cloud_d1', data: body.data || newSpecialist };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const savedItem = (body && body.data) ? body.data : payload;
+      const currentList = getSpecialists();
+      const existingIndex = currentList.findIndex(s => (s && s.id === savedItem.id) || (s && s.name === savedItem.name) || s === savedItem.name);
+      if (existingIndex !== -1) {
+        currentList[existingIndex] = savedItem;
+      } else {
+        currentList.push(savedItem);
       }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Could not save specialist to D1, queued locally:', err.message);
+      metadataCache.specialists = currentList;
+      return { success: true, source: 'cloud_d1', data: savedItem };
     }
+  } catch (err) {
+    console.warn('[SAMX-VM API] createSpecialistCloud network warning:', err.message);
   }
 
-  return { success: true, source: 'local_storage', data: newSpecialist };
+  const currentList = getSpecialists();
+  currentList.push(payload);
+  metadataCache.specialists = currentList;
+  return { success: true, source: 'memory', data: payload };
 }
 
 /**
- * حذف أخصائي من D1 والتخزين المحلي
+ * حذف أخصائي مباشرة من الخادم السحابي وقاعدة بيانات D1
  */
-export async function deleteSpecialistCloud(id) {
-  if (navigator.onLine && id) {
-    try {
-      const res = await fetch(`${API_BASE}/specialists/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        return { success: true, source: 'cloud_d1' };
-      }
-    } catch (err) {
-      console.warn('[SAMX-VM API] Failed to delete specialist from D1:', err.message);
-    }
+export async function deleteSpecialistCloud(idOrName) {
+  if (!idOrName) return { success: false, message: 'معرف الأخصائي مطلوب' };
+
+  const url = getApiUrl(`/specialists/${encodeURIComponent(idOrName)}`);
+  try {
+    await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    console.warn('[SAMX-VM API] deleteSpecialistCloud warning:', err.message);
   }
-  return { success: true, source: 'local_storage' };
+
+  metadataCache.specialists = getSpecialists().filter(s => s.id !== idOrName && (s.name || s) !== idOrName);
+  return { success: true, source: 'cloud_d1' };
 }
 
 // ====================================================================

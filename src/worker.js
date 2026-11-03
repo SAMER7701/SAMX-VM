@@ -62,19 +62,112 @@ export default {
 };
 
 /**
+ * ضمان إنشاء وتحديث جداول قاعدة بيانات Cloudflare D1 تلقائياً
+ */
+let schemaInitialized = false;
+async function ensureDatabaseSchema(db) {
+  if (!db || schemaInitialized) return;
+
+  try {
+    // 1. جدول الفروع
+    await db.prepare(`CREATE TABLE IF NOT EXISTS branches (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      code TEXT,
+      city TEXT DEFAULT 'الرياض',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+  } catch (e) {}
+
+  // هجرات ترقية آمنة للأعمدة
+  try { await db.prepare("ALTER TABLE branches ADD COLUMN code TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE branches ADD COLUMN city TEXT DEFAULT 'الرياض'").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE branches ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP").run(); } catch (e) {}
+
+  try {
+    // 2. جدول أخصائيي الـ VM
+    await db.prepare(`CREATE TABLE IF NOT EXISTS specialists (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      email TEXT,
+      phone TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+  } catch (e) {}
+
+  try { await db.prepare("ALTER TABLE specialists ADD COLUMN email TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE specialists ADD COLUMN phone TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE specialists ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP").run(); } catch (e) {}
+
+  try {
+    // 3. جدول أقسام المعرض والمعايير
+    await db.prepare(`CREATE TABLE IF NOT EXISTS store_sections (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      standards_json TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+  } catch (e) {}
+
+  try {
+    // 4. جدول تقارير التدقيق
+    await db.prepare(`CREATE TABLE IF NOT EXISTS audit_reports (
+      id TEXT PRIMARY KEY,
+      branch_name TEXT NOT NULL,
+      auditor_name TEXT NOT NULL,
+      audit_date TEXT NOT NULL,
+      week_number INTEGER DEFAULT 1,
+      total_sections INTEGER DEFAULT 0,
+      overall_status TEXT DEFAULT 'pending',
+      data_json TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+  } catch (e) {}
+
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN auditor_name TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN branch_name TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN audit_date TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN week_number INTEGER DEFAULT 1").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN total_sections INTEGER DEFAULT 0").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN overall_status TEXT DEFAULT 'pending'").run(); } catch (e) {}
+
+  schemaInitialized = true;
+}
+
+/**
  * معالج طلبات الـ API المركزية
  */
 async function handleApiRequest(pathname, method, request, env) {
+  // فحص وترقية الجداول تلقائياً إن كانت قاعدة البيانات مربوطة
+  if (env.DB) {
+    try {
+      await ensureDatabaseSchema(env.DB);
+    } catch (err) {
+      console.warn('ensureDatabaseSchema warning:', err);
+    }
+  }
+
   // فحص جاهزية النظام وقاعدة البيانات
   if (pathname === '/api/health') {
     return jsonResponse({
       status: 'healthy',
       app: 'SAMX-VM',
-      version: '1.3.0',
+      version: '1.4.0',
       hasD1: Boolean(env.DB),
       hasR2: Boolean(env.STORAGE_BUCKET),
       timestamp: new Date().toISOString(),
     });
+  }
+
+  // مسار إعادة تهيئة وهجرة المخطط صراحة
+  if (pathname === '/api/migrate') {
+    schemaInitialized = false;
+    await ensureDatabaseSchema(env.DB);
+    return jsonResponse({ success: true, message: 'تم فحص وترقية جداول D1 بنجاح' });
   }
 
   // ==========================================
@@ -82,10 +175,27 @@ async function handleApiRequest(pathname, method, request, env) {
   // ==========================================
   if (pathname === '/api/branches') {
     if (method === 'GET') {
-      const { results } = await env.DB.prepare(
-        'SELECT id, name, code, city, created_at FROM branches ORDER BY name ASC'
-      ).all();
-      return jsonResponse({ success: true, data: results || [] });
+      try {
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, code, city, created_at FROM branches ORDER BY name ASC'
+        ).all();
+        return jsonResponse({ success: true, data: results || [] });
+      } catch (err) {
+        // Fallback آمن إن لم تكن الأعمدة الإضافية موجودة بعد
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, created_at FROM branches ORDER BY name ASC'
+        ).all();
+        return jsonResponse({
+          success: true,
+          data: (results || []).map(r => ({
+            id: r.id,
+            name: r.name,
+            code: r.code || '',
+            city: r.city || 'الرياض',
+            created_at: r.created_at
+          }))
+        });
+      }
     }
 
     if (method === 'POST') {
@@ -99,18 +209,25 @@ async function handleApiRequest(pathname, method, request, env) {
         return errorResponse('اسم الفرع مطلوب');
       }
 
-      await env.DB.prepare(
-        'INSERT INTO branches (id, name, code, city) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, city=excluded.city'
-      ).bind(id, name, code, city).run();
+      try {
+        await env.DB.prepare(
+          'INSERT INTO branches (id, name, code, city) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, city=excluded.city'
+        ).bind(id, name, code, city).run();
+      } catch (err) {
+        // Fallback آمن لأعمدة id, name فقط
+        await env.DB.prepare(
+          'INSERT INTO branches (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
+        ).bind(id, name).run();
+      }
 
       return jsonResponse({ success: true, data: { id, name, code, city } }, 201);
     }
   }
 
   if (pathname.startsWith('/api/branches/')) {
-    const id = pathname.replace('/api/branches/', '').trim();
+    const rawTarget = decodeURIComponent(pathname.replace('/api/branches/', '').trim());
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM branches WHERE id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM branches WHERE id = ? OR name = ?').bind(rawTarget, rawTarget).run();
       return jsonResponse({ success: true, message: 'تم حذف الفرع بنجاح' });
     }
   }
@@ -120,10 +237,26 @@ async function handleApiRequest(pathname, method, request, env) {
   // ==========================================
   if (pathname === '/api/specialists') {
     if (method === 'GET') {
-      const { results } = await env.DB.prepare(
-        'SELECT id, name, email, phone, created_at FROM specialists ORDER BY name ASC'
-      ).all();
-      return jsonResponse({ success: true, data: results || [] });
+      try {
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, email, phone, created_at FROM specialists ORDER BY name ASC'
+        ).all();
+        return jsonResponse({ success: true, data: results || [] });
+      } catch (err) {
+        const { results } = await env.DB.prepare(
+          'SELECT id, name, created_at FROM specialists ORDER BY name ASC'
+        ).all();
+        return jsonResponse({
+          success: true,
+          data: (results || []).map(r => ({
+            id: r.id,
+            name: r.name,
+            email: r.email || '',
+            phone: r.phone || '',
+            created_at: r.created_at
+          }))
+        });
+      }
     }
 
     if (method === 'POST') {
@@ -137,18 +270,24 @@ async function handleApiRequest(pathname, method, request, env) {
         return errorResponse('اسم الأخصائي مطلوب');
       }
 
-      await env.DB.prepare(
-        'INSERT INTO specialists (id, name, email, phone) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
-      ).bind(id, name, email, phone).run();
+      try {
+        await env.DB.prepare(
+          'INSERT INTO specialists (id, name, email, phone) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
+        ).bind(id, name, email, phone).run();
+      } catch (err) {
+        await env.DB.prepare(
+          'INSERT INTO specialists (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
+        ).bind(id, name).run();
+      }
 
       return jsonResponse({ success: true, data: { id, name, email, phone } }, 201);
     }
   }
 
   if (pathname.startsWith('/api/specialists/')) {
-    const id = pathname.replace('/api/specialists/', '').trim();
+    const rawTarget = decodeURIComponent(pathname.replace('/api/specialists/', '').trim());
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM specialists WHERE id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM specialists WHERE id = ? OR name = ?').bind(rawTarget, rawTarget).run();
       return jsonResponse({ success: true, message: 'تم حذف الأخصائي بنجاح' });
     }
   }

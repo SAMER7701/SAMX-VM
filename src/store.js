@@ -229,32 +229,12 @@ export function calculateCurrentWeek() {
   }
 }
 
-// قراءة الفروع والأخصائيين والأقسام والمعايير من التخزين المحلي النظيف (Clean Storage)
+// قراءة البيانات من الذاكرة والتخزين للأقسام والمعايير (الفروع والأخصائيين مصدرهم حصراً سحابة D1)
 export async function loadMetadata() {
   try {
-    let branches = [];
-    let specialists = [];
+    let branches = metadataCache.branches || [];
+    let specialists = metadataCache.specialists || [];
     let sections = [];
-
-    const storedBranches = localStorage.getItem(STORAGE_KEY_BRANCHES);
-    if (storedBranches) {
-      try {
-        const parsed = JSON.parse(storedBranches);
-        if (Array.isArray(parsed)) branches = parsed;
-      } catch (e) {
-        console.warn('Failed parsing storedBranches', e);
-      }
-    }
-
-    const storedSpecialists = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
-    if (storedSpecialists) {
-      try {
-        const parsed = JSON.parse(storedSpecialists);
-        if (Array.isArray(parsed)) specialists = parsed;
-      } catch (e) {
-        console.warn('Failed parsing storedSpecialists', e);
-      }
-    }
 
     // تحميل وتحديث الأقسام المعتمدة
     const storedSections = localStorage.getItem(STORAGE_KEY_SECTIONS);
@@ -329,8 +309,6 @@ export async function loadMetadata() {
     metadataCache.quickTags = quickTags;
     metadataCache.quickAssignees = quickAssignees;
 
-    localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
-    localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
     localStorage.setItem(STORAGE_KEY_SECTIONS, JSON.stringify(sections));
     localStorage.setItem(STORAGE_KEY_CHECKLISTS, JSON.stringify(VM_CATEGORY_CHECKLISTS));
     localStorage.setItem(STORAGE_KEY_TAGS, JSON.stringify(quickTags));
@@ -579,82 +557,40 @@ export function resetSectionStandards(sectionName) {
   return { success: true, sectionName: cleanSec, list: VM_CATEGORY_CHECKLISTS[cleanSec] };
 }
 
-// حفظ وتحديث كاش الفروع محلياً
+// إدارة كاش الفروع في الذاكرة الحية فقط (In-Memory Only - لا تعتمد على localStorage)
 export function saveBranchesToStorage(branches) {
   if (!Array.isArray(branches)) return;
   metadataCache.branches = branches;
-  localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(branches));
-  localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(branches.map(b => (b && b.name) ? b.name : b)));
 }
 
-// حفظ وتحديث كاش الأخصائيين محلياً
+// إدارة كاش الأخصائيين في الذاكرة الحية فقط (In-Memory Only - لا تعتمد على localStorage)
 export function saveSpecialistsToStorage(specialists) {
   if (!Array.isArray(specialists)) return;
   metadataCache.specialists = specialists;
-  localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(specialists));
-  localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(specialists.map(s => (s && s.name) ? s.name : s)));
 }
 
-// دوال الوصول للقوائم (تسمح بإرجاع مصفوفة فارغة [])
+// دوال الوصول للقوائم من الذاكرة الحية المتزامنة 100% مع سحابة D1
 export function getBranches() {
   if (!Array.isArray(metadataCache.branches)) {
-    const stored = localStorage.getItem(STORAGE_KEY_BRANCHES);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) metadataCache.branches = parsed;
-      } catch(e){}
-    }
-    if (!Array.isArray(metadataCache.branches)) {
-      metadataCache.branches = [];
-    }
+    metadataCache.branches = [];
   }
   return metadataCache.branches;
 }
 
 export function getSpecialists() {
   if (!Array.isArray(metadataCache.specialists)) {
-    const stored = localStorage.getItem(STORAGE_KEY_SPECIALISTS);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) metadataCache.specialists = parsed;
-      } catch(e){}
-    }
-    if (!Array.isArray(metadataCache.specialists)) {
-      metadataCache.specialists = [];
-    }
+    metadataCache.specialists = [];
   }
   return metadataCache.specialists;
 }
 
-// إضافة فرع جديد
+// إضافة فرع جديد مباشرة عبر API سحابة Cloudflare D1
 export async function addBranchItem(name) {
-  const clean = (name || '').trim();
-  if (!clean) return { success: false, reason: 'يرجى كتابة اسم المعرض أو الفرع' };
-
-  const list = getBranches();
-  if (list.some(b => (b.name || b).trim().toLowerCase() === clean.toLowerCase())) {
-    return { success: false, reason: 'اسم المعرض أو الفرع مسجل مسبقاً في القائمة' };
-  }
-
-  const now = new Date().toISOString();
-  const newBranch = {
-    id: generateEntityId('br'),
-    name: clean,
-    createdAt: now,
-    updatedAt: now
-  };
-
-  list.push(newBranch);
-  metadataCache.branches = list;
-  localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(list));
-  localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(list.map(b => b.name || b)));
-
-  return { success: true, item: newBranch, list };
+  const { createBranchCloud } = await import('./api.js');
+  return await createBranchCloud(name);
 }
 
-// حذف فرع بالمعرف أو بالاسم مع حماية الفرع النشط
+// حذف فرع بالمعرف أو بالاسم مباشرة عبر API سحابة Cloudflare D1
 export async function deleteBranchItem(idOrName) {
   const list = getBranches();
   const target = list.find(b => b.id === idOrName || b.name === idOrName || b === idOrName);
@@ -664,40 +600,17 @@ export async function deleteBranchItem(idOrName) {
     return { success: false, reason: 'لا يمكن حذف الفرع لأنه محدد في مسودة التقرير النشطة' };
   }
 
-  metadataCache.branches = list.filter(b => b.id !== idOrName && (b.name || b) !== idOrName);
-  localStorage.setItem(STORAGE_KEY_BRANCHES, JSON.stringify(metadataCache.branches));
-  localStorage.setItem(LEGACY_BRANCHES_KEY, JSON.stringify(metadataCache.branches.map(b => b.name || b)));
-
-  return { success: true, list: metadataCache.branches };
+  const { deleteBranchCloud } = await import('./api.js');
+  return await deleteBranchCloud(idOrName);
 }
 
-// إضافة أخصائي جديد
+// إضافة أخصائي جديد مباشرة عبر API سحابة Cloudflare D1
 export async function addSpecialistItem(name) {
-  const clean = (name || '').trim();
-  if (!clean) return { success: false, reason: 'يرجى كتابة اسم أخصائي الـ VM' };
-
-  const list = getSpecialists();
-  if (list.some(s => (s.name || s).trim().toLowerCase() === clean.toLowerCase())) {
-    return { success: false, reason: 'اسم الأخصائي مسجل مسبقاً في القائمة' };
-  }
-
-  const now = new Date().toISOString();
-  const newSpecialist = {
-    id: generateEntityId('sp'),
-    name: clean,
-    createdAt: now,
-    updatedAt: now
-  };
-
-  list.push(newSpecialist);
-  metadataCache.specialists = list;
-  localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(list));
-  localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(list.map(s => s.name || s)));
-
-  return { success: true, item: newSpecialist, list };
+  const { createSpecialistCloud } = await import('./api.js');
+  return await createSpecialistCloud(name);
 }
 
-// حذف أخصائي بالمعرف أو بالاسم مع حماية الأخصائي النشط
+// حذف أخصائي بالمعرف أو بالاسم مباشرة عبر API سحابة Cloudflare D1
 export async function deleteSpecialistItem(idOrName) {
   const list = getSpecialists();
   const target = list.find(s => s.id === idOrName || s.name === idOrName || s === idOrName);
@@ -707,11 +620,8 @@ export async function deleteSpecialistItem(idOrName) {
     return { success: false, reason: 'لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط' };
   }
 
-  metadataCache.specialists = list.filter(s => s.id !== idOrName && (s.name || s) !== idOrName);
-  localStorage.setItem(STORAGE_KEY_SPECIALISTS, JSON.stringify(metadataCache.specialists));
-  localStorage.setItem(LEGACY_SPECIALISTS_KEY, JSON.stringify(metadataCache.specialists.map(s => s.name || s)));
-
-  return { success: true, list: metadataCache.specialists };
+  const { deleteSpecialistCloud } = await import('./api.js');
+  return await deleteSpecialistCloud(idOrName);
 }
 
 // ==================== إدارة وسوم المعالجة السريعة (Quick Processing Tags CRUD) ====================
