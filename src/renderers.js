@@ -240,10 +240,17 @@ export function syncBrandingUI() {
     }
   }
 
-  // 4. التذييل والملاحظات القانونية الرسمية
+  // 4. التذييل والملاحظات القانونية الرسمية (يظهر فقط إن تم تخصيصه بدون أي حشو تقني افتراضي)
   const footerDisclaimer = document.getElementById('print-footer-disclaimer');
+  const footerDisclaimerWrapper = document.getElementById('print-footer-disclaimer-wrapper');
   if (footerDisclaimer) {
-    footerDisclaimer.innerText = branding.footerDisclaimer || 'تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية';
+    if (branding.footerDisclaimer && branding.footerDisclaimer.trim()) {
+      footerDisclaimer.innerText = branding.footerDisclaimer.trim();
+      if (footerDisclaimerWrapper) footerDisclaimerWrapper.classList.remove('hidden');
+    } else {
+      footerDisclaimer.innerText = '';
+      if (footerDisclaimerWrapper) footerDisclaimerWrapper.classList.add('hidden');
+    }
   }
 
   // 5. تحديث نافذة المعاينة الحية إن كانت مفتوحة
@@ -1150,7 +1157,7 @@ export function renderPrintSections(customSections = null) {
     item.innerHTML = `
       <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
         <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-          <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
+          <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 text-xs font-black flex items-center justify-center shrink-0">${idx + 1}</span>
           <span>${sec.title}</span>
         </h4>
         <div class="flex items-center gap-2">
@@ -1163,7 +1170,7 @@ export function renderPrintSections(customSections = null) {
       ${sec.layoutType === 'single_panorama' ? `
         <!-- بانوراما كاملة للواجهات والمخازن -->
         <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm mb-3">
-          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide">
+          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
             <span>● Panorama View</span>
           </div>
@@ -1173,14 +1180,14 @@ export function renderPrintSections(customSections = null) {
         <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) -->
         <div class="space-y-2.5 mb-3">
           <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
               <span>● Before</span>
             </div>
             <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
           </div>
           <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
               <span>● After</span>
             </div>
@@ -1192,7 +1199,7 @@ export function renderPrintSections(customSections = null) {
         <div class="grid grid-cols-2 gap-3 mb-3">
           <!-- اليمين: قبل التعديل -->
           <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
               <span>● Before</span>
             </div>
@@ -1201,7 +1208,7 @@ export function renderPrintSections(customSections = null) {
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
           <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
               <span>● After</span>
             </div>

@@ -1,6 +1,7 @@
 /**
  * SAMX-VM Client-Side PDF Generation Engine
  * Generates high-fidelity downloadable A4 PDF reports reflecting custom brand identity and logo.
+ * Strict Page-Break Guardrails: Discrete A4 page rendering to eliminate any image or text cropping across pages.
  */
 
 import { jsPDF } from 'jspdf';
@@ -9,7 +10,146 @@ import { currentAudit, getBrandingSettings } from './store.js';
 import { showToast, renderPrintSections, syncBrandingUI } from './renderers.js';
 
 /**
+ * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي عالي الدقة
+ * مع شارات كبسولية مصغرة مركزية أعلى الصورة بدون أشرطة علوية ممتدة
+ */
+function renderPdfSectionCardHtml(sec, globalIndex) {
+  const layout = sec.layoutType || 'comparison';
+
+  // شارة الحالة بتوسيط مثالي للنصوص والأيقونات
+  let statusBadgeHtml = `
+    <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #dcfce7; color: #166534; border: 1px solid #86efac; white-space: nowrap; direction: rtl;">
+      <span>تم المعالجة ✅</span>
+    </span>
+  `;
+  if (sec.status === 'store_followup') {
+    statusBadgeHtml = `
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; white-space: nowrap; direction: rtl;">
+        <span>متابعة الفرع ⏳</span>
+      </span>
+    `;
+  } else if (sec.status === 'management_action') {
+    statusBadgeHtml = `
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; white-space: nowrap; direction: rtl;">
+        <span>صيانة / إدارة ⚠️</span>
+      </span>
+    `;
+  }
+
+  // وسوم الأقسام
+  const tagsHtml = (sec.tags || []).map(t => `
+    <span style="display: inline-flex; align-items: center; justify-content: center; padding: 2px 7px; border-radius: 6px; font-size: 9px; font-weight: 600; line-height: 1; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; white-space: nowrap;">
+      ${t}
+    </span>
+  `).join(' ');
+
+  // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية المركزية أعلى الصور
+  let imagesHtml = '';
+
+  if (layout === 'single_panorama') {
+    // بانوراما كاملة للواجهات أو المستودعات
+    imagesHtml = `
+      <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc; margin-bottom: 7px;">
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+          <span style="width: 5px; height: 5px; border-radius: 50%; background: #facc15; display: inline-block;"></span>
+          <span>● Panorama View</span>
+        </div>
+        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+      </div>
+    `;
+  } else if (layout === 'stacked_panorama') {
+    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت)
+    imagesHtml = `
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 7px;">
+        <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+            <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
+            <span>● Before</span>
+          </div>
+          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        </div>
+        <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+            <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
+            <span>● After</span>
+          </div>
+          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        </div>
+      </div>
+    `;
+  } else {
+    // مقارنة جانبية أنيقة Side-by-Side (الافتراضي)
+    imagesHtml = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 7px;">
+        <!-- اليمين: قبل التعديل -->
+        <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+            <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
+            <span>● Before</span>
+          </div>
+          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        </div>
+
+        <!-- اليسار: بعد التنفيذ والتعديل -->
+        <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+            <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
+            <span>● After</span>
+          </div>
+          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 11px 13px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04); direction: rtl; box-sizing: border-box;">
+      <!-- شريط عنوان القسم والشارة الملونة والوسوم -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 7px; margin-bottom: 8px; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 7px; min-width: 0;">
+          <span style="width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0;">
+            ${globalIndex}
+          </span>
+          <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${sec.title}
+          </h4>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          ${statusBadgeHtml}
+          ${tagsHtml}
+        </div>
+      </div>
+
+      <!-- صور التوثيق -->
+      ${imagesHtml}
+
+      <!-- معايير الـ VM المطبقة إذا وُجدت -->
+      ${sec.checklist && sec.checklist.length > 0 ? `
+        <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
+          <strong style="color: #713f12;">معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</strong>
+          ${sec.checklist.map(c => `✓ ${c}`).join('   •   ')}
+        </div>
+      ` : ''}
+
+      <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
+      ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
+        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
+          <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
+          <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
+        </div>
+      ` : ''}
+
+      <!-- تفاصيل ومبررات التعديل الميداني -->
+      <div style="font-size: 9.5px; color: #334155; background: #f8fafc; padding: 5px 8px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.4;">
+        <strong style="color: #0f172a;">تفاصيل ومبررات التعديل الميداني:</strong> ${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}
+      </div>
+    </div>
+  `;
+}
+
+/**
  * تصدير التقرير التنفيذي كملف PDF رقمي جاهز للتحميل
+ * يعتمد التقسيم المقاس لصفحات A4 المستقلة لضمان عدم اقتصاص أي صورة أو نص عبر فواصل الصفحات
  */
 export async function exportAuditToPdf() {
   const sections = currentAudit.sections || [];
@@ -28,69 +168,243 @@ export async function exportAuditToPdf() {
     }
   }
 
+  let renderRoot = null;
+
   try {
-    showToast('📄 جارٍ تجهيز ملف الـ PDF عالي الدقة...', 'info');
+    showToast('📄 جارٍ بناء صفحات الـ PDF A4 بدقة عالية وبدون اقتصاص...', 'info');
 
-    // 1. مزامنة بيانات الهوية البصرية ورسم الأقسام
-    syncBrandingUI();
-    renderPrintSections();
+    // 1. استخراج بيانات الهوية والمعرض
+    const branding = getBrandingSettings();
+    const companyName = branding.companyName || 'SAMX-VM';
+    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising';
+    const footerDisclaimer = branding.footerDisclaimer || '';
+    const logoData = branding.logoData || null;
 
-    // 2. فحص عنصر التقرير المطبوع
-    const reportSheet = document.getElementById('print-sheet-wrapper');
-    if (!reportSheet) {
-      throw new Error('لم يتم العثور على ورقة التقرير المطبوعة');
+    const branchName = currentAudit.branchName || 'فرع المعرض العام';
+    const auditorName = currentAudit.auditorName || 'أخصائي الـ VM';
+    const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
+    const totalSections = sections.length;
+
+    // 2. تقسيم الأقسام إلى صفحات A4 محددة مسبقاً (قسمان كحد أقصى لكل صفحة لضمان عدم الاقتصاص)
+    const chunkSize = 2;
+    const totalPages = Math.max(1, Math.ceil(totalSections / chunkSize));
+
+    // 3. إنشاء حاوية التقديم خارج الشاشة
+    renderRoot = document.createElement('div');
+    renderRoot.id = 'single-pdf-render-root';
+    renderRoot.style.cssText = `
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 794px;
+      background: #ffffff;
+      color: #0f172a;
+      direction: rtl;
+      font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    document.body.appendChild(renderRoot);
+
+    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px)
+    for (let p = 0; p < totalPages; p++) {
+      const pageEl = document.createElement('div');
+      pageEl.className = 'single-pdf-page';
+      pageEl.style.cssText = `
+        width: 794px;
+        height: 1123px;
+        box-sizing: border-box;
+        padding: 34px 40px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      `;
+
+      const startIdx = p * chunkSize;
+      const endIdx = Math.min(startIdx + chunkSize, totalSections);
+      const pageSections = sections.slice(startIdx, endIdx);
+      const isLastPage = (p === totalPages - 1);
+
+      // --- هيدر الصفحة ---
+      let headerHtml = '';
+      if (p === 0) {
+        // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة
+        // بطاقة البيانات تحتوي فقط: اسم المعرض، أخصائي الـ VM، تاريخ التدقيق، إجمالي الأقسام
+        headerHtml = `
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px;">
+            <!-- الشعار وهوية الشركة -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+              ${logoData ? `
+                <div style="height: 52px; max-width: 180px; display: flex; align-items: center; overflow: hidden;">
+                  <img src="${logoData}" alt="${companyName}" style="max-height: 52px; max-width: 180px; width: auto; height: auto; object-fit: contain;" />
+                </div>
+              ` : `
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: #0f172a; color: #facc15; border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; flex-shrink: 0;">
+                  <span>SX</span>
+                </div>
+              `}
+              <div>
+                <h2 style="margin: 0; font-size: 19px; font-weight: 900; color: #0f172a; letter-spacing: -0.3px;">${companyName}</h2>
+                <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
+              </div>
+            </div>
+
+            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store Name, Specialist, Date, Total Sections) -->
+            <div style="text-align: right; font-size: 10.5px; background: #f8fafc; padding: 7px 12px; border-radius: 10px; border: 1px solid #e2e8f0; min-width: 200px; display: flex; flex-direction: column; gap: 3px;">
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: #64748b; font-weight: 600;">اسم المعرض:</span>
+                <strong style="color: #0f172a;">${branchName}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: #64748b; font-weight: 600;">أخصائي الـ VM:</span>
+                <strong style="color: #0f172a;">${auditorName}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: #64748b; font-weight: 600;">تاريخ التدقيق:</span>
+                <strong style="color: #0f172a;">${auditDate}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: #64748b; font-weight: 600;">إجمالي الأقسام:</span>
+                <strong style="color: #b45309;">${totalSections} أقسام</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // الصفحات اللاحقة: ترويسة مقتضبة ونقية بدون تكرار
+        headerHtml = `
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 13px; color: #0f172a;">${companyName}</strong>
+              <span style="color: #94a3b8;">•</span>
+              <span style="font-size: 12px; color: #334155; font-weight: bold;">${branchName}</span>
+            </div>
+            <div style="font-size: 10px; color: #64748b; display: flex; align-items: center; gap: 10px;">
+              <span>التاريخ: <strong style="color: #0f172a;">${auditDate}</strong></span>
+              <span>•</span>
+              <span>الأخصائي: <strong style="color: #0f172a;">${auditorName}</strong></span>
+              <span>•</span>
+              <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">الأقسام: ${startIdx + 1}-${endIdx} من ${totalSections}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // --- محتوى الأقسام لهذه الصفحة ---
+      const sectionsHtml = `
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${pageSections.map((sec, localIdx) => renderPdfSectionCardHtml(sec, startIdx + localIdx + 1)).join('')}
+        </div>
+      `;
+
+      // --- التوقيعات والاعتماد الرسمي (في الصفحة الأخيرة فقط) ---
+      let signaturesHtml = '';
+      if (isLastPage) {
+        signaturesHtml = `
+          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 10px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 10px;">
+            <!-- اعتماد أخصائي العرض المرئي -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+              <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+                إعداد واعتماد أخصائي العرض المرئي (VM Specialist):
+              </div>
+              <div style="color: #64748b; font-size: 9px; margin-bottom: 6px;">
+                أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 32px;">
+                <span style="font-weight: 800; color: #0f172a; font-size: 11px;">${auditorName}</span>
+                <span style="font-size: 9px; color: #94a3b8;">التوقيع: ...........................</span>
+              </div>
+            </div>
+
+            <!-- اعتماد مدير المعرض -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+              <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+                ملاحظات واعتماد مدير المعرض (Store Manager):
+              </div>
+              <div style="color: #64748b; font-size: 9px; margin-bottom: 6px;">
+                تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة.
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 32px;">
+                <span style="font-size: 9px; color: #64748b;">الختم والاعتماد:</span>
+                <span style="font-size: 9px; color: #94a3b8;">...................................</span>
+              </div>
+            </div>
+          </div>
+
+          ${footerDisclaimer ? `
+            <div style="font-size: 9px; color: #64748b; text-align: center; margin-top: 6px; padding: 4px; background: #f8fafc; border-radius: 4px;">
+              ${footerDisclaimer}
+            </div>
+          ` : ''}
+        `;
+      }
+
+      // --- تذييل الصفحة النظيف (رقم الصفحة فقط بدون روابط أو إصدارات تقنية) ---
+      const footerHtml = `
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 9.5px; color: #94a3b8;">
+          <span>${companyName} • تقرير تدقيق العرض المرئي</span>
+          <span>صفحة ${p + 1} من ${totalPages}</span>
+        </div>
+      `;
+
+      pageEl.innerHTML = `
+        <div>
+          ${headerHtml}
+          ${sectionsHtml}
+          ${signaturesHtml}
+        </div>
+        ${footerHtml}
+      `;
+
+      renderRoot.appendChild(pageEl);
     }
 
-    // 3. التقاط التقرير عبر html2canvas بدقة 2x مع دعم الصور وعبر النطاقات
-    const canvas = await html2canvas(reportSheet, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-    // 4. إعداد مستند A4 عمودي في jsPDF
+    // 5. التقاط كل صفحة مستقلاً عبر html2canvas وتضمينها كصفحة A4 كاملة في jsPDF
+    const renderedPages = renderRoot.querySelectorAll('.single-pdf-page');
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4'
     });
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pdfPageWidth = 210;
+    const pdfPageHeight = 297;
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    for (let i = 0; i < renderedPages.length; i++) {
+      const pageNode = renderedPages[i];
+      const canvas = await html2canvas(pageNode, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
 
-    // الصفحة الأولى
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-    heightLeft -= pageHeight;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfPageWidth, pdfPageHeight, undefined, 'FAST');
 
-    // الصفحات اللاحقة إن كان التقرير يمتد لأكثر من صفحة
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= pageHeight;
+      if (i < renderedPages.length - 1) {
+        pdf.addPage();
+      }
     }
 
-    // 5. استخراج اسم الشركة والفرع لتسمية الملف
-    const branding = getBrandingSettings();
-    const cleanCompany = (branding.companyName || 'SAMX-VM').replace(/[\\/:*?"<>|]/g, '_').trim();
-    const cleanBranch = (currentAudit.branchName || 'Store').replace(/[\\/:*?"<>|]/g, '_').trim();
-    const fileName = `تقرير_تدقيق_${cleanCompany}_${cleanBranch}_W${currentAudit.weekNumber || 1}.pdf`;
+    // 6. استخراج اسم الملف النظيف
+    const cleanCompany = (companyName || 'SAMX_VM').replace(/[\\/:*?"<>|]/g, '_').trim();
+    const cleanBranch = (branchName || 'Store').replace(/[\\/:*?"<>|]/g, '_').trim();
+    const cleanDate = (auditDate || '').replace(/[\\/:*?"<>|]/g, '_').trim();
+    const fileName = `تقرير_تدقيق_${cleanCompany}_${cleanBranch}_${cleanDate}.pdf`;
 
     pdf.save(fileName);
     showToast(`✅ تم تحميل تقرير الـ PDF بنجاح: ${fileName}`, 'success');
+
   } catch (err) {
     console.error('exportAuditToPdf error:', err);
-    showToast('حدث خطأ أثناء معالجة PDF، يمكنك استخدام زر "طباعة / حفظ PDF" المباشر.', 'error');
+    showToast('حدث خطأ أثناء معالجة PDF، يمكنك استخدام زر "طباعة / نافذة PDF" المباشر.', 'error');
   } finally {
+    if (renderRoot && renderRoot.parentNode) {
+      renderRoot.parentNode.removeChild(renderRoot);
+    }
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = originalHtml;
@@ -109,7 +423,6 @@ export async function exportAuditToPdf() {
  * بمقاس A4 عمودي دون أي اقتطاع للصور أو النصوص
  */
 export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
-  // 1. تحديد التقارير المختارة
   let targetIds = selectedAuditIds;
   if (!Array.isArray(targetIds) || targetIds.length === 0) {
     const checkedBoxes = document.querySelectorAll('.bulk-audit-checkbox:checked');
@@ -129,13 +442,8 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     return;
   }
 
-  // فرز الجولات ترتيباً زمنياً تصاعدياً حسب التاريخ ورقم الأسبوع
-  selectedAudits.sort((a, b) => {
-    const dateA = new Date(a.auditDate || 0);
-    const dateB = new Date(b.auditDate || 0);
-    if (dateA.getTime() !== dateB.getTime()) return dateA - dateB;
-    return (Number(a.weekNumber) || 0) - (Number(b.weekNumber) || 0);
-  });
+  // فرز الجولات ترتيباً زمنياً تصاعدياً حسب التاريخ
+  selectedAudits.sort((a, b) => new Date(a.auditDate || 0) - new Date(b.auditDate || 0));
 
   const btn = document.getElementById('btn-export-bulk-pdf');
   const originalBtnHtml = btn ? btn.innerHTML : '';
@@ -152,7 +460,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
     const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Department';
-    const footerDisclaimer = branding.footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض';
+    const footerDisclaimer = branding.footerDisclaimer || '';
 
     // احتساب الإحصاءات التجميعية للدورة الشهرية
     let totalSections = 0;
@@ -180,7 +488,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     const earliestDate = selectedAudits[0].auditDate || '';
     const latestDate = selectedAudits[selectedAudits.length - 1].auditDate || '';
     const periodTitle = selectedAudits.length === 1 
-      ? `جولة أسبوع ${selectedAudits[0].weekNumber} • ${selectedAudits[0].branchName}`
+      ? `تقرير تدقيق • ${selectedAudits[0].branchName}`
       : `دورة تدقيق شهري متكاملة (${earliestDate} إلى ${latestDate})`;
 
     // إنشاء حاوية التقديم خارج الشاشة
@@ -194,12 +502,12 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
       background: #ffffff;
       color: #0f172a;
       direction: rtl;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Cairo', 'Tajawal', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     `;
     document.body.appendChild(renderRoot);
 
     // =========================================================================
-    // الصفحة 1: غلاف التقرير الشهري والملخص التنفيذي (Executive Dossier Cover)
+    // الصفحة 1: غلاف التقرير الشهري والملخص التنفيذي
     // =========================================================================
     const coverPage = document.createElement('div');
     coverPage.className = 'bulk-pdf-page';
@@ -212,7 +520,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border-bottom: 2px dashed #cbd5e1;
     `;
 
     coverPage.innerHTML = `
@@ -222,7 +529,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           <div style="display: flex; align-items: center; gap: 14px;">
             ${branding.logoData ? `
               <div style="height: 54px; max-width: 170px; display: flex; align-items: center; overflow: hidden;">
-                <img src="${branding.logoData}" alt="${companyName}" style="max-height: 54px; max-width: 170px; width: auto; height: auto; object-contain;" />
+                <img src="${branding.logoData}" alt="${companyName}" style="max-height: 54px; max-width: 170px; width: auto; height: auto; object-fit: contain;" />
               </div>
             ` : `
               <div style="width: 48px; height: 48px; border-radius: 12px; background: #0f172a; color: #facc15; border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px;">
@@ -234,7 +541,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
               <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
             </div>
           </div>
-          <div style="text-align: left; font-size: 10.5px; background: #f8fafc; padding: 8px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="text-align: right; font-size: 10.5px; background: #f8fafc; padding: 8px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
             <div style="color: #64748b;">تاريخ التصدير:</div>
             <div style="font-weight: 800; color: #0f172a;">${new Date().toISOString().split('T')[0]}</div>
             <div style="color: #b45309; font-weight: bold; margin-top: 2px;">دورة معتمدة ✅</div>
@@ -291,7 +598,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
               <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; color: #334155;">
                 <th style="padding: 8px 10px; font-weight: 800;">#</th>
                 <th style="padding: 8px 10px; font-weight: 800;">المعرض / الفرع</th>
-                <th style="padding: 8px 10px; font-weight: 800;">الأسبوع</th>
                 <th style="padding: 8px 10px; font-weight: 800;">التاريخ</th>
                 <th style="padding: 8px 10px; font-weight: 800;">أخصائي الـ VM</th>
                 <th style="padding: 8px 10px; font-weight: 800;">الأقسام</th>
@@ -307,7 +613,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
                   <tr style="border-bottom: 1px solid #e2e8f0; background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
                     <td style="padding: 8px 10px; font-weight: bold; color: #64748b;">${i + 1}</td>
                     <td style="padding: 8px 10px; font-weight: 800; color: #0f172a;">${aud.branchName || 'معرض غير محدد'}</td>
-                    <td style="padding: 8px 10px; font-weight: 700; color: #b45309;">أسبوع ${aud.weekNumber || 1}</td>
                     <td style="padding: 8px 10px; color: #475569;">${aud.auditDate || '-'}</td>
                     <td style="padding: 8px 10px; color: #0284c7; font-weight: 600;">${aud.auditorName || '-'}</td>
                     <td style="padding: 8px 10px; font-weight: bold;">${sCount} أقسام</td>
@@ -330,9 +635,9 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
         </div>
       </div>
 
-      <!-- تذييل صفحة الغلاف -->
+      <!-- تذييل صفحة الغلاف النظيف -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
-        <span>منظومة SAMX-VM • تقرير الدورة الشهرية الشامل</span>
+        <span>${companyName} • تقرير الدورة الشهرية الشامل</span>
         <span>صفحة 1</span>
       </div>
     `;
@@ -348,41 +653,8 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
       const aud = selectedAudits[audIdx];
       const sections = aud.sections || [];
 
-      // إذا لم يكن بالقسم أقسام موثقة
-      if (sections.length === 0) {
-        const emptyPage = document.createElement('div');
-        emptyPage.className = 'bulk-pdf-page';
-        emptyPage.style.cssText = `
-          width: 794px;
-          height: 1123px;
-          box-sizing: border-box;
-          padding: 40px;
-          background: #ffffff;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          border-bottom: 2px dashed #cbd5e1;
-        `;
-        emptyPage.innerHTML = `
-          <div>
-            <div style="border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px;">
-              <h2 style="margin: 0; font-size: 18px; font-weight: 900; color: #0f172a;">${aud.branchName} • الأسبوع ${aud.weekNumber}</h2>
-              <p style="margin: 3px 0 0 0; font-size: 11px; color: #64748b;">التاريخ: ${aud.auditDate} | الأخصائي: ${aud.auditorName}</p>
-            </div>
-            <div style="text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 13px; border: 2px dashed #e2e8f0; border-radius: 16px;">
-              لا توجد أقسام مسجلة في جولة هذا المعرض.
-            </div>
-          </div>
-          <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
-            <span>${aud.branchName} | أسبوع ${aud.weekNumber}</span>
-            <span>صفحة ${pageNumber++}</span>
-          </div>
-        `;
-        renderRoot.appendChild(emptyPage);
-        continue;
-      }
+      if (sections.length === 0) continue;
 
-      // تقسيم الأقسام بحيث يظهر قسمان كحد أقصى في كل صفحة A4 لضمان عدم اقتصاص أي صورة
       const chunkSize = 2;
       for (let sIdx = 0; sIdx < sections.length; sIdx += chunkSize) {
         const chunk = sections.slice(sIdx, sIdx + chunkSize);
@@ -392,20 +664,17 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           width: 794px;
           height: 1123px;
           box-sizing: border-box;
-          padding: 36px 40px;
+          padding: 34px 40px;
           background: #ffffff;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          border-bottom: 2px dashed #cbd5e1;
         `;
-
-        const isFirstChunk = (sIdx === 0);
 
         sectionPage.innerHTML = `
           <div>
-            <!-- هيدر الجولة الميدانية بالأعلى -->
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px;">
+            <!-- هيدر الجولة الميدانية بالأعلى (نظيف وبدون week numbers أو timestamps) -->
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
               <div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <span style="background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
@@ -415,8 +684,8 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
                     ${aud.branchName}
                   </h2>
                 </div>
-                <div style="font-size: 10.5px; color: #64748b; margin-top: 2px; font-weight: 600;">
-                  الأسبوع: <strong style="color: #b45309;">${aud.weekNumber}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
+                <div style="font-size: 10.5px; color: #64748b; margin-top: 3px; font-weight: 600;">
+                  المعرض: <strong>${aud.branchName}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
                 </div>
               </div>
               <div style="text-align: left; font-size: 10.5px; font-weight: bold; color: #0f172a; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -424,123 +693,15 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
               </div>
             </div>
 
-            <!-- بطاقات الأقسام الموثقة في هذا الجزء -->
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              ${chunk.map((sec, localIdx) => {
-                const globalIndex = sIdx + localIdx + 1;
-                const layout = sec.layoutType || 'comparison';
-
-                // شارة الحالة
-                let statusBadge = '<span style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 2px 8px; border-radius: 9999px; font-size: 9.5px; font-weight: bold;">تم المعالجة ✅</span>';
-                if (sec.status === 'store_followup') {
-                  statusBadge = '<span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 9999px; font-size: 9.5px; font-weight: bold;">متابعة الفرع ⏳</span>';
-                } else if (sec.status === 'management_action') {
-                  statusBadge = '<span style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; padding: 2px 8px; border-radius: 9999px; font-size: 9.5px; font-weight: bold;">صيانة / إدارة ⚠️</span>';
-                }
-
-                // حاوية الصور بناءً على نمط التخطيط مع الشارات الكبسولية بوسط أعلى الصورة
-                let imagesHtml = '';
-
-                if (layout === 'single_panorama') {
-                  // بانوراما كاملة للواجهات أو المخازن
-                  imagesHtml = `
-                    <div style="width: 100%; height: 215px; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f1f5f9; margin-bottom: 8px;">
-                      <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9px; font-weight: bold; letter-spacing: 0.5px;">
-                        <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #facc15;"></span>
-                        <span>● Panorama View</span>
-                      </div>
-                      <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="width: 100%; height: 100%; object-fit: cover;" />
-                    </div>
-                  `;
-                } else if (layout === 'stacked_panorama') {
-                  // بانوراما مكدسة
-                  imagesHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
-                      <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f1f5f9;">
-                        <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 1.5px 8px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 8.5px; font-weight: bold;">
-                          <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #fca5a5;"></span>
-                          <span>● Before</span>
-                        </div>
-                        <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-                      <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f1f5f9;">
-                        <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 1.5px 8px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 8.5px; font-weight: bold;">
-                          <span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #86efac;"></span>
-                          <span>● After</span>
-                        </div>
-                        <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-                    </div>
-                  `;
-                } else {
-                  // مقارنة جانبية أنيقة Side-by-Side (الافتراضي)
-                  imagesHtml = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                      <!-- صورة الوضع السابق (اليمين) -->
-                      <div style="width: 100%; height: 215px; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f1f5f9;">
-                        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: bold; letter-spacing: 0.5px;">
-                          <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #fca5a5;"></span>
-                          <span>● Before</span>
-                        </div>
-                        <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-
-                      <!-- صورة بعد التعديل (اليسار) -->
-                      <div style="width: 100%; height: 215px; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f1f5f9;">
-                        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: bold; letter-spacing: 0.5px;">
-                          <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #86efac;"></span>
-                          <span>● After</span>
-                        </div>
-                        <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-                    </div>
-                  `;
-                }
-
-                return `
-                  <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <!-- عنوان وشارة القسم -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 8px;">
-                      <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 20px; height: 20px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center;">
-                          ${globalIndex}
-                        </span>
-                        <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #0f172a;">${sec.title}</h4>
-                      </div>
-                      <div>${statusBadge}</div>
-                    </div>
-
-                    <!-- الصور مع الشارات -->
-                    ${imagesHtml}
-
-                    <!-- معايير الـ VM المطبقة إذا وُجدت -->
-                    ${sec.checklist && sec.checklist.length > 0 ? `
-                      <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e;">
-                        <strong>✓ معايير الـ VM المطبقة (${sec.checklist.length}):</strong> ${sec.checklist.join('  •  ')}
-                      </div>
-                    ` : ''}
-
-                    <!-- صندوق المتابعة والتكليف إذا وُجد -->
-                    ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-                      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 8px; margin-bottom: 6px; font-size: 9.5px; color: #92400e; display: flex; justify-content: space-between;">
-                        <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
-                        <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
-                      </div>
-                    ` : ''}
-
-                    <!-- الملاحظات الفنية -->
-                    <div style="font-size: 10px; color: #475569; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.4;">
-                      <strong style="color: #0f172a;">الملاحظات الميدانية:</strong> ${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+            <!-- بطاقات الأقسام الموثقة -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              ${chunk.map((sec, localIdx) => renderPdfSectionCardHtml(sec, sIdx + localIdx + 1)).join('')}
             </div>
           </div>
 
-          <!-- تذييل الصفحة برقم الشريحة واسم الفرع -->
-          <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
-            <span>${aud.branchName} • أسبوع ${aud.weekNumber}</span>
+          <!-- تذييل الصفحة النظيف -->
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
+            <span>${aud.branchName}</span>
             <span>صفحة ${pageNumber++}</span>
           </div>
         `;
@@ -550,7 +711,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     }
 
     // =========================================================================
-    // الصفحة الأخيرة: الاعتمادات الختامية للدورة الشهرية (Monthly Governance & Sign-off)
+    // الصفحة الأخيرة: الاعتمادات الختامية والتوصيات
     // =========================================================================
     const finalPage = document.createElement('div');
     finalPage.className = 'bulk-pdf-page';
@@ -576,7 +737,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           </p>
         </div>
 
-        <!-- ملخص نتائج الدورة والتوصيات الاستراتيجية -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
           <h4 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 800; color: #0f172a;">
             📊 خلاصة الحوكمة ومتابعة الأداء الشهري:
@@ -589,9 +749,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           </ul>
         </div>
 
-        <!-- صناديق التواقيع والاعتماد الرسمي -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-          <!-- توقيع رئيس قسم العرض المرئي -->
           <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px;">
             <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">
               إدارة العرض المرئي والتنسيق التجاري
@@ -607,7 +765,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
             </div>
           </div>
 
-          <!-- توقيع مدير إدارة العمليات والمعارض -->
           <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px;">
             <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">
               إدارة العمليات وتشغيل المعارض
@@ -624,24 +781,23 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           </div>
         </div>
 
-        <!-- نص التذييل القانوني والسياسة الرسمية -->
-        <div style="background: #f1f5f9; border-radius: 10px; padding: 12px 16px; font-size: 10.5px; color: #64748b; text-align: center; line-height: 1.5;">
-          ${footerDisclaimer}
-        </div>
+        ${footerDisclaimer ? `
+          <div style="background: #f1f5f9; border-radius: 10px; padding: 12px 16px; font-size: 10.5px; color: #64748b; text-align: center; line-height: 1.5;">
+            ${footerDisclaimer}
+          </div>
+        ` : ''}
       </div>
 
       <!-- تذييل الصفحة الأخيرة -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
-        <span>منظومة SAMX-VM • ختام تقرير الدورة الشهرية</span>
+        <span>${companyName} • ختام تقرير الدورة الشهرية</span>
         <span>صفحة ${pageNumber}</span>
       </div>
     `;
 
     renderRoot.appendChild(finalPage);
 
-    // =========================================================================
-    // التقاط الصفحات عبر html2canvas وتوليد مستند jsPDF
-    // =========================================================================
+    // التقاط كل صفحة مستقلاً عبر html2canvas
     const pages = renderRoot.querySelectorAll('.bulk-pdf-page');
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -670,7 +826,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
       }
     }
 
-    // تسمية وحفظ الملف
     const cleanCompany = (companyName || 'SAMX_VM').replace(/[\\/:*?"<>|]/g, '_').trim();
     const cleanPeriod = (periodTitle || 'الدورة_الشهرية').replace(/[\\/:*?"<>|]/g, '_').slice(0, 30).trim();
     const fileName = `تقرير_الدورة_الشهرية_المجمعة_${cleanCompany}_${cleanPeriod}.pdf`;
