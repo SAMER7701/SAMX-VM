@@ -201,7 +201,15 @@ async function handleApiRequest(pathname, method, request, env) {
     if (method === 'POST') {
       const body = await request.json();
       const name = (body.name || '').trim();
-      const id = body.id || `br_${Date.now()}`;
+      const rawId = body.id;
+      let id;
+      if (typeof rawId === 'number' && !isNaN(rawId)) {
+        id = rawId;
+      } else if (typeof rawId === 'string' && /^\d+$/.test(rawId.trim())) {
+        id = parseInt(rawId.trim(), 10);
+      } else {
+        id = Date.now();
+      }
       const code = body.code || '';
       const city = body.city || 'الرياض';
 
@@ -214,10 +222,16 @@ async function handleApiRequest(pathname, method, request, env) {
           'INSERT INTO branches (id, name, code, city) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, city=excluded.city'
         ).bind(id, name, code, city).run();
       } catch (err) {
-        // Fallback آمن لأعمدة id, name فقط
-        await env.DB.prepare(
-          'INSERT INTO branches (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
-        ).bind(id, name).run();
+        try {
+          await env.DB.prepare(
+            'UPDATE branches SET code = ?, city = ? WHERE name = ?'
+          ).bind(code, city, name).run();
+        } catch (err2) {
+          // Fallback آمن لأعمدة id, name فقط
+          await env.DB.prepare(
+            'INSERT INTO branches (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
+          ).bind(id, name).run();
+        }
       }
 
       return jsonResponse({ success: true, data: { id, name, code, city } }, 201);
@@ -262,7 +276,15 @@ async function handleApiRequest(pathname, method, request, env) {
     if (method === 'POST') {
       const body = await request.json();
       const name = (body.name || '').trim();
-      const id = body.id || `sp_${Date.now()}`;
+      const rawId = body.id;
+      let id;
+      if (typeof rawId === 'number' && !isNaN(rawId)) {
+        id = rawId;
+      } else if (typeof rawId === 'string' && /^\d+$/.test(rawId.trim())) {
+        id = parseInt(rawId.trim(), 10);
+      } else {
+        id = Date.now();
+      }
       const email = body.email || '';
       const phone = body.phone || '';
 
@@ -275,9 +297,15 @@ async function handleApiRequest(pathname, method, request, env) {
           'INSERT INTO specialists (id, name, email, phone) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
         ).bind(id, name, email, phone).run();
       } catch (err) {
-        await env.DB.prepare(
-          'INSERT INTO specialists (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
-        ).bind(id, name).run();
+        try {
+          await env.DB.prepare(
+            'UPDATE specialists SET email = ?, phone = ? WHERE name = ?'
+          ).bind(email, phone, name).run();
+        } catch (err2) {
+          await env.DB.prepare(
+            'INSERT INTO specialists (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name'
+          ).bind(id, name).run();
+        }
       }
 
       return jsonResponse({ success: true, data: { id, name, email, phone } }, 201);

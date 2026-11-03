@@ -99,15 +99,20 @@ function cloudflareD1ApiPlugin(): Plugin {
                   return res.end(JSON.stringify({ success: false, error: 'اسم الفرع مطلوب' }));
                 }
 
+                const rawId = parsed.id;
+                const id = (typeof rawId === 'number' && !isNaN(rawId))
+                  ? rawId
+                  : (parseInt(rawId, 10) || Date.now());
+
                 const newBranch = {
-                  id: parsed.id || `br_${Date.now()}`,
+                  id,
                   name,
                   code: parsed.code || '',
                   city: parsed.city || 'الرياض',
                   created_at: new Date().toISOString()
                 };
 
-                const existingIdx = store.branches.findIndex((b: any) => b.id === newBranch.id || b.name === name);
+                const existingIdx = store.branches.findIndex((b: any) => String(b.id) === String(id) || b.name === name);
                 if (existingIdx !== -1) {
                   store.branches[existingIdx] = newBranch;
                 } else {
@@ -132,7 +137,7 @@ function cloudflareD1ApiPlugin(): Plugin {
           const rawTarget = decodeURIComponent(url.replace('/api/branches/', '').trim());
           if (method === 'DELETE') {
             const store = getStore();
-            store.branches = store.branches.filter((b: any) => b.id !== rawTarget && b.name !== rawTarget);
+            store.branches = store.branches.filter((b: any) => String(b.id) !== rawTarget && b.name !== rawTarget);
             saveStore(store);
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.statusCode = 200;
@@ -162,15 +167,20 @@ function cloudflareD1ApiPlugin(): Plugin {
                   return res.end(JSON.stringify({ success: false, error: 'اسم الأخصائي مطلوب' }));
                 }
 
+                const rawId = parsed.id;
+                const id = (typeof rawId === 'number' && !isNaN(rawId))
+                  ? rawId
+                  : (parseInt(rawId, 10) || Date.now());
+
                 const newSpecialist = {
-                  id: parsed.id || `sp_${Date.now()}`,
+                  id,
                   name,
                   email: parsed.email || '',
                   phone: parsed.phone || '',
                   created_at: new Date().toISOString()
                 };
 
-                const existingIdx = store.specialists.findIndex((s: any) => s.id === newSpecialist.id || s.name === name);
+                const existingIdx = store.specialists.findIndex((s: any) => String(s.id) === String(id) || s.name === name);
                 if (existingIdx !== -1) {
                   store.specialists[existingIdx] = newSpecialist;
                 } else {

@@ -242,6 +242,18 @@ export function replaySplashScreen() {
 // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية
 export async function bootApp() {
   try { initSplashScreen(); } catch(e) {}
+
+  // 1. المزامنة السحابية الفورية لجلب الفروع والأخصائيين من سحابة D1 أولاً قبل تهيئة الحقول
+  try {
+    await Promise.allSettled([
+      samxApi.fetchBranchesCloud(),
+      samxApi.fetchSpecialistsCloud(),
+      samxApi.fetchSectionsCloud(),
+    ]);
+  } catch (syncErr) {
+    console.warn('Boot Cloudflare D1 sync error:', syncErr);
+  }
+
   try { await loadMetadata(); } catch(e) { console.warn('bootApp: loadMetadata error', e); }
   try { calculateCurrentWeek(); } catch(e) {}
   try { loadAuditFromStorage(); } catch(e) {}
@@ -261,18 +273,13 @@ export async function bootApp() {
   try { populateSectionTypeSelect(); } catch(e) {}
   try { renderBulkExportUI(); } catch(e) {}
 
-  // مزامنة سحابية مباشرة وفورية لجلب الفروع والأخصائيين من Cloudflare D1
+  // 2. تحديث واجهات الاختيار والقوائم بعد اكتمال المزامنة السحابية
   try {
-    await Promise.allSettled([
-      samxApi.fetchBranchesCloud(),
-      samxApi.fetchSpecialistsCloud(),
-      samxApi.fetchSectionsCloud(),
-    ]);
     refreshBranchesUI();
     refreshSpecialistsUI();
     refreshMainSelects();
-  } catch (syncErr) {
-    console.warn('Boot Cloudflare D1 sync error:', syncErr);
+  } catch (e) {
+    console.warn('Boot UI refresh error:', e);
   }
 }
 
@@ -413,16 +420,24 @@ export async function addInlineEntity() {
       : await samxApi.createSpecialistCloud(val);
 
     if (res && res.success) {
+      // إعادة جلب القائمة من السحابة للتأكيد 100%
+      if (modalState.currentDrawerTab === 'branches') {
+        await samxApi.fetchBranchesCloud();
+      } else {
+        await samxApi.fetchSpecialistsCloud();
+      }
+
       if (input) input.value = '';
+      refreshMainSelects();
       renderInlineDrawerList();
       renderModalList();
-      refreshMainSelects();
       showToast(modalState.currentDrawerTab === 'branches' ? `✨ تم حفظ الفرع "${val}" في سحابة D1 بنجاح` : `✨ تم حفظ "${val}" في سحابة D1 بنجاح`, 'success');
     } else {
-      showToast(res && res.message ? res.message : 'فشلت الإضافة في السحابة', 'error');
+      showToast('❌ فشلت الإضافة في السحابة: ' + (res?.message || 'خطأ غير معروف'), 'error');
     }
   } catch (err) {
-    showToast('فشل الحفظ في سحابة D1: ' + err.message, 'error');
+    console.error('addInlineEntity error:', err);
+    showToast('❌ فشل الحفظ في سحابة D1: ' + (err.message || 'خطأ في الاتصال'), 'error');
   }
 }
 
@@ -616,7 +631,14 @@ export async function submitAddEntity(type = modalState.currentModalTab) {
       throw new Error(cloudRes?.message || 'فشل الحفظ في قاعدة بيانات D1 السحابية');
     }
 
-    // 3. تحديث واجهة المستخدم فوراً بالبيانات الجديدة
+    // 3. إعادة الجلب الفوري لتأكيد المزامنة مع سحابة D1
+    if (targetType === 'branches') {
+      await samxApi.fetchBranchesCloud();
+    } else {
+      await samxApi.fetchSpecialistsCloud();
+    }
+
+    // 4. مسح حقل الإدخال بعد تأكيد النجاح فقط
     if (inputElem) {
       inputElem.value = '';
     }
@@ -631,19 +653,23 @@ export async function submitAddEntity(type = modalState.currentModalTab) {
       }
     }
 
+    // 5. تحديث واجهة المستخدم والقوائم المنسدلة فوراً
+    refreshBranchesUI();
+    refreshSpecialistsUI();
     refreshMainSelects();
     renderModalList(targetType);
     renderInlineDrawerList();
 
-    // 4. إشعار النجاح الصريح
+    // 6. إشعار النجاح الصريح
     const successMsg = `✨ تم حفظ "${val}" في سحابة Cloudflare D1 بنجاح (مزامنة فورية) ✅`;
     showToast(successMsg, 'success');
     showModalInlineFeedback(successMsg, 'success');
 
   } catch (err) {
     console.error('submitAddEntity error:', err);
-    showToast('حدث خطأ أثناء حفظ العنصر: ' + err.message, 'error');
-    showModalInlineFeedback('فشل الحفظ: ' + err.message, 'error');
+    const errMsg = err.message || 'فشل الاتصال بقاعدة بيانات D1';
+    showToast('❌ خطأ أثناء حفظ العنصر: ' + errMsg, 'error');
+    showModalInlineFeedback('❌ فشل الحفظ في D1: ' + errMsg, 'error');
   } finally {
     // إنهاء حالة التحميل
     if (submitBtn) submitBtn.disabled = false;

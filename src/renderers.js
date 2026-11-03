@@ -291,15 +291,21 @@ export function populateBranchSelect() {
 
   const branches = getBranches();
   if (branches.length === 0) {
-    branchSelect.innerHTML = '<option value="">-- أضف فرعاً من زر (⚙️ إدارة الفروع) --</option>';
-    currentAudit.branchName = '';
+    if (currentAudit.branchName) {
+      branchSelect.innerHTML = `<option value="${currentAudit.branchName}" selected>${currentAudit.branchName}</option>`;
+    } else {
+      branchSelect.innerHTML = '<option value="">-- أضف فرعاً من زر (⚙️ إدارة الفروع) --</option>';
+    }
     return;
   }
 
   const branchNames = branches.map(b => typeof b === 'string' ? b : (b.name || ''));
 
-  if ((!currentAudit.branchName || !branchNames.includes(currentAudit.branchName)) && branchNames.length > 0) {
+  if (!currentAudit.branchName && branchNames.length > 0) {
     currentAudit.branchName = branchNames[0];
+  } else if (currentAudit.branchName && !branchNames.includes(currentAudit.branchName)) {
+    // If current audit branch is not in the list, preserve it as an option
+    branchNames.unshift(currentAudit.branchName);
   }
 
   let html = '';
@@ -322,15 +328,20 @@ export function populateSpecialistSelect() {
 
   const specialists = getSpecialists();
   if (specialists.length === 0) {
-    specialistSelect.innerHTML = '<option value="">-- أضف أخصائياً من زر (⚙️ إدارة الأخصائيين) --</option>';
-    currentAudit.auditorName = '';
+    if (currentAudit.auditorName) {
+      specialistSelect.innerHTML = `<option value="${currentAudit.auditorName}" selected>${currentAudit.auditorName}</option>`;
+    } else {
+      specialistSelect.innerHTML = '<option value="">-- أضف أخصائياً من زر (⚙️ إدارة الأخصائيين) --</option>';
+    }
     return;
   }
 
   const specialistNames = specialists.map(s => typeof s === 'string' ? s : (s.name || ''));
 
-  if ((!currentAudit.auditorName || !specialistNames.includes(currentAudit.auditorName)) && specialistNames.length > 0) {
+  if (!currentAudit.auditorName && specialistNames.length > 0) {
     currentAudit.auditorName = specialistNames[0];
+  } else if (currentAudit.auditorName && !specialistNames.includes(currentAudit.auditorName)) {
+    specialistNames.unshift(currentAudit.auditorName);
   }
 
   let html = '';
