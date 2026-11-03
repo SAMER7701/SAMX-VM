@@ -413,7 +413,7 @@ export function renderModalList(targetTab = null) {
       } else {
         branchesContainer.innerHTML = branches.map((item, index) => {
           const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
-          const id = typeof item === 'object' && item && item.id ? item.id : `br_${index}`;
+          const id = typeof item === 'object' && item && (item.id || item.id === 0) ? item.id : (name || index);
           const isCurrent = currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(name).trim().toLowerCase();
 
           return `
@@ -428,7 +428,7 @@ export function renderModalList(targetTab = null) {
                 </div>
                 ${isCurrent ? `<span class="bg-gold-500/20 text-gold-400 border border-gold-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gold-400"></span>المعرض المحدد</span>` : ''}
               </div>
-              <button type="button" onclick="deleteEntity('branches', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90" title="حذف الفرع">
+              <button type="button" onclick="deleteEntity('branches', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90 cursor-pointer" title="حذف الفرع">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
               </button>
             </div>
@@ -451,7 +451,7 @@ export function renderModalList(targetTab = null) {
       } else {
         specialistsContainer.innerHTML = specialists.map((item, index) => {
           const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
-          const id = typeof item === 'object' && item && item.id ? item.id : `sp_${index}`;
+          const id = typeof item === 'object' && item && (item.id || item.id === 0) ? item.id : (name || index);
           const isCurrent = currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(name).trim().toLowerCase();
 
           return `
@@ -466,7 +466,7 @@ export function renderModalList(targetTab = null) {
                 </div>
                 ${isCurrent ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>المسؤول النشط</span>` : ''}
               </div>
-              <button type="button" onclick="deleteEntity('specialists', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90" title="حذف الأخصائي">
+              <button type="button" onclick="deleteEntity('specialists', '${id}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition active:scale-90 cursor-pointer" title="حذف الأخصائي">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
               </button>
             </div>
@@ -547,7 +547,7 @@ export function renderInlineDrawerList() {
 
     container.innerHTML = items.map((item, index) => {
       const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
-      const id = typeof item === 'object' && item && item.id ? item.id : '';
+      const id = typeof item === 'object' && item && (item.id || item.id === 0) ? item.id : (name || index);
       const activeName = (modalState.currentDrawerTab === 'branches') ? currentAudit.branchName : currentAudit.auditorName;
       const isCurrent = activeName && String(activeName).trim().toLowerCase() === String(name).trim().toLowerCase();
 
@@ -568,7 +568,7 @@ export function renderInlineDrawerList() {
             </div>
             ${isCurrent ? `<span class="${activeBadgeClass} text-[10px] font-bold px-1.5 py-0.2 rounded border">${activeBadgeText}</span>` : ''}
           </div>
-          <button type="button" onclick="deleteInlineEntity('${modalState.currentDrawerTab}', ${index})" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="حذف">
+          <button type="button" onclick="deleteInlineEntity('${modalState.currentDrawerTab}', '${id || index}')" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer" title="حذف">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>

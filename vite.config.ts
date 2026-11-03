@@ -205,7 +205,10 @@ function cloudflareD1ApiPlugin(): Plugin {
           const rawTarget = decodeURIComponent(url.replace('/api/specialists/', '').trim());
           if (method === 'DELETE') {
             const store = getStore();
-            store.specialists = store.specialists.filter((s: any) => s.id !== rawTarget && s.name !== rawTarget);
+            store.specialists = store.specialists.filter((s: any) => 
+              String(s.id).trim() !== rawTarget && 
+              String(s.name || '').trim() !== rawTarget
+            );
             saveStore(store);
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.statusCode = 200;

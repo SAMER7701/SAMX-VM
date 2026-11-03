@@ -241,7 +241,12 @@ async function handleApiRequest(pathname, method, request, env) {
   if (pathname.startsWith('/api/branches/')) {
     const rawTarget = decodeURIComponent(pathname.replace('/api/branches/', '').trim());
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM branches WHERE id = ? OR name = ?').bind(rawTarget, rawTarget).run();
+      const numTarget = parseInt(rawTarget, 10);
+      if (!isNaN(numTarget)) {
+        await env.DB.prepare('DELETE FROM branches WHERE id = ? OR name = ?').bind(numTarget, rawTarget).run();
+      } else {
+        await env.DB.prepare('DELETE FROM branches WHERE name = ? OR id = ?').bind(rawTarget, rawTarget).run();
+      }
       return jsonResponse({ success: true, message: 'تم حذف الفرع بنجاح' });
     }
   }
@@ -315,7 +320,12 @@ async function handleApiRequest(pathname, method, request, env) {
   if (pathname.startsWith('/api/specialists/')) {
     const rawTarget = decodeURIComponent(pathname.replace('/api/specialists/', '').trim());
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM specialists WHERE id = ? OR name = ?').bind(rawTarget, rawTarget).run();
+      const numTarget = parseInt(rawTarget, 10);
+      if (!isNaN(numTarget)) {
+        await env.DB.prepare('DELETE FROM specialists WHERE id = ? OR name = ?').bind(numTarget, rawTarget).run();
+      } else {
+        await env.DB.prepare('DELETE FROM specialists WHERE name = ? OR id = ?').bind(rawTarget, rawTarget).run();
+      }
       return jsonResponse({ success: true, message: 'تم حذف الأخصائي بنجاح' });
     }
   }

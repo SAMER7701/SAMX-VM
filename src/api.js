@@ -159,9 +159,10 @@ export async function createBranchCloud(name, id = null) {
  * حذف فرع مباشرة من الخادم السحابي وقاعدة بيانات D1
  */
 export async function deleteBranchCloud(idOrName) {
-  if (!idOrName) throw new Error('معرف الفرع مطلوب');
+  if (!idOrName && idOrName !== 0) throw new Error('معرف الفرع مطلوب');
 
-  const encoded = encodeURIComponent(idOrName);
+  const strTarget = String(idOrName).trim();
+  const encoded = encodeURIComponent(strTarget);
   let res = null;
   let networkError = null;
 
@@ -193,7 +194,20 @@ export async function deleteBranchCloud(idOrName) {
     throw new Error(errMsg);
   }
 
-  metadataCache.branches = getBranches().filter(b => b.id !== idOrName && (b.name || b) !== idOrName);
+  // تحديث الكاش المحلي فورياً بمقارنة دقيقة تدعم الأرقام والنصوص
+  metadataCache.branches = getBranches().filter(b => {
+    if (typeof b === 'string') return b.trim() !== strTarget;
+    if (b && typeof b === 'object') {
+      return String(b.id).trim() !== strTarget && String(b.name || '').trim() !== strTarget;
+    }
+    return true;
+  });
+
+  // إعادة مزامنة الكاش مباشرة من السحابة للتأكيد 100%
+  try {
+    await fetchBranchesCloud();
+  } catch (e) {}
+
   return { success: true, source: 'cloud_d1' };
 }
 
@@ -316,9 +330,10 @@ export async function createSpecialistCloud(name, id = null) {
  * حذف أخصائي مباشرة من الخادم السحابي وقاعدة بيانات D1
  */
 export async function deleteSpecialistCloud(idOrName) {
-  if (!idOrName) throw new Error('معرف الأخصائي مطلوب');
+  if (!idOrName && idOrName !== 0) throw new Error('معرف الأخصائي مطلوب');
 
-  const encoded = encodeURIComponent(idOrName);
+  const strTarget = String(idOrName).trim();
+  const encoded = encodeURIComponent(strTarget);
   let res = null;
   let networkError = null;
 
@@ -350,7 +365,20 @@ export async function deleteSpecialistCloud(idOrName) {
     throw new Error(errMsg);
   }
 
-  metadataCache.specialists = getSpecialists().filter(s => s.id !== idOrName && (s.name || s) !== idOrName);
+  // تحديث الكاش المحلي فورياً بمقارنة دقيقة تدعم الأرقام والنصوص
+  metadataCache.specialists = getSpecialists().filter(s => {
+    if (typeof s === 'string') return s.trim() !== strTarget;
+    if (s && typeof s === 'object') {
+      return String(s.id).trim() !== strTarget && String(s.name || '').trim() !== strTarget;
+    }
+    return true;
+  });
+
+  // إعادة مزامنة الكاش مباشرة من السحابة للتأكيد 100%
+  try {
+    await fetchSpecialistsCloud();
+  } catch (e) {}
+
   return { success: true, source: 'cloud_d1' };
 }
 

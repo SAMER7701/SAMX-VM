@@ -695,59 +695,74 @@ export async function deleteEntity(type = modalState.currentModalTab, target) {
   const items = (targetType === 'branches') ? getBranches() : getSpecialists();
 
   let targetItem = null;
-  if (typeof target === 'number') {
+  if (typeof target === 'number' && target >= 0 && target < items.length) {
     targetItem = items[target];
-  } else if (typeof target === 'string') {
-    targetItem = items.find(item => {
-      const id = typeof item === 'object' && item ? item.id : null;
-      const name = typeof item === 'string' ? item : (item && item.name ? item.name : '');
-      return id === target || name === target;
+  }
+
+  if (!targetItem) {
+    const strTarget = String(target).trim().toLowerCase();
+    targetItem = items.find((item, idx) => {
+      if (typeof item === 'string') {
+        return item.trim().toLowerCase() === strTarget || String(idx) === strTarget;
+      }
+      if (typeof item === 'object' && item) {
+        return String(item.id || '').trim().toLowerCase() === strTarget ||
+               String(item.name || '').trim().toLowerCase() === strTarget ||
+               String(idx) === strTarget;
+      }
+      return false;
     });
   }
 
   if (!targetItem) {
     console.warn('deleteEntity: target not found:', target);
+    showToast('لم يتم العثور على العنصر المراد حذفه', 'error');
     return;
   }
 
   const targetName = typeof targetItem === 'string' ? targetItem : (targetItem.name || '');
-  const targetId = typeof targetItem === 'object' && targetItem && targetItem.id ? targetItem.id : targetName;
+  const targetId = (typeof targetItem === 'object' && targetItem && (targetItem.id || targetItem.id === 0))
+    ? targetItem.id
+    : targetName;
 
-  // الحماية من حذف العنصر المستخدم في التقرير النشط
-  if (targetType === 'branches' && currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
-    showToast('لا يمكن حذف الفرع لأنه محدد في مسودة التقرير النشطة', 'error');
-    showModalInlineFeedback('لا يمكن حذف الفرع المحدد في مسودة التقرير النشطة ⚠️', 'error');
-    return;
-  }
-  if (targetType === 'specialists' && currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
-    showToast('لا يمكن حذف الأخصائي لأنه محدد كمسؤول التقييم في التقرير النشط', 'error');
-    showModalInlineFeedback('لا يمكن حذف الأخصائي المحدد في مسودة التقرير النشطة ⚠️', 'error');
-    return;
-  }
-
-  if (!confirm(`هل أنت متأكد من حذف "${targetName}" من القائمة وقاعدة بيانات D1؟`)) return;
+  if (!confirm(`هل أنت متأكد من حذف "${targetName}" من القائمة وقاعدة بيانات D1 نهائياً؟`)) return;
 
   showModalInlineFeedback(`جاري حذف "${targetName}" من السحابة... ⏳`, 'loading');
 
   try {
-    // الحذف المباشر من قاعدة بيانات Cloudflare D1
+    // 1. الحذف المباشر من قاعدة بيانات Cloudflare D1
     if (targetType === 'branches') {
       await samxApi.deleteBranchCloud(targetId);
+      // إذا كان الفرع المحذوف هو المحدد حالياً في التقرير، نحدث الاختيار لفرع آخر أو فارغ
+      if (currentAudit.branchName && String(currentAudit.branchName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
+        const remaining = getBranches();
+        currentAudit.branchName = remaining.length > 0 ? (remaining[0].name || remaining[0]) : '';
+        saveAuditToStorage();
+      }
     } else {
       await samxApi.deleteSpecialistCloud(targetId);
+      if (currentAudit.auditorName && String(currentAudit.auditorName).trim().toLowerCase() === String(targetName).trim().toLowerCase()) {
+        const remaining = getSpecialists();
+        currentAudit.auditorName = remaining.length > 0 ? (remaining[0].name || remaining[0]) : '';
+        saveAuditToStorage();
+      }
     }
 
+    // 2. تحديث الواجهة والقوائم المنسدلة فوراً بدون الحاجة لتحديث الصفحة
+    refreshBranchesUI();
+    refreshSpecialistsUI();
+    refreshMainSelects();
     renderModalList(targetType);
     renderInlineDrawerList();
-    refreshMainSelects();
 
-    const infoMsg = `🗑️ تم حذف "${targetName}" بنجاح من قاعدة بيانات Cloudflare D1 السحابية`;
+    const infoMsg = `🗑️ تم حذف "${targetName}" بنجاح من قاعدة بيانات D1 السحابية والقوائم`;
     showToast(infoMsg, 'info');
     showModalInlineFeedback(infoMsg, 'info');
   } catch (err) {
     console.error('deleteEntity error:', err);
-    showToast('حدث خطأ أثناء الحذف: ' + err.message, 'error');
-    showModalInlineFeedback('فشل الحذف: ' + err.message, 'error');
+    const errMsg = err.message || 'فشل الحذف من الخادم السحابي';
+    showToast('❌ خطأ أثناء الحذف: ' + errMsg, 'error');
+    showModalInlineFeedback('❌ فشل الحذف: ' + errMsg, 'error');
   }
 }
 
