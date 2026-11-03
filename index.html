@@ -76,11 +76,17 @@
     }
 
     /* تحسينات الطباعة والتصدير كـ PDF */
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
     @media print {
       body {
         background-color: #ffffff !important;
         color: #0f172a !important;
-        padding-bottom: 0 !important;
+        padding: 10mm !important;
+        margin: 0 !important;
       }
       .no-print, header, nav, #toast-container, .modal-backdrop {
         display: none !important;
@@ -675,20 +681,16 @@
               <!-- حاوية شعار الشركة الرسمي أو شارة النظام -->
               <div id="print-header-logo-container" class="shrink-0"></div>
               <div>
-                <div class="inline-flex items-center gap-2 bg-slate-900 text-amber-400 text-xs font-black px-3 py-1 rounded-md mb-1.5 tracking-wider">
-                  <span id="print-badge-company-name">SAMX-VM</span>
-                  <span class="text-slate-400 font-normal">| تقرير التدقيق الميداني الأسبوعي</span>
-                </div>
                 <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-                <p class="text-xs text-slate-600 mt-1 font-medium" id="print-header-subtitle">إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)</p>
+                <p class="text-xs text-slate-600 mt-1 font-medium" id="print-header-subtitle">إدارة العرض المرئي والتنسيق التجاري</p>
               </div>
             </div>
 
-            <!-- بطاقة بيانات التقرير الجانبية -->
-            <div class="text-left text-xs space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200 min-w-[180px] shrink-0">
-              <div><span class="text-slate-400">رقم الأسبوع:</span> <span class="font-black text-slate-900" id="print-header-week">الأسبوع 43</span></div>
-              <div><span class="text-slate-400">تاريخ التدقيق:</span> <span class="font-bold text-slate-900" id="print-header-date">2026-10-30</span></div>
+            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) -->
+            <div class="text-left text-xs space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 min-w-[190px] shrink-0">
+              <div><span class="text-slate-400">اسم المعرض:</span> <span class="font-black text-slate-900" id="print-header-branch">فرع العليا العام</span></div>
               <div><span class="text-slate-400">أخصائي الـ VM:</span> <span class="font-bold text-slate-900" id="print-header-auditor">أحمد المهندس</span></div>
+              <div><span class="text-slate-400">تاريخ التدقيق:</span> <span class="font-bold text-slate-900" id="print-header-date">2026-10-30</span></div>
               <div><span class="text-slate-400">إجمالي الأقسام:</span> <span class="font-bold text-amber-700" id="print-header-count">0</span></div>
             </div>
           </div>
@@ -716,11 +718,6 @@
               التوقيع والختم: ................................................
             </div>
           </div>
-        </div>
-
-        <div class="mt-8 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-          <span id="print-footer-disclaimer">تم توليد التقرير تلقائياً بواسطة منصة SAMX-VM الميدانية</span>
-          <span id="print-timestamp">2026-10-30</span>
         </div>
 
       </div>

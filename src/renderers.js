@@ -182,8 +182,8 @@ export function syncQuickDisplays() {
   const printStore = document.getElementById('print-header-store');
   if (printStore) printStore.innerText = branchDisplay;
 
-  const printWeek = document.getElementById('print-header-week');
-  if (printWeek) printWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
+  const printBranch = document.getElementById('print-header-branch');
+  if (printBranch) printBranch.innerText = branchDisplay;
 
   const printDate = document.getElementById('print-header-date');
   if (printDate) printDate.innerText = currentAudit.auditDate || '';
@@ -196,9 +196,6 @@ export function syncQuickDisplays() {
 
   const printCount = document.getElementById('print-header-count');
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
-
-  const printTimestamp = document.getElementById('print-timestamp');
-  if (printTimestamp) printTimestamp.innerText = `تاريخ الإنشاء: ${currentAudit.auditDate} | SAMX-VM Core v1.4.0`;
 
   syncBrandingUI();
   updateKPIs();

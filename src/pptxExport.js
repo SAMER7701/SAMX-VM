@@ -173,7 +173,7 @@ export async function exportAuditToPptx() {
         fill: { color: '1C2541' },
         line: { color: 'EAB308', width: 1.2 }
       });
-      coverSlide.addText(`${companyName} | تقرير التدقيق الميداني`, {
+      coverSlide.addText(companyName, {
         x: 3.0,
         y: 0.5,
         w: 6.4,
@@ -196,7 +196,7 @@ export async function exportAuditToPptx() {
         fill: { color: '1C2541' },
         line: { color: 'EAB308', width: 1.2 }
       });
-      coverSlide.addText(`${companyName} | تقرير التدقيق الميداني`, {
+      coverSlide.addText(companyName, {
         x: 0.6,
         y: 0.5,
         w: 3.4,
@@ -238,12 +238,12 @@ export async function exportAuditToPptx() {
       align: 'right',
     });
 
-    // 4 بطاقات بيانات سريعة متناسقة
+    // 4 بطاقات بيانات سريعة متناسقة (ONLY: Store, Specialist, Date, Total Sections)
     const cardData = [
-      { label: 'رقم الأسبوع', value: `الأسبوع ${weekNumber}`, icon: '🗓️', col: 'F59E0B' },
-      { label: 'تاريخ التدقيق', value: auditDate, icon: '📅', col: '10B981' },
+      { label: 'المعرض / الفرع', value: branchName, icon: '🏬', col: 'F59E0B' },
       { label: 'أخصائي الـ VM', value: auditorName, icon: '👤', col: '38BDF8' },
-      { label: 'الأقسام الموثقة', value: `${sections.length} أقسام`, icon: '🏬', col: 'EAB308' }
+      { label: 'تاريخ التدقيق', value: auditDate, icon: '📅', col: '10B981' },
+      { label: 'إجمالي الأقسام', value: `${sections.length} أقسام`, icon: '📋', col: 'EAB308' }
     ];
 
     const cardWidth = 2.05;
@@ -328,19 +328,6 @@ export async function exportAuditToPptx() {
       h: 0.85,
       align: 'right',
       valign: 'middle',
-      rtlMode: true
-    });
-
-    // تذييل الشريحة
-    coverSlide.addText('منظومة SAMX-VM لإدارة وتوثيق العرض المرئي • تم الإنشاء تلقائياً وقابل للتعديل الكامل', {
-      x: 0.6,
-      y: 5.2,
-      w: 8.8,
-      h: 0.3,
-      fontSize: 9,
-      fontFace: 'Arial',
-      color: '64748B',
-      align: 'center',
       rtlMode: true
     });
 
@@ -670,7 +657,7 @@ export async function exportAuditToPptx() {
       });
 
       // تذييل الصفحة برقم الشريحة واسم الفرع
-      slide.addText(`${branchName}  •  الأسبوع ${weekNumber}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
+      slide.addText(`${branchName}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
         x: 0.4,
         y: 5.35,
         w: 9.2,
@@ -900,7 +887,7 @@ export async function exportAuditToPptxA4() {
         fill: { color: '1C2541' },
         line: { color: 'EAB308', width: 1.2 }
       });
-      coverSlide.addText(`${companyName} | التقرير الميداني A4`, {
+      coverSlide.addText(companyName, {
         x: 2.9,
         y: 0.55,
         w: 4.87,
@@ -923,7 +910,7 @@ export async function exportAuditToPptxA4() {
         fill: { color: '1C2541' },
         line: { color: 'EAB308', width: 1.2 }
       });
-      coverSlide.addText(`${companyName} | التقرير الميداني A4`, {
+      coverSlide.addText(companyName, {
         x: 0.5,
         y: 0.5,
         w: 3.4,
@@ -965,12 +952,12 @@ export async function exportAuditToPptxA4() {
       rtlMode: true
     });
 
-    // شبكة معلومات التقرير (2x2 Grid)
+    // شبكة معلومات التقرير (2x2 Grid) - ONLY: Store Name, Specialist Name, Audit Date, Total Sections
     const cardData = [
-      { label: 'رقم الأسبوع الرسمي', value: `الأسبوع ${weekNumber}`, col: 'F59E0B' },
-      { label: 'تاريخ الجولة الميدانية', value: auditDate, col: '10B981' },
+      { label: 'اسم المعرض / الفرع', value: branchName, col: 'F59E0B' },
       { label: 'أخصائي الـ VM', value: auditorName, col: '38BDF8' },
-      { label: 'الأقسام الموثقة', value: `${sections.length} أقسام بالمعرض`, col: 'EAB308' }
+      { label: 'تاريخ التدقيق', value: auditDate, col: '10B981' },
+      { label: 'إجمالي الأقسام', value: `${sections.length} أقسام بالمعرض`, col: 'EAB308' }
     ];
 
     const cardW = 3.5;
@@ -1075,18 +1062,6 @@ export async function exportAuditToPptxA4() {
       h: 5.2,
       align: 'right',
       valign: 'top',
-      rtlMode: true
-    });
-
-    coverSlide.addText('منظومة SAMX-VM • تقرير تدقيق رسمي مطابق لمقاس A4 المطبوع • قابل للتعديل بالكامل', {
-      x: 0.5,
-      y: 11.1,
-      w: 7.27,
-      h: 0.35,
-      fontSize: 9,
-      fontFace: 'Arial',
-      color: '64748B',
-      align: 'center',
       rtlMode: true
     });
 
@@ -1420,7 +1395,7 @@ export async function exportAuditToPptxA4() {
         rtlMode: true
       });
 
-      slide.addText(`${companyName}  •  ${branchName}  •  الأسبوع ${weekNumber}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
+      slide.addText(`${branchName}  |  صفحة ${idx + 2} من ${sections.length + 2}`, {
         x: 0.5,
         y: 11.2,
         w: contentW,
@@ -1529,19 +1504,6 @@ export async function exportAuditToPptxA4() {
         valign: 'top',
         rtlMode: true
       });
-    });
-
-    // تذييل الشريحة الختامية بنص التذييل المخصص
-    finalSlide.addText(`${companyName} • ${footerDisclaimer}`, {
-      x: 0.6,
-      y: 11.2,
-      w: 7.07,
-      h: 0.3,
-      fontSize: 8.5,
-      fontFace: 'Arial',
-      color: '64748B',
-      align: 'center',
-      rtlMode: true
     });
 
     // حفظ وتنزيل

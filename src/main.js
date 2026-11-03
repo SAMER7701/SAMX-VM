@@ -2353,7 +2353,12 @@ export function printReport() {
   }
   syncBrandingUI();
   renderPrintSections();
+  const originalTitle = document.title;
+  document.title = '';
   window.print();
+  setTimeout(() => {
+    document.title = originalTitle;
+  }, 1000);
 }
 
 export async function exportPdfReport() {

@@ -206,11 +206,11 @@ def build_a4_presentation(output_filepath="public/تقرير_تدقيق_VM_A4.pp
     p_sub.font.color.rgb = SLATE_400
     p_sub.alignment = PP_ALIGN.RIGHT
 
-    # 4 Metadata Info Boxes (2x2 Grid)
+    # 4 Metadata Info Boxes (2x2 Grid) - ONLY: Store Name, Specialist Name, Audit Date, Total Sections
     info_items = [
-        ("رقم الأسبوع الرسمي", f"الأسبوع {audit_data['weekNumber']}", GOLD_500),
-        ("تاريخ الجولة الميدانية", audit_data["auditDate"], EMERALD_600),
+        ("اسم المعرض / الفرع", audit_data["storeName"], GOLD_500),
         ("أخصائي العرض المرئي (Auditor)", audit_data["auditorName"], GOLD_400),
+        ("تاريخ الجولة الميدانية", audit_data["auditDate"], EMERALD_600),
         ("إجمالي الأقسام الموثقة", f"{len(audit_data['sections'])} أقسام بالمعرض", WHITE)
     ]
 
@@ -282,15 +282,6 @@ def build_a4_presentation(output_filepath="public/تقرير_تدقيق_VM_A4.pp
         p_desc.font.size = Pt(9.5)
         p_desc.font.color.rgb = GOLD_400 if s["status"] == "store_followup" else (ROSE_600 if s["status"] == "management_action" else EMERALD_600)
         p_desc.alignment = PP_ALIGN.RIGHT
-
-    # Footer note on Slide 1
-    ft1 = slide1.shapes.add_textbox(Inches(0.6), Inches(10.8), Inches(7.07), Inches(0.5))
-    tf_f1 = ft1.text_frame
-    p_f1 = tf_f1.paragraphs[0]
-    p_f1.text = "منظومة SAMX-VM لإدارة وتوثيق العرض المرئي • تقرير تدقيق رسمي مطابق لمعيار A4 المطبوع"
-    p_f1.font.size = Pt(9)
-    p_f1.font.color.rgb = SLATE_400
-    p_f1.alignment = PP_ALIGN.CENTER
 
     # =========================================================================
     # SLIDES 2..N: Section Audit Slides in A4 Portrait Layout
@@ -463,7 +454,7 @@ def build_a4_presentation(output_filepath="public/تقرير_تدقيق_VM_A4.pp
         ft = slide.shapes.add_textbox(Inches(0.5), Inches(11.15), img_w, Inches(0.4))
         tf_ft = ft.text_frame
         p_ft = tf_ft.paragraphs[0]
-        p_ft.text = f"{audit_data['storeName']}  •  الأسبوع {audit_data['weekNumber']}  |  صفحة {idx + 2} من {len(audit_data['sections']) + 2}"
+        p_ft.text = f"{audit_data['storeName']}  |  صفحة {idx + 2} من {len(audit_data['sections']) + 2}"
         p_ft.font.size = Pt(8.5)
         p_ft.font.color.rgb = SLATE_400
         p_ft.alignment = PP_ALIGN.CENTER
