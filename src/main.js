@@ -42,7 +42,14 @@ import {
   getBrandingSettings,
   saveBrandingSettings,
   resetBrandingSettings,
-  DEFAULT_BRANDING
+  DEFAULT_BRANDING,
+  getArchivedAudits,
+  saveArchivedAudits,
+  archiveCurrentAudit,
+  addAuditsToArchive,
+  deleteArchivedAudit,
+  getArchivedAuditById,
+  resetArchivedAuditsToDefault
 } from './store.js';
 
 import {
@@ -63,12 +70,16 @@ import {
   renderAuditCards,
   renderPrintSections,
   renderQuickTagsList,
-  renderQuickAssigneesList
+  renderQuickAssigneesList,
+  renderBulkExportUI,
+  updateBulkExportSelectionCounter,
+  openArchivedAuditPreview,
+  closeArchivedAuditPreview
 } from './renderers.js';
 
 import * as samxApi from './api.js';
 import { exportAuditToPptx, exportAuditToPptxA4, downloadPrebuiltA4Pptx } from './pptxExport.js';
-import { exportAuditToPdf } from './pdfExport.js';
+import { exportAuditToPdf, exportBulkMonthlyAuditPdf, exportBulkSelectedJson } from './pdfExport.js';
 
 // توقيت فتح آخر نافذة لمنع ارتداد النقرات أو الإغلاق التلقائي العرضي
 let lastModalOpenTime = 0;
@@ -248,6 +259,7 @@ export async function bootApp() {
   } catch(e) {}
 
   try { populateSectionTypeSelect(); } catch(e) {}
+  try { renderBulkExportUI(); } catch(e) {}
 
   // مزامنة سحابية غير معطلة في الخلفية عند توفر الإنترنت (Cloudflare D1 Sync)
   if (navigator.onLine) {
@@ -806,12 +818,71 @@ export function closeEntryModal() {
   resetModalFields();
 }
 
+export function setModalLayoutType(layoutType = 'comparison') {
+  const hiddenInput = document.getElementById('modal-layout-type');
+  if (hiddenInput) hiddenInput.value = layoutType;
+
+  const btnComparison = document.getElementById('layout-btn-comparison');
+  const btnSingle = document.getElementById('layout-btn-single_panorama');
+  const btnStacked = document.getElementById('layout-btn-stacked_panorama');
+
+  const activeCls = "px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow";
+  const inactiveCls = "px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white";
+
+  if (btnComparison) btnComparison.className = (layoutType === 'comparison') ? activeCls : inactiveCls;
+  if (btnSingle) btnSingle.className = (layoutType === 'single_panorama') ? activeCls : inactiveCls;
+  if (btnStacked) btnStacked.className = (layoutType === 'stacked_panorama') ? activeCls : inactiveCls;
+
+  const boxBefore = document.getElementById('box-wrapper-before');
+  const boxAfter = document.getElementById('box-wrapper-after');
+  const badgeTextAfter = document.getElementById('badge-text-after');
+  const badgeLabelAfter = document.getElementById('badge-label-after');
+  const placeholderTitleAfter = document.getElementById('placeholder-title-after');
+  const placeholderSubAfter = document.getElementById('placeholder-sub-after');
+  const imagesContainer = document.getElementById('modal-images-container');
+
+  if (layoutType === 'single_panorama') {
+    if (boxBefore) boxBefore.classList.add('hidden');
+    if (boxAfter) {
+      boxAfter.classList.remove('col-span-1');
+      boxAfter.classList.add('col-span-2');
+    }
+    if (imagesContainer) {
+      imagesContainer.classList.remove('grid-cols-2');
+      imagesContainer.classList.add('grid-cols-1');
+    }
+    if (badgeTextAfter) badgeTextAfter.innerText = '● Panorama View';
+    if (badgeLabelAfter) {
+      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide';
+    }
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'التقاط أو رفع بانوراما';
+    if (placeholderSubAfter) placeholderSubAfter.innerText = 'صورة الواجهة العريضة أو المخزن (Wide Panorama)';
+  } else {
+    if (boxBefore) boxBefore.classList.remove('hidden');
+    if (boxAfter) {
+      boxAfter.classList.remove('col-span-2');
+      boxAfter.classList.add('col-span-1');
+    }
+    if (imagesContainer) {
+      imagesContainer.classList.remove('grid-cols-1');
+      imagesContainer.classList.add('grid-cols-2');
+    }
+    if (badgeTextAfter) badgeTextAfter.innerText = '● After';
+    if (badgeLabelAfter) {
+      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide';
+    }
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'التقاط أو رفع';
+    if (placeholderSubAfter) placeholderSubAfter.innerText = 'صورة بعد التعديل';
+  }
+}
+
 export function resetModalFields() {
   modalState.tempImgBefore = null;
   modalState.tempImgAfter = null;
   modalState.activeModalTags = [];
   modalState.activeModalChecklist = [];
   setModalStatus('resolved');
+  setModalLayoutType('comparison');
   
   populateSectionTypeSelect();
   const typeSelect = document.getElementById('modal-section-type');
@@ -1484,9 +1555,11 @@ export function saveSectionEntry() {
   const customTitle = document.getElementById('modal-custom-title') ? document.getElementById('modal-custom-title').value.trim() : '';
   const finalTitle = typeVal === '__custom_section__' ? (customTitle || 'قسم مخصص') : typeVal;
   const notes = document.getElementById('modal-notes') ? document.getElementById('modal-notes').value.trim() : '';
+  const layoutInput = document.getElementById('modal-layout-type');
+  const layoutType = layoutInput ? layoutInput.value : 'comparison';
 
   if (!modalState.tempImgBefore && !modalState.tempImgAfter) {
-    showToast('يرجى التقاط أو رفع صورة واحدة على الأقل (قبل أو بعد)', 'error');
+    showToast('يرجى التقاط أو رفع صورة واحدة على الأقل للتسجيل', 'error');
     return;
   }
 
@@ -1496,18 +1569,28 @@ export function saveSectionEntry() {
   const actionAssignee = isFollowup ? ((assigneeInput ? assigneeInput.value.trim() : '') || 'مدير المعرض') : '';
   const actionDueDate = isFollowup ? ((duedateInput ? duedateInput.value : '') || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]) : '';
 
+  // معالجة صور البانوراما العريضة
+  let finalBefore = modalState.tempImgBefore;
+  let finalAfter = modalState.tempImgAfter;
+  if (layoutType === 'single_panorama') {
+    const singleImg = finalAfter || finalBefore;
+    finalBefore = singleImg;
+    finalAfter = singleImg;
+  }
+
   if (modalState.editingSectionId) {
     const index = currentAudit.sections.findIndex(s => s.id === modalState.editingSectionId);
     if (index !== -1) {
       currentAudit.sections[index] = {
         id: modalState.editingSectionId,
         title: finalTitle,
+        layoutType: layoutType,
         status: modalState.selectedModalStatus || 'resolved',
         actionAssignee: actionAssignee,
         actionDueDate: actionDueDate,
         checklist: [...modalState.activeModalChecklist],
-        beforeImg: modalState.tempImgBefore || currentAudit.sections[index].beforeImg,
-        afterImg: modalState.tempImgAfter || currentAudit.sections[index].afterImg,
+        beforeImg: finalBefore || currentAudit.sections[index].beforeImg,
+        afterImg: finalAfter || currentAudit.sections[index].afterImg,
         tags: [...modalState.activeModalTags],
         notes: notes
       };
@@ -1517,12 +1600,13 @@ export function saveSectionEntry() {
     const newSec = {
       id: 'sec_' + Date.now(),
       title: finalTitle,
+      layoutType: layoutType,
       status: modalState.selectedModalStatus || 'resolved',
       actionAssignee: actionAssignee,
       actionDueDate: actionDueDate,
       checklist: [...modalState.activeModalChecklist],
-      beforeImg: modalState.tempImgBefore || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
-      afterImg: modalState.tempImgAfter || 'https://placehold.co/600x450/0f172a/94a3b8?text=لا+توجد+صورة',
+      beforeImg: finalBefore || 'https://placehold.co/600x450/0f172a/94a3b8?text=No+Image',
+      afterImg: finalAfter || 'https://placehold.co/600x450/0f172a/94a3b8?text=No+Image',
       tags: [...modalState.activeModalTags],
       notes: notes
     };
@@ -1544,6 +1628,8 @@ export function editSectionEntry(id) {
   openEntryModal(true);
   const heading = document.getElementById('modal-heading');
   if (heading) heading.innerText = 'تعديل توثيق: ' + sec.title;
+  
+  setModalLayoutType(sec.layoutType || 'comparison');
   
   const typeSelect = document.getElementById('modal-section-type');
   let matched = false;
@@ -2033,6 +2119,8 @@ export function switchTab(tabId) {
 
   if (tabId === 'preview') {
     renderPrintSections();
+  } else if (tabId === 'settings') {
+    renderBulkExportUI();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2150,6 +2238,123 @@ export function importJsonBackup(event) {
     }
   };
   reader.readAsText(file);
+}
+
+// ==================== موديول التصدير المجمع لدورة التدقيق الشهرية (Bulk Export Controller) ====================
+
+export function archiveCurrentAuditToStorage() {
+  if (!currentAudit || !Array.isArray(currentAudit.sections) || currentAudit.sections.length === 0) {
+    showToast('لا توجد أقسام موثقة في الجولة الحالية لأرشفتها', 'warning');
+    return;
+  }
+  const saved = archiveCurrentAudit(currentAudit);
+  renderBulkExportUI();
+  showToast(`✅ تم حفظ جولة (${saved.branchName || 'المعرض'} - أسبوع ${saved.weekNumber || 1}) في الأرشيف المحلي بنجاح`, 'success');
+}
+
+export async function uploadJsonToArchive(event) {
+  const files = event?.target?.files;
+  if (!files || files.length === 0) return;
+
+  const readAuditFile = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (parsed && Array.isArray(parsed.sections)) {
+          if (!parsed.id) {
+            parsed.id = 'samx_imp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+          }
+          if (!parsed.savedAt) {
+            parsed.savedAt = new Date().toISOString();
+          }
+          resolve(parsed);
+        } else {
+          resolve(null);
+        }
+      } catch (err) {
+        resolve(null);
+      }
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsText(file);
+  });
+
+  const promises = Array.from(files).map(file => readAuditFile(file));
+  const results = await Promise.all(promises);
+  const validAudits = results.filter(Boolean);
+
+  if (validAudits.length > 0) {
+    addAuditsToArchive(validAudits);
+    renderBulkExportUI();
+    showToast(`✅ تم استيراد وتخزين ${validAudits.length} جولة تدقيق بنجاح في الأرشيف المحلي`, 'success');
+  } else {
+    showToast('لم يتم العثور على ملفات تدقيق VM صالحة في الملفات المحددة', 'error');
+  }
+
+  if (event.target) event.target.value = '';
+}
+
+export function toggleSelectAllArchivedAudits() {
+  const selectAll = document.getElementById('bulk-select-all-checkbox');
+  const isChecked = selectAll ? selectAll.checked : true;
+  const checkboxes = document.querySelectorAll('.bulk-audit-item-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = isChecked;
+  });
+  updateBulkExportSelectionCounter();
+}
+
+export function confirmDeleteArchivedAudit(id) {
+  const target = getArchivedAuditById(id);
+  const name = target ? `${target.branchName} (W${target.weekNumber})` : 'هذه الجولة';
+  if (!confirm(`هل أنت متأكد من حذف ${name} من الأرشيف المحلي؟`)) return;
+
+  deleteArchivedAudit(id);
+  renderBulkExportUI();
+  showToast('تم حذف الجولة من الأرشيف المحلي', 'info');
+}
+
+export function loadArchivedAuditToEditor(id) {
+  const archived = getArchivedAuditById(id);
+  if (!archived) {
+    showToast('الجولة المطلوبة غير موجودة في الأرشيف', 'error');
+    return;
+  }
+
+  if (currentAudit && currentAudit.sections && currentAudit.sections.length > 0) {
+    if (!confirm('تنبيه: سيتم استبدال مسودة الجولة المفتوحة حالياً بهذه الجولة من الأرشيف. هل ترغب بالاستمرار؟')) {
+      return;
+    }
+  }
+
+  const cloned = JSON.parse(JSON.stringify(archived));
+  Object.assign(currentAudit, cloned);
+  bindMetaInputs();
+  saveAuditToStorage();
+  renderAuditCards();
+  switchTab('audit');
+  showToast(`تم فتح جولة (${cloned.branchName} - أسبوع ${cloned.weekNumber}) في لوحة العمل والتدقيق الميداني`, 'success');
+}
+
+export function downloadSingleArchivedAuditJson(id) {
+  const audit = getArchivedAuditById(id);
+  if (!audit) return;
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(audit, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", `SAMX_VM_${(audit.branchName || 'Store').replace(/\s+/g, '_')}_W${audit.weekNumber || 1}.json`);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  showToast('تم تحميل ملف الجولة بصيغة JSON بنجاح', 'success');
+}
+
+export function confirmResetArchivedAudits() {
+  if (!confirm('هل ترغب في استعادة الجولات التدقيقية النموذجية الأسبوعية لدورة الشهر الكاملة؟')) return;
+  resetArchivedAuditsToDefault();
+  renderBulkExportUI();
+  showToast('تمت استعادة جولات الدورة الشهرية النموذجية بنجاح', 'success');
 }
 
 export function toggleReportFooter(show) {
@@ -2600,6 +2805,20 @@ if (typeof window !== 'undefined') {
   window.initSplashScreen = initSplashScreen;
   window.dismissSplashScreen = dismissSplashScreen;
   window.replaySplashScreen = replaySplashScreen;
+  window.setModalLayoutType = setModalLayoutType;
+  window.archiveCurrentAuditToStorage = archiveCurrentAuditToStorage;
+  window.uploadJsonToArchive = uploadJsonToArchive;
+  window.toggleSelectAllArchivedAudits = toggleSelectAllArchivedAudits;
+  window.confirmDeleteArchivedAudit = confirmDeleteArchivedAudit;
+  window.loadArchivedAuditToEditor = loadArchivedAuditToEditor;
+  window.downloadSingleArchivedAuditJson = downloadSingleArchivedAuditJson;
+  window.confirmResetArchivedAudits = confirmResetArchivedAudits;
+  window.renderBulkExportUI = renderBulkExportUI;
+  window.updateBulkExportSelectionCounter = updateBulkExportSelectionCounter;
+  window.openArchivedAuditPreview = openArchivedAuditPreview;
+  window.closeArchivedAuditPreview = closeArchivedAuditPreview;
+  window.exportBulkMonthlyAuditPdf = exportBulkMonthlyAuditPdf;
+  window.exportBulkSelectedJson = exportBulkSelectedJson;
   window.bootApp = bootApp;
 }
 

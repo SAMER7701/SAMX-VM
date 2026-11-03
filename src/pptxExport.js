@@ -443,134 +443,318 @@ export async function exportAuditToPptx() {
         });
       }
 
-      // 2) مربعات مقارنة الصور (Before / After)
-      const colWidth = 4.45;
-      const colHeight = 2.45;
-      const colY = 1.3;
-
-      // --- عمود اليمين: الوضع السابق (Before) ---
-      const beforeX = 5.15; // في العرض العربي اليمين يمثل البداية
-      slide.addShape(pres.ShapeType.roundRect, {
-        x: beforeX,
-        y: colY,
-        w: colWidth,
-        h: 0.35,
-        rectRadius: 0.08,
-        fill: { color: 'FEE2E2' },
-        line: { color: 'EF4444', width: 1 }
-      });
-
-      slide.addText('🔴 الوضع السابق (Before Audit)', {
-        x: beforeX,
-        y: colY,
-        w: colWidth,
-        h: 0.35,
-        fontSize: 11,
-        fontFace: 'Arial',
-        bold: true,
-        color: '991B1B',
-        align: 'center',
-        valign: 'middle',
-        rtlMode: true
-      });
-
-      // إطار صورة Before
-      slide.addShape(pres.ShapeType.rect, {
-        x: beforeX,
-        y: colY + 0.35,
-        w: colWidth,
-        h: colHeight,
-        fill: { color: 'E2E8F0' },
-        line: { color: 'CBD5E1', width: 1 }
-      });
-
+      // 2) صور التوثيق وفق نمط التخطيط مع شارات أنيقة في أعلى وسط الصورة (Center-Top Pill Badges)
+      const layoutType = sec.layoutType || 'comparison';
       const beforeImgObj = await preparePptxImage(sec.beforeImg);
-      if (beforeImgObj) {
-        try {
-          slide.addImage({
-            ...beforeImgObj,
-            x: beforeX,
-            y: colY + 0.35,
-            w: colWidth,
-            h: colHeight,
-            sizing: { type: 'contain', w: colWidth, h: colHeight }
-          });
-        } catch (imgErr) {
-          console.warn('Could not add Before image to slide:', imgErr);
-          slide.addText('تعذر إدراج صورة الوضع السابق', {
-            x: beforeX,
-            y: colY + 1.2,
-            w: colWidth,
-            h: 0.5,
-            fontSize: 11,
-            color: '64748B',
-            align: 'center',
-            rtlMode: true
-          });
-        }
-      } else {
-        slide.addText('لا توجد صورة سابقة مسجلة', {
-          x: beforeX,
-          y: colY + 1.2,
-          w: colWidth,
-          h: 0.5,
-          fontSize: 11,
-          color: '64748B',
-          align: 'center',
-          rtlMode: true
-        });
-      }
-
-      // --- عمود اليسار: بعد التنفيذ والتعديل (After VM) ---
-      const afterX = 0.4;
-      slide.addShape(pres.ShapeType.roundRect, {
-        x: afterX,
-        y: colY,
-        w: colWidth,
-        h: 0.35,
-        rectRadius: 0.08,
-        fill: { color: 'D1FAE5' },
-        line: { color: '10B981', width: 1 }
-      });
-
-      slide.addText('🟢 بعد التنفيذ والتعديل (After VM Action)', {
-        x: afterX,
-        y: colY,
-        w: colWidth,
-        h: 0.35,
-        fontSize: 11,
-        fontFace: 'Arial',
-        bold: true,
-        color: '065F46',
-        align: 'center',
-        valign: 'middle',
-        rtlMode: true
-      });
-
-      // إطار صورة After
-      slide.addShape(pres.ShapeType.rect, {
-        x: afterX,
-        y: colY + 0.35,
-        w: colWidth,
-        h: colHeight,
-        fill: { color: 'E2E8F0' },
-        line: { color: 'CBD5E1', width: 1 }
-      });
-
       const afterImgObj = await preparePptxImage(sec.afterImg);
-      if (afterImgObj) {
-        try {
-          slide.addImage({
-            ...afterImgObj,
-            x: afterX,
-            y: colY + 0.35,
-            w: colWidth,
-            h: colHeight,
-            sizing: { type: 'contain', w: colWidth, h: colHeight }
+
+      if (layoutType === 'single_panorama') {
+        // --- نمط البانوراما الكاملة (Single Panorama) ---
+        const panoX = 0.4;
+        const panoY = 1.25;
+        const panoW = 9.2;
+        const panoH = 2.85;
+
+        // إطار الصورة
+        slide.addShape(pres.ShapeType.rect, {
+          x: panoX,
+          y: panoY,
+          w: panoW,
+          h: panoH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        const activeImgObj = afterImgObj || beforeImgObj;
+        if (activeImgObj) {
+          try {
+            slide.addImage({
+              ...activeImgObj,
+              x: panoX,
+              y: panoY,
+              w: panoW,
+              h: panoH,
+              sizing: { type: 'contain', w: panoW, h: panoH }
+            });
+          } catch (e) {
+            console.warn('Could not add Panorama image:', e);
+            slide.addText('تعذر إدراج صورة البانوراما', {
+              x: panoX,
+              y: panoY + 1.2,
+              w: panoW,
+              h: 0.5,
+              fontSize: 11,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة مسجلة للبانوراما', {
+            x: panoX,
+            y: panoY + 1.2,
+            w: panoW,
+            h: 0.5,
+            fontSize: 11,
+            color: '64748B',
+            align: 'center',
+            rtlMode: true
           });
-        } catch (imgErr) {
-          console.warn('Could not add After image to slide:', imgErr);
-          slide.addText('تعذر إدراج صورة بعد التعديل', {
+        }
+
+        // شارة وسط أعلى الصورة: ● Panorama View
+        const pillW = 1.8;
+        const pillH = 0.28;
+        const pillX = panoX + (panoW - pillW) / 2;
+        const pillY = panoY + 0.1;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '0F172A' },
+          line: { color: 'F59E0B', width: 1 }
+        });
+
+        slide.addText('● Panorama View', {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FDE68A',
+          align: 'center',
+          valign: 'middle'
+        });
+
+      } else if (layoutType === 'stacked_panorama') {
+        // --- نمط البانوراما المكدسة رأسياً (Stacked Panorama) ---
+        const stackW = 9.2;
+        const stackH = 1.38;
+        const stackX = 0.4;
+        const beforeStackY = 1.25;
+        const afterStackY = 2.72;
+
+        // إطار صورة Before
+        slide.addShape(pres.ShapeType.rect, {
+          x: stackX,
+          y: beforeStackY,
+          w: stackW,
+          h: stackH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: stackX,
+              y: beforeStackY,
+              w: stackW,
+              h: stackH,
+              sizing: { type: 'contain', w: stackW, h: stackH }
+            });
+          } catch (e) {
+            console.warn('Could not add Before stacked image:', e);
+          }
+        }
+
+        // شارة وسط أعلى صورة Before
+        const pillW = 1.35;
+        const pillH = 0.24;
+        const pillX = stackX + (stackW - pillW) / 2;
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: beforeStackY + 0.08,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.12,
+          fill: { color: '881337' },
+          line: { color: 'EF4444', width: 1 }
+        });
+        slide.addText('● Before', {
+          x: pillX,
+          y: beforeStackY + 0.08,
+          w: pillW,
+          h: pillH,
+          fontSize: 8.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
+        });
+
+        // إطار صورة After
+        slide.addShape(pres.ShapeType.rect, {
+          x: stackX,
+          y: afterStackY,
+          w: stackW,
+          h: stackH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: stackX,
+              y: afterStackY,
+              w: stackW,
+              h: stackH,
+              sizing: { type: 'contain', w: stackW, h: stackH }
+            });
+          } catch (e) {
+            console.warn('Could not add After stacked image:', e);
+          }
+        }
+
+        // شارة وسط أعلى صورة After
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: afterStackY + 0.08,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.12,
+          fill: { color: '064E3B' },
+          line: { color: '10B981', width: 1 }
+        });
+        slide.addText('● After', {
+          x: pillX,
+          y: afterStackY + 0.08,
+          w: pillW,
+          h: pillH,
+          fontSize: 8.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
+        });
+
+      } else {
+        // --- النمط الافتراضي: مقارنة جانبية (Comparison Side-by-Side) ---
+        const colWidth = 4.45;
+        const colHeight = 2.85;
+        const colY = 1.25;
+
+        // عمود اليمين: الوضع السابق (Before)
+        const beforeX = 5.15;
+        slide.addShape(pres.ShapeType.rect, {
+          x: beforeX,
+          y: colY,
+          w: colWidth,
+          h: colHeight,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: beforeX,
+              y: colY,
+              w: colWidth,
+              h: colHeight,
+              sizing: { type: 'contain', w: colWidth, h: colHeight }
+            });
+          } catch (imgErr) {
+            console.warn('Could not add Before image to slide:', imgErr);
+            slide.addText('تعذر إدراج صورة الوضع السابق', {
+              x: beforeX,
+              y: colY + 1.2,
+              w: colWidth,
+              h: 0.5,
+              fontSize: 11,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة سابقة مسجلة', {
+            x: beforeX,
+            y: colY + 1.2,
+            w: colWidth,
+            h: 0.5,
+            fontSize: 11,
+            color: '64748B',
+            align: 'center',
+            rtlMode: true
+          });
+        }
+
+        // شارة وسط أعلى صورة Before
+        const pillW = 1.4;
+        const pillH = 0.26;
+        const beforePillX = beforeX + (colWidth - pillW) / 2;
+        const pillY = colY + 0.1;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: beforePillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.13,
+          fill: { color: '881337' },
+          line: { color: 'EF4444', width: 1 }
+        });
+        slide.addText('● Before', {
+          x: beforePillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
+        });
+
+        // عمود اليسار: بعد التنفيذ والتعديل (After)
+        const afterX = 0.4;
+        slide.addShape(pres.ShapeType.rect, {
+          x: afterX,
+          y: colY,
+          w: colWidth,
+          h: colHeight,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: afterX,
+              y: colY,
+              w: colWidth,
+              h: colHeight,
+              sizing: { type: 'contain', w: colWidth, h: colHeight }
+            });
+          } catch (imgErr) {
+            console.warn('Could not add After image to slide:', imgErr);
+            slide.addText('تعذر إدراج صورة بعد التعديل', {
+              x: afterX,
+              y: colY + 1.2,
+              w: colWidth,
+              h: 0.5,
+              fontSize: 11,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة بعد التعديل مسجلة', {
             x: afterX,
             y: colY + 1.2,
             w: colWidth,
@@ -581,16 +765,29 @@ export async function exportAuditToPptx() {
             rtlMode: true
           });
         }
-      } else {
-        slide.addText('لا توجد صورة بعد التعديل مسجلة', {
-          x: afterX,
-          y: colY + 1.2,
-          w: colWidth,
-          h: 0.5,
-          fontSize: 11,
-          color: '64748B',
+
+        // شارة وسط أعلى صورة After
+        const afterPillX = afterX + (colWidth - pillW) / 2;
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: afterPillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.13,
+          fill: { color: '064E3B' },
+          line: { color: '10B981', width: 1 }
+        });
+        slide.addText('● After', {
+          x: afterPillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
           align: 'center',
-          rtlMode: true
+          valign: 'middle'
         });
       }
 
@@ -1191,133 +1388,245 @@ export async function exportAuditToPptxA4() {
         });
       }
 
-      // 2. صور قبل وبعد (مصفوفة رأسياً بمقاس A4 طولي دون تشويه)
-      const imgBoxH = 2.75;
-
-      // صورة قبل (Before)
-      const beforeY = 1.5;
-      slide.addShape(pres.ShapeType.roundRect, {
-        x: 0.5,
-        y: beforeY,
-        w: contentW,
-        h: 0.32,
-        rectRadius: 0.06,
-        fill: { color: 'FEE2E2' },
-        line: { color: 'EF4444', width: 1 }
-      });
-
-      slide.addText('🔴 الوضع السابق (Before Audit)', {
-        x: 0.5,
-        y: beforeY,
-        w: contentW,
-        h: 0.32,
-        fontSize: 10,
-        fontFace: 'Arial',
-        bold: true,
-        color: '991B1B',
-        align: 'center',
-        valign: 'middle',
-        rtlMode: true
-      });
-
-      slide.addShape(pres.ShapeType.rect, {
-        x: 0.5,
-        y: beforeY + 0.32,
-        w: contentW,
-        h: imgBoxH,
-        fill: { color: 'E2E8F0' },
-        line: { color: 'CBD5E1', width: 1 }
-      });
-
+      // 2. صور التوثيق وفق نمط التخطيط مع شارات أنيقة في أعلى وسط الصورة (Center-Top Pill Badges) بمقاس A4
+      const layoutType = sec.layoutType || 'comparison';
       const beforeImgObj = await preparePptxImage(sec.beforeImg);
-      if (beforeImgObj) {
-        try {
-          slide.addImage({
-            ...beforeImgObj,
-            x: 0.5,
-            y: beforeY + 0.32,
-            w: contentW,
-            h: imgBoxH,
-            sizing: { type: 'contain', w: contentW, h: imgBoxH }
-          });
-        } catch(e) {
-          console.warn('Could not add Before image to A4 slide:', e);
-          slide.addText('تعذر إدراج صورة الوضع السابق', {
-            x: 0.5,
-            y: beforeY + 1.2,
-            w: contentW,
-            h: 0.5,
-            fontSize: 11,
-            color: '64748B',
-            align: 'center',
-            rtlMode: true
-          });
-        }
-      } else {
-        slide.addText('لا توجد صورة سابقة مسجلة', {
-          x: 0.5,
-          y: beforeY + 1.2,
-          w: contentW,
-          h: 0.5,
-          fontSize: 11,
-          color: '64748B',
-          align: 'center',
-          rtlMode: true
-        });
-      }
-
-      // صورة بعد (After)
-      const afterY = 4.75;
-      slide.addShape(pres.ShapeType.roundRect, {
-        x: 0.5,
-        y: afterY,
-        w: contentW,
-        h: 0.32,
-        rectRadius: 0.06,
-        fill: { color: 'D1FAE5' },
-        line: { color: '10B981', width: 1 }
-      });
-
-      slide.addText('🟢 بعد التنفيذ والتعديل (After VM Action)', {
-        x: 0.5,
-        y: afterY,
-        w: contentW,
-        h: 0.32,
-        fontSize: 10,
-        fontFace: 'Arial',
-        bold: true,
-        color: '065F46',
-        align: 'center',
-        valign: 'middle',
-        rtlMode: true
-      });
-
-      slide.addShape(pres.ShapeType.rect, {
-        x: 0.5,
-        y: afterY + 0.32,
-        w: contentW,
-        h: imgBoxH,
-        fill: { color: 'E2E8F0' },
-        line: { color: 'CBD5E1', width: 1 }
-      });
-
       const afterImgObj = await preparePptxImage(sec.afterImg);
-      if (afterImgObj) {
-        try {
-          slide.addImage({
-            ...afterImgObj,
-            x: 0.5,
-            y: afterY + 0.32,
-            w: contentW,
-            h: imgBoxH,
-            sizing: { type: 'contain', w: contentW, h: imgBoxH }
+
+      if (layoutType === 'single_panorama') {
+        // --- نمط البانوراما الكاملة للواجهات والمخازن ---
+        const panoX = 0.5;
+        const panoY = 1.4;
+        const panoW = contentW; // 7.27
+        const panoH = 6.35;
+
+        slide.addShape(pres.ShapeType.rect, {
+          x: panoX,
+          y: panoY,
+          w: panoW,
+          h: panoH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        const activeImgObj = afterImgObj || beforeImgObj;
+        if (activeImgObj) {
+          try {
+            slide.addImage({
+              ...activeImgObj,
+              x: panoX,
+              y: panoY,
+              w: panoW,
+              h: panoH,
+              sizing: { type: 'contain', w: panoW, h: panoH }
+            });
+          } catch (e) {
+            console.warn('Could not add Panorama image to A4 slide:', e);
+            slide.addText('تعذر إدراج صورة البانوراما', {
+              x: panoX,
+              y: panoY + 2.5,
+              w: panoW,
+              h: 0.5,
+              fontSize: 12,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة مسجلة للبانوراما', {
+            x: panoX,
+            y: panoY + 2.5,
+            w: panoW,
+            h: 0.5,
+            fontSize: 12,
+            color: '64748B',
+            align: 'center',
+            rtlMode: true
           });
-        } catch(e) {
-          console.warn('Could not add After image to A4 slide:', e);
-          slide.addText('تعذر إدراج صورة بعد التعديل', {
-            x: 0.5,
-            y: afterY + 1.2,
-            w: contentW,
+        }
+
+        // شارة وسط أعلى الصورة: ● Panorama View
+        const pillW = 2.0;
+        const pillH = 0.32;
+        const pillX = panoX + (panoW - pillW) / 2;
+        const pillY = panoY + 0.12;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.16,
+          fill: { color: '0F172A' },
+          line: { color: 'F59E0B', width: 1 }
+        });
+
+        slide.addText('● Panorama View', {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FDE68A',
+          align: 'center',
+          valign: 'middle'
+        });
+
+      } else if (layoutType === 'stacked_panorama') {
+        // --- نمط البانوراما المكدسة رأسياً (قبل فوق وبعد تحت) ---
+        const stackW = contentW; // 7.27
+        const stackH = 3.05;
+        const stackX = 0.5;
+        const beforeStackY = 1.4;
+        const afterStackY = 4.65;
+
+        // إطار صورة Before
+        slide.addShape(pres.ShapeType.rect, {
+          x: stackX,
+          y: beforeStackY,
+          w: stackW,
+          h: stackH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: stackX,
+              y: beforeStackY,
+              w: stackW,
+              h: stackH,
+              sizing: { type: 'contain', w: stackW, h: stackH }
+            });
+          } catch (e) {
+            console.warn('Could not add Before stacked image to A4 slide:', e);
+          }
+        }
+
+        // شارة وسط أعلى صورة Before
+        const pillW = 1.5;
+        const pillH = 0.28;
+        const pillX = stackX + (stackW - pillW) / 2;
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: beforeStackY + 0.1,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '881337' },
+          line: { color: 'EF4444', width: 1 }
+        });
+        slide.addText('● Before', {
+          x: pillX,
+          y: beforeStackY + 0.1,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
+        });
+
+        // إطار صورة After
+        slide.addShape(pres.ShapeType.rect, {
+          x: stackX,
+          y: afterStackY,
+          w: stackW,
+          h: stackH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: stackX,
+              y: afterStackY,
+              w: stackW,
+              h: stackH,
+              sizing: { type: 'contain', w: stackW, h: stackH }
+            });
+          } catch (e) {
+            console.warn('Could not add After stacked image to A4 slide:', e);
+          }
+        }
+
+        // شارة وسط أعلى صورة After
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: afterStackY + 0.1,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '064E3B' },
+          line: { color: '10B981', width: 1 }
+        });
+        slide.addText('● After', {
+          x: pillX,
+          y: afterStackY + 0.1,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
+        });
+
+      } else {
+        // --- النمط الافتراضي: مقارنة جانبية أنيقة (Side-by-Side Comparison) ---
+        const colW = (contentW - 0.27) / 2; // 3.5
+        const colH = 6.35;
+        const colY = 1.4;
+
+        // عمود اليمين: الوضع السابق (Before)
+        const beforeX = 0.5 + colW + 0.27; // 4.27
+        slide.addShape(pres.ShapeType.rect, {
+          x: beforeX,
+          y: colY,
+          w: colW,
+          h: colH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: beforeX,
+              y: colY,
+              w: colW,
+              h: colH,
+              sizing: { type: 'contain', w: colW, h: colH }
+            });
+          } catch (e) {
+            console.warn('Could not add Before image to A4 slide:', e);
+            slide.addText('تعذر إدراج صورة الوضع السابق', {
+              x: beforeX,
+              y: colY + 2.5,
+              w: colW,
+              h: 0.5,
+              fontSize: 11,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة سابقة مسجلة', {
+            x: beforeX,
+            y: colY + 2.5,
+            w: colW,
             h: 0.5,
             fontSize: 11,
             color: '64748B',
@@ -1325,16 +1634,104 @@ export async function exportAuditToPptxA4() {
             rtlMode: true
           });
         }
-      } else {
-        slide.addText('لا توجد صورة بعد التعديل مسجلة', {
-          x: 0.5,
-          y: afterY + 1.2,
-          w: contentW,
-          h: 0.5,
-          fontSize: 11,
-          color: '64748B',
+
+        // شارة وسط أعلى صورة Before
+        const pillW = 1.4;
+        const pillH = 0.28;
+        const beforePillX = beforeX + (colW - pillW) / 2;
+        const pillY = colY + 0.12;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: beforePillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '881337' },
+          line: { color: 'EF4444', width: 1 }
+        });
+        slide.addText('● Before', {
+          x: beforePillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
           align: 'center',
-          rtlMode: true
+          valign: 'middle'
+        });
+
+        // عمود اليسار: بعد التنفيذ والتعديل (After)
+        const afterX = 0.5;
+        slide.addShape(pres.ShapeType.rect, {
+          x: afterX,
+          y: colY,
+          w: colW,
+          h: colH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: afterX,
+              y: colY,
+              w: colW,
+              h: colH,
+              sizing: { type: 'contain', w: colW, h: colH }
+            });
+          } catch (e) {
+            console.warn('Could not add After image to A4 slide:', e);
+            slide.addText('تعذر إدراج صورة بعد التعديل', {
+              x: afterX,
+              y: colY + 2.5,
+              w: colW,
+              h: 0.5,
+              fontSize: 11,
+              color: '64748B',
+              align: 'center',
+              rtlMode: true
+            });
+          }
+        } else {
+          slide.addText('لا توجد صورة بعد التعديل مسجلة', {
+            x: afterX,
+            y: colY + 2.5,
+            w: colW,
+            h: 0.5,
+            fontSize: 11,
+            color: '64748B',
+            align: 'center',
+            rtlMode: true
+          });
+        }
+
+        // شارة وسط أعلى صورة After
+        const afterPillX = afterX + (colW - pillW) / 2;
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: afterPillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '064E3B' },
+          line: { color: '10B981', width: 1 }
+        });
+        slide.addText('● After', {
+          x: afterPillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FFFFFF',
+          align: 'center',
+          valign: 'middle'
         });
       }
 

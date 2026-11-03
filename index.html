@@ -127,7 +127,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 50% 48%, #111a30 0%, #080d1b 45%, #020617 100%);
+      background: radial-gradient(circle at 50% 48%, #111a30 0%, #030712 55%, #000000 100%);
       user-select: none;
       overflow: hidden;
       perspective: 1200px;
@@ -822,6 +822,94 @@
 
         </div>
 
+        <!-- ==================== موديول التصدير المجمع لدورة التدقيق الشهرية (BULK EXPORT - MONTHLY AUDIT CYCLE) ==================== -->
+        <div class="mt-4 p-5 rounded-2xl bg-corp-950 border border-corp-800 shadow-xl space-y-4">
+          <!-- رأس الموديول -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-corp-800 gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-gold-500/20 via-amber-500/10 to-transparent text-gold-400 border border-gold-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                <i data-lucide="layers" class="w-5 h-5 text-gold-400"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-black text-white">التصدير المجمع لدورة التدقيق الشهرية (Bulk Export)</h3>
+                  <span class="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">PDF مجمع</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  تحديد وتجميع عدة ملفات تدقيق JSON سابقة من التخزين المحلي لتوليد تقرير دورة شهرية كاملة (Monthly Cycle Dossier) بصيغة PDF.
+                </p>
+              </div>
+            </div>
+
+            <!-- أزرار الإضافة السريعة للأرشيف -->
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button type="button" onclick="archiveCurrentAuditToStorage()" class="px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="حفظ المسودة المفتوحة حالياً في الأرشيف">
+                <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-400"></i>
+                <span>حفظ الجولة الحالية بالأرشيف</span>
+              </button>
+
+              <label class="px-3 py-2 rounded-xl text-xs font-bold text-slate-200 bg-corp-850 hover:bg-corp-800 border border-corp-700 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="رفع ملفات JSON سابقة من جهازك وإضافتها للأرشيف">
+                <i data-lucide="folder-up" class="w-4 h-4 text-sky-400"></i>
+                <span>استيراد ملفات JSON</span>
+                <input type="file" multiple accept=".json" onchange="uploadJsonToArchive(event)" class="hidden">
+              </label>
+
+              <button type="button" onclick="confirmResetArchivedAudits()" class="p-2 rounded-xl text-xs text-slate-400 hover:text-gold-400 bg-corp-850 hover:bg-corp-800 border border-corp-800 transition cursor-pointer" title="استعادة الجولات النموذجية للشهر">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- شريط الفلترة والتحديد السريع -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-corp-900/60 p-3 rounded-xl border border-corp-850">
+            <div class="flex items-center gap-2 flex-1">
+              <!-- تصفية حسب الشهر -->
+              <div class="relative w-full sm:w-56">
+                <select id="bulk-month-filter" onchange="renderBulkExportUI()" class="w-full bg-corp-950 border border-corp-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-gold-500 outline-none">
+                  <option value="all">جميع الفترات والدورات</option>
+                </select>
+              </div>
+
+              <!-- بحث بالاسم أو الأخصائي -->
+              <div class="relative flex-1">
+                <input type="text" id="bulk-search-input" oninput="renderBulkExportUI()" placeholder="بحث باسم المعرض أو الأخصائي أو الأسبوع..." class="w-full bg-corp-950 border border-corp-700 rounded-lg pr-7 pl-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-gold-500 outline-none">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-2.5 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-corp-800">
+              <label class="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer select-none">
+                <input type="checkbox" id="bulk-select-all-checkbox" checked onchange="toggleSelectAllArchivedAudits()" class="w-4 h-4 rounded text-gold-500 bg-corp-950 border-corp-700 focus:ring-gold-500 cursor-pointer">
+                <span>تحديد الكل</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- قائمة الجولات المخزنة محلياً القابلة للاختيار -->
+          <div id="bulk-audits-list-container" class="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+            <!-- يتم حقن الجولات ديناميكياً بواسطة renderBulkExportUI() -->
+          </div>
+
+          <!-- شريط الإحصاءات وزر التصدير الرئيسي المجمع -->
+          <div class="p-4 rounded-xl bg-gradient-to-r from-corp-900 via-corp-850 to-corp-900 border border-gold-500/30 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
+            <div class="flex items-center gap-2 text-xs" id="bulk-selected-counter">
+              <!-- يُملأ ديناميكياً بعدد الجولات المحددة -->
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <button type="button" id="btn-export-bulk-json" onclick="exportBulkSelectedJson()" class="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-corp-800 hover:bg-corp-750 text-slate-300 hover:text-white border border-corp-700 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="تصدير ملفات JSON للجولات المحددة في حزمة واحدة">
+                <i data-lucide="file-code" class="w-4 h-4 text-sky-400"></i>
+                <span>تصدير حزمة JSON</span>
+              </button>
+
+              <button type="button" id="btn-export-bulk-pdf" onclick="exportBulkMonthlyAuditPdf()" class="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-amber-500 hover:from-gold-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-gold-500/20 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer">
+                <i data-lucide="file-down" class="w-4 h-4 text-slate-950"></i>
+                <span>توليد وتحميل تقرير الدورة الشهرية (PDF) 📄</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- بطاقة إدارة الهوية البصرية وشعار الشركة المخصص -->
         <div class="mt-4 p-5 rounded-2xl bg-gradient-to-br from-corp-950 via-corp-900 to-corp-950 border border-gold-500/40 flex flex-col md:flex-row items-center justify-between gap-5 shadow-xl shadow-gold-500/5">
           <div class="flex items-center gap-4">
@@ -1003,12 +1091,44 @@
           <p class="text-[10px] text-slate-400">انقر لتأكيد الالتزام بالمعيار الميداني (تُحفظ كبنود جودة موثقة في التقرير التنفيذي). يمكنك تعديل أو حذف أي معيار مباشرة بالأزرار الجانبية.</p>
         </div>
 
-        <!-- 2. رفع صور قبل وبعد مع ضغط Canvas التلقائي -->
-        <div class="grid grid-cols-2 gap-3">
+        <!-- نمط تخطيط وتوثيق القسم (Section Layout & Panorama Type) -->
+        <div class="space-y-1.5 bg-corp-950/70 border border-corp-800 p-3 rounded-2xl">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="layout" class="w-4 h-4 text-gold-400"></i>
+              <span>نمط التخطيط والبانوراما (Layout & Panorama):</span>
+            </label>
+            <span class="text-[10px] text-slate-400">يدعم العرض العريض للواجهات والمخازن</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2" id="layout-type-buttons">
+            <button type="button" onclick="setModalLayoutType('comparison')" id="layout-btn-comparison" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow">
+              <i data-lucide="columns" class="w-4 h-4"></i>
+              <span>مقارنة جانبية</span>
+              <span class="text-[9px] opacity-80 font-normal">Side-by-side</span>
+            </button>
+            <button type="button" onclick="setModalLayoutType('single_panorama')" id="layout-btn-single_panorama" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+              <i data-lucide="maximize" class="w-4 h-4"></i>
+              <span>بانوراما عريضة</span>
+              <span class="text-[9px] opacity-80 font-normal">Single Wide</span>
+            </button>
+            <button type="button" onclick="setModalLayoutType('stacked_panorama')" id="layout-btn-stacked_panorama" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+              <i data-lucide="rows" class="w-4 h-4"></i>
+              <span>بانوراما مكدسة</span>
+              <span class="text-[9px] opacity-80 font-normal">Stacked Wide</span>
+            </button>
+          </div>
+          <input type="hidden" id="modal-layout-type" value="comparison">
+        </div>
+
+        <!-- 2. رفع صور التوثيق مع ضغط Canvas التلقائي -->
+        <div id="modal-images-container" class="grid grid-cols-2 gap-3">
           
-          <!-- صندوق صورة قبل -->
-          <div class="border-2 border-dashed border-rose-500/40 bg-rose-950/10 hover:bg-rose-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
-            <span class="absolute top-2 right-2 bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">قبل التعديل</span>
+          <!-- صندوق صورة قبل (Before) -->
+          <div id="box-wrapper-before" class="border-2 border-dashed border-rose-500/40 bg-rose-950/10 hover:bg-rose-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
+              <span>● Before</span>
+            </div>
             
             <div id="box-preview-before" class="w-full h-32 hidden rounded-xl overflow-hidden relative mb-1 group">
               <img id="img-elem-before" src="" class="w-full h-full object-cover">
@@ -1026,15 +1146,18 @@
                 <i data-lucide="camera" class="w-5 h-5"></i>
               </div>
               <span class="text-xs font-bold text-rose-300">التقاط أو رفع</span>
-              <span class="text-[10px] text-slate-400 mt-0.5">الوضع السابق</span>
+              <span class="text-[10px] text-slate-400 mt-0.5">صورة الوضع السابق</span>
             </div>
 
             <input type="file" id="file-input-before" accept="image/*" capture="environment" onchange="processImageFile(event, 'before')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
           </div>
 
-          <!-- صندوق صورة بعد -->
-          <div class="border-2 border-dashed border-emerald-500/40 bg-emerald-950/10 hover:bg-emerald-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
-            <span class="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10">بعد التعديل</span>
+          <!-- صندوق صورة بعد (After) / أو البانوراما -->
+          <div id="box-wrapper-after" class="border-2 border-dashed border-emerald-500/40 bg-emerald-950/10 hover:bg-emerald-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
+            <div id="badge-label-after" class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
+              <span id="badge-text-after">● After</span>
+            </div>
             
             <div id="box-preview-after" class="w-full h-32 hidden rounded-xl overflow-hidden relative mb-1 group">
               <img id="img-elem-after" src="" class="w-full h-full object-cover">
@@ -1047,8 +1170,8 @@
               <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-1">
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
               </div>
-              <span class="text-xs font-bold text-emerald-300">التقاط أو رفع</span>
-              <span class="text-[10px] text-slate-400 mt-0.5">الوضع الجديد</span>
+              <span id="placeholder-title-after" class="text-xs font-bold text-emerald-300">التقاط أو رفع</span>
+              <span id="placeholder-sub-after" class="text-[10px] text-slate-400 mt-0.5">صورة بعد التعديل</span>
             </div>
 
             <input type="file" id="file-input-after" accept="image/*" capture="environment" onchange="processImageFile(event, 'after')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
@@ -1698,6 +1821,39 @@
         <button type="button" id="validation-proceed-btn" onclick="confirmProceedAnyway()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 px-5 py-2 rounded-xl text-xs font-black shadow transition active:scale-95 flex items-center gap-1.5">
           <i data-lucide="file-check" class="w-4 h-4"></i>
           <span>المتابعة والتصدير رغم ذلك 📄</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== نافذة معاينة جولة مؤرشفة سريعة (ARCHIVED AUDIT PREVIEW MODAL) ==================== -->
+  <div id="archived-audit-preview-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);" class="p-3 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- رأس النافذة -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center border border-gold-500/20">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-white" id="archived-modal-store-title">معاينة تفاصيل الجولة</h3>
+            <p class="text-[11px] text-slate-400" id="archived-modal-meta-info">بيانات وأقسام التدقيق الميداني</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeArchivedAuditPreview()" class="text-slate-400 hover:text-white p-1 rounded-full cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- محتوى الأقسام -->
+      <div class="p-4 overflow-y-auto space-y-3 flex-1" id="archived-modal-sections-body">
+        <!-- يُملأ ديناميكياً -->
+      </div>
+
+      <!-- تذييل النافذة -->
+      <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-end">
+        <button type="button" onclick="closeArchivedAuditPreview()" class="px-5 py-2 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer">
+          إغلاق
         </button>
       </div>
     </div>

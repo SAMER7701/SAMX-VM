@@ -17,7 +17,10 @@ import {
   getQuickTags,
   getQuickAssignees,
   getBrandingSettings,
-  saveAuditToStorage
+  saveAuditToStorage,
+  getArchivedAudits,
+  getArchivedAuditById,
+  deleteArchivedAudit
 } from './store.js';
 
 // توليد شارة الحالة الملونة
@@ -946,14 +949,20 @@ export function renderAuditCards(customSections = null) {
         </button>
       </div>
 
-      <!-- عرض الصور: إما مقارنة منزلقة أو جنباً إلى جنب -->
+      <!-- عرض الصور: وفق نمط التخطيط (بانوراما عريضة / بانوراما مكدسة / مقارنة جانبية) -->
       ${isSlider ? `
         <div class="relative w-full aspect-video rounded-xl overflow-hidden select-none bg-corp-950 border border-corp-800 mb-3 shadow-inner" id="slider-box-${sec.id}">
           <img src="${sec.afterImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none">
-          <span class="absolute top-2 left-2 bg-emerald-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10 pointer-events-none">بعد التعديل</span>
+          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-200 border border-emerald-500/50 shadow text-[10px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+            <span>● After</span>
+          </div>
 
           <img id="slider-before-img-${sec.id}" src="${sec.beforeImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
-          <span class="absolute top-2 right-2 bg-rose-600/90 text-white text-[10px] font-black px-2 py-0.5 rounded shadow z-10 pointer-events-none">قبل التعديل</span>
+          <div class="absolute top-2 right-4 z-20 pointer-events-none flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#881337]/90 text-rose-200 border border-rose-500/50 shadow text-[10px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+            <span>● Before</span>
+          </div>
 
           <div id="slider-handle-${sec.id}" class="absolute top-0 bottom-0 pointer-events-none z-20 flex items-center justify-center -translate-x-1/2" style="left: 50%;">
             <div class="w-0.5 h-full bg-gold-400 shadow-xl"></div>
@@ -964,12 +973,55 @@ export function renderAuditCards(customSections = null) {
 
           <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
         </div>
+      ` : (sec.layoutType === 'single_panorama' ? `
+        <!-- عرض بانوراما عريضة موحدة -->
+        <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md mb-3.5" onclick="openLightbox('${sec.afterImg || sec.beforeImg}', '${sec.title} - Panorama')">
+          <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+            <span>● Panorama View</span>
+          </div>
+          <img src="${sec.afterImg || sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Panorama+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            <span>تكبير البانوراما</span>
+          </div>
+        </div>
+      ` : (sec.layoutType === 'stacked_panorama' ? `
+        <!-- عرض بانوراما رأسية مكدسة -->
+        <div class="space-y-3 mb-3.5">
+          <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
+            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+              <span>● Before</span>
+            </div>
+            <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+              <span>تكبير الصورة</span>
+            </div>
+          </div>
+          <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
+            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+              <span>● After</span>
+            </div>
+            <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+              <span>تكبير الصورة</span>
+            </div>
+          </div>
+        </div>
       ` : `
+        <!-- مقارنة جانبية افتراضية مع شارات وسط أعلى الصورة -->
         <div class="grid grid-cols-2 gap-3.5 mb-3.5">
           <!-- اليمين: قبل التعديل -->
-          <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - قبل التعديل')">
-            <span class="absolute top-2.5 right-2.5 bg-rose-600/95 backdrop-blur-md text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-md z-10 border border-rose-400/40">🔴 قبل التعديل</span>
-            <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+          <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
+            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+              <span>● Before</span>
+            </div>
+            <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
@@ -977,16 +1029,19 @@ export function renderAuditCards(customSections = null) {
           </div>
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
-          <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - بعد التعديل')">
-            <span class="absolute top-2.5 right-2.5 bg-emerald-600/95 backdrop-blur-md text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-md z-10 border border-emerald-400/40">🟢 بعد التنفيذ والتعديل</span>
-            <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=لا+توجد+صورة'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+          <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
+            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+              <span>● After</span>
+            </div>
+            <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
             </div>
           </div>
         </div>
-      `}
+      `))}
 
       <!-- بنود معايير الـ VM المؤكدة -->
       ${sec.checklist && sec.checklist.length > 0 ? `
@@ -1093,34 +1148,56 @@ export function renderPrintSections(customSections = null) {
         </div>
       </div>
 
-      <!-- صور قبل وبعد بتخطيط RTL متوافق للطباعة -->
-      <div class="grid grid-cols-2 gap-3 mb-3">
-        <!-- اليمين: قبل التعديل -->
-        <div class="flex flex-col">
-          <div class="bg-rose-50 text-rose-800 border border-rose-200 px-2 py-1 rounded-t-lg text-[11px] font-bold flex items-center justify-between">
-            <span class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-              <span>الوضع السابق (Before)</span>
-            </span>
+      <!-- صور التوثيق وفق نمط التخطيط مع شارات وسط أعلى الصورة بدون أشرطة علوية ممتدة -->
+      ${sec.layoutType === 'single_panorama' ? `
+        <!-- بانوراما كاملة للواجهات والمخازن -->
+        <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm mb-3">
+          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+            <span>● Panorama View</span>
           </div>
-          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-b-lg overflow-hidden border border-t-0 border-slate-200 bg-slate-100 flex items-center justify-center">
-            <img src="${sec.beforeImg}" alt="قبل التعديل" class="w-full h-full object-cover">
+          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" class="w-full h-full object-cover">
+        </div>
+      ` : (sec.layoutType === 'stacked_panorama' ? `
+        <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) -->
+        <div class="space-y-2.5 mb-3">
+          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
+              <span>● Before</span>
+            </div>
+            <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
+          </div>
+          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
+              <span>● After</span>
+            </div>
+            <img src="${sec.afterImg}" alt="After" class="w-full h-full object-cover">
           </div>
         </div>
+      ` : `
+        <!-- مقارنة جانبية أنيقة مع شارات وسط أعلى الصورة -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <!-- اليمين: قبل التعديل -->
+          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
+              <span>● Before</span>
+            </div>
+            <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
+          </div>
 
-        <!-- اليسار: بعد التنفيذ والتعديل -->
-        <div class="flex flex-col">
-          <div class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded-t-lg text-[11px] font-bold flex items-center justify-between">
-            <span class="flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-              <span>بعد الإجراء (After VM)</span>
-            </span>
-          </div>
-          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-b-lg overflow-hidden border border-t-0 border-slate-200 bg-slate-100 flex items-center justify-center">
-            <img src="${sec.afterImg}" alt="بعد التعديل" class="w-full h-full object-cover">
+          <!-- اليسار: بعد التنفيذ والتعديل -->
+          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
+              <span>● After</span>
+            </div>
+            <img src="${sec.afterImg}" alt="After" class="w-full h-full object-cover">
           </div>
         </div>
-      </div>
+      `)}
 
       <!-- معايير الـ VM المطبقة في التقرير الرسمي -->
       ${sec.checklist && sec.checklist.length > 0 ? `
@@ -1166,6 +1243,272 @@ export function renderPrintSections(customSections = null) {
   });
 }
 
+// ==================== رسم وإدارة واجهة التصدير المجمع (Bulk Export UI Renderer) ====================
+
+export function updateBulkExportSelectionCounter() {
+  const container = document.getElementById('bulk-selected-counter');
+  if (!container) return;
+
+  const allAudits = getArchivedAudits();
+  const checkedBoxes = document.querySelectorAll('.bulk-audit-checkbox:checked');
+  const selectedIds = Array.from(checkedBoxes).map(cb => cb.dataset.id);
+  const selectedAudits = allAudits.filter(a => selectedIds.includes(a.id));
+
+  let totalSections = 0;
+  let totalPhotos = 0;
+  selectedAudits.forEach(aud => {
+    (aud.sections || []).forEach(sec => {
+      totalSections++;
+      if (sec.beforeImg) totalPhotos++;
+      if (sec.afterImg) totalPhotos++;
+    });
+  });
+
+  const selectAllCb = document.getElementById('bulk-select-all-checkbox');
+  const totalVisibleCheckboxes = document.querySelectorAll('.bulk-audit-checkbox').length;
+  if (selectAllCb) {
+    selectAllCb.checked = (totalVisibleCheckboxes > 0 && checkedBoxes.length === totalVisibleCheckboxes);
+    selectAllCb.indeterminate = (checkedBoxes.length > 0 && checkedBoxes.length < totalVisibleCheckboxes);
+  }
+
+  if (selectedAudits.length === 0) {
+    container.innerHTML = `
+      <span class="text-slate-400 font-medium">لم يتم تحديد أي جولات للتصدير المجمع</span>
+    `;
+  } else {
+    container.innerHTML = `
+      <span class="text-gold-400 font-bold">${selectedAudits.length} جولات محددة</span>
+      <span class="text-slate-500">•</span>
+      <span class="text-slate-200">${totalSections} قسماً بالدورة</span>
+      <span class="text-slate-500">•</span>
+      <span class="text-emerald-400 font-semibold">${totalPhotos} صورة ميدانية</span>
+    `;
+  }
+}
+
+export function renderBulkExportUI() {
+  const listContainer = document.getElementById('bulk-audits-list-container');
+  const monthFilter = document.getElementById('bulk-month-filter');
+  const searchInput = document.getElementById('bulk-search-input');
+  if (!listContainer) return;
+
+  const allAudits = getArchivedAudits();
+
+  // 1. تحديث قائمة خيارات الأشهر تلقائياً بناءً على محتوى الأرشيف
+  if (monthFilter) {
+    const currentSelectedMonth = monthFilter.value || 'all';
+    const monthsMap = new Map();
+    allAudits.forEach(a => {
+      const k = a.monthKey || 'general';
+      const n = a.monthName || a.monthKey || 'أخرى';
+      if (!monthsMap.has(k)) monthsMap.set(k, n);
+    });
+
+    let monthOptionsHtml = `<option value="all">جميع الفترات والدورات (${allAudits.length} جولات)</option>`;
+    monthsMap.forEach((name, key) => {
+      const count = allAudits.filter(a => (a.monthKey || 'general') === key).length;
+      monthOptionsHtml += `<option value="${key}" ${currentSelectedMonth === key ? 'selected' : ''}>${name} (${count} جولات)</option>`;
+    });
+    monthFilter.innerHTML = monthOptionsHtml;
+    if (monthsMap.has(currentSelectedMonth) || currentSelectedMonth === 'all') {
+      monthFilter.value = currentSelectedMonth;
+    }
+  }
+
+  // 2. تصفية القائمة حسب الشهر والبحث
+  const filterMonth = monthFilter ? monthFilter.value : 'all';
+  const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+  let filtered = allAudits.filter(aud => {
+    if (filterMonth !== 'all' && (aud.monthKey || 'general') !== filterMonth) {
+      return false;
+    }
+    if (searchTerm) {
+      const bName = (aud.branchName || '').toLowerCase();
+      const aName = (aud.auditorName || '').toLowerCase();
+      const wNum = String(aud.weekNumber || '');
+      const dStr = String(aud.auditDate || '');
+      if (!bName.includes(searchTerm) && !aName.includes(searchTerm) && !wNum.includes(searchTerm) && !dStr.includes(searchTerm)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // فرز تنازلي حسب التاريخ للأحدث أولاً
+  filtered.sort((a, b) => new Date(b.auditDate || 0) - new Date(a.auditDate || 0));
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `
+      <div class="py-12 px-4 text-center border-2 border-dashed border-corp-800 rounded-2xl bg-corp-950/60">
+        <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 mx-auto flex items-center justify-center mb-3">
+          <i data-lucide="folder-search" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white mb-1">لا توجد جولات تدقيق مطابقة للبحث أو الفترة المحددة</h4>
+        <p class="text-xs text-slate-400 max-w-md mx-auto mb-4">
+          يمكنك حفظ الجولة الحالية في الأرشيف أو رفع ملفات JSON سابقة لتضمينها في التقرير الشهري الشامل.
+        </p>
+        <button type="button" onclick="archiveCurrentAuditToStorage()" class="inline-flex items-center gap-2 bg-gradient-to-r from-gold-500 to-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow active:scale-95 transition">
+          <i data-lucide="archive" class="w-4 h-4"></i>
+          <span>حفظ مسودة الجولة الحالية في الأرشيف 💾</span>
+        </button>
+      </div>
+    `;
+    updateBulkExportSelectionCounter();
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons(); } catch(e){}
+    }
+    return;
+  }
+
+  // 3. رسم عناصر القائمة
+  listContainer.innerHTML = filtered.map((aud, idx) => {
+    const sections = aud.sections || [];
+    const secCount = sections.length;
+    let photoCount = 0;
+    let resolvedCount = 0;
+    let followupCount = 0;
+    let actionCount = 0;
+
+    sections.forEach(s => {
+      if (s.beforeImg) photoCount++;
+      if (s.afterImg) photoCount++;
+      if (s.status === 'store_followup') followupCount++;
+      else if (s.status === 'management_action') actionCount++;
+      else resolvedCount++;
+    });
+
+    return `
+      <div class="group p-3.5 bg-corp-950 hover:bg-corp-900/90 border border-corp-800 hover:border-gold-500/40 rounded-xl transition-all shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3" data-audit-row="${aud.id}">
+        
+        <!-- خانة الاختيار وبيانات الجولة الأساسية -->
+        <div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+          <label class="cursor-pointer flex items-center pt-1 sm:pt-0 shrink-0">
+            <input type="checkbox" checked data-id="${aud.id}" onchange="updateBulkExportSelectionCounter()" class="bulk-audit-checkbox w-4 h-4 rounded text-gold-500 bg-corp-900 border-corp-700 focus:ring-gold-500 focus:ring-offset-corp-950 cursor-pointer">
+          </label>
+
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="text-xs sm:text-sm font-black text-white hover:text-gold-400 transition">${aud.branchName || 'معرض غير محدد'}</span>
+              <span class="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                الأسبوع ${aud.weekNumber || 1}
+              </span>
+              <span class="text-[10px] text-slate-400 bg-corp-900 px-2 py-0.5 rounded border border-corp-800 flex items-center gap-1 font-mono">
+                <i data-lucide="calendar" class="w-3 h-3 text-gold-400"></i>
+                <span>${aud.auditDate || 'تاريخ غير محدد'}</span>
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 text-[11px] text-slate-400 flex-wrap">
+              <span class="flex items-center gap-1">
+                <i data-lucide="user" class="w-3 h-3 text-sky-400"></i>
+                <span class="text-slate-300">${aud.auditorName || 'أخصائي الـ VM'}</span>
+              </span>
+              <span>•</span>
+              <span class="font-semibold text-slate-300">${secCount} أقسام</span>
+              <span>•</span>
+              <span>${photoCount} صور</span>
+              <span>•</span>
+              <span class="inline-flex items-center gap-1">
+                <span class="text-emerald-400 font-bold">✅ ${resolvedCount}</span>
+                ${followupCount > 0 ? `<span class="text-amber-400 font-bold">⏳ ${followupCount}</span>` : ''}
+                ${actionCount > 0 ? `<span class="text-rose-400 font-bold">⚠️ ${actionCount}</span>` : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- أزرار الإجراءات السريعة للجولة -->
+        <div class="flex items-center gap-1.5 shrink-0 justify-end border-t md:border-t-0 border-corp-800/80 pt-2 md:pt-0">
+          <button type="button" onclick="openArchivedAuditPreview('${aud.id}')" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-corp-700/60 transition flex items-center gap-1 cursor-pointer" title="معاينة تفاصيل الجولة">
+            <i data-lucide="eye" class="w-3.5 h-3.5 text-gold-400"></i>
+            <span class="hidden sm:inline">معاينة</span>
+          </button>
+          <button type="button" onclick="loadArchivedAuditToEditor('${aud.id}')" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-semibold border border-amber-500/30 transition flex items-center gap-1 cursor-pointer" title="استعادة الجولة للتعديل كمسودة نشطة">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">استعادة</span>
+          </button>
+          <button type="button" onclick="downloadSingleArchivedAuditJson('${aud.id}')" class="p-1.5 bg-corp-850 hover:bg-corp-800 text-slate-400 hover:text-sky-300 rounded-lg border border-corp-700/60 transition cursor-pointer" title="تحميل ملف JSON لهذه الجولة">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="confirmDeleteArchivedAudit('${aud.id}')" class="p-1.5 bg-corp-850 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 rounded-lg border border-corp-700/60 hover:border-rose-500/40 transition cursor-pointer" title="حذف الجولة من الأرشيف">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+      </div>
+    `;
+  }).join('');
+
+  updateBulkExportSelectionCounter();
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function openArchivedAuditPreview(auditId) {
+  const audit = getArchivedAuditById(auditId);
+  if (!audit) {
+    showToast('تعذر العثور على بيانات الجولة المطلوبة', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('archived-audit-preview-modal');
+  const title = document.getElementById('archived-modal-store-title');
+  const meta = document.getElementById('archived-modal-meta-info');
+  const body = document.getElementById('archived-modal-sections-body');
+
+  if (title) title.innerText = audit.branchName || 'معرض غير محدد';
+  if (meta) {
+    meta.innerHTML = `
+      الأسبوع: <strong class="text-amber-400">${audit.weekNumber || 1}</strong> | التاريخ: <strong>${audit.auditDate}</strong> | الأخصائي: <strong>${audit.auditorName}</strong> | الأقسام: <strong>${(audit.sections || []).length}</strong>
+    `;
+  }
+
+  if (body) {
+    const sections = audit.sections || [];
+    if (sections.length === 0) {
+      body.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs">لا توجد أقسام مسجلة في هذا التقرير</div>`;
+    } else {
+      body.innerHTML = sections.map((sec, i) => `
+        <div class="p-3 bg-corp-950 border border-corp-800 rounded-xl space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-corp-800">
+            <span class="font-bold text-xs text-white">#${i + 1} ${sec.title}</span>
+            ${getStatusBadgeHtml(sec.status || 'resolved')}
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="aspect-[16/10] rounded-lg overflow-hidden relative border border-corp-800 bg-corp-900">
+              <span class="absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40">Before</span>
+              <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
+            </div>
+            <div class="aspect-[16/10] rounded-lg overflow-hidden relative border border-corp-800 bg-corp-900">
+              <span class="absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">After</span>
+              <img src="${sec.afterImg}" alt="After" class="w-full h-full object-cover">
+            </div>
+          </div>
+          ${sec.notes ? `<p class="text-[11px] text-slate-300 bg-corp-900 p-2 rounded-lg border border-corp-800/80">${sec.notes}</p>` : ''}
+        </div>
+      `).join('');
+    }
+  }
+
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function closeArchivedAuditPreview() {
+  const modal = document.getElementById('archived-audit-preview-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
 // تصدير دوال العرض للنافذة العامة (Zero Regression Global Bridge)
 if (typeof window !== 'undefined') {
   window.getStatusBadgeHtml = getStatusBadgeHtml;
@@ -1189,4 +1532,8 @@ if (typeof window !== 'undefined') {
   window.renderQuickAssigneesList = renderQuickAssigneesList;
   window.syncBrandingUI = syncBrandingUI;
   window.updateBrandingLivePreview = updateBrandingLivePreview;
+  window.updateBulkExportSelectionCounter = updateBulkExportSelectionCounter;
+  window.renderBulkExportUI = renderBulkExportUI;
+  window.openArchivedAuditPreview = openArchivedAuditPreview;
+  window.closeArchivedAuditPreview = closeArchivedAuditPreview;
 }
