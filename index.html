@@ -1105,32 +1105,32 @@
             </label>
             <span class="text-[10px] text-slate-400">يدعم العرض العريض للواجهات والمخازن</span>
           </div>
-          <div class="grid grid-cols-3 gap-2" id="layout-type-buttons">
-            <button type="button" onclick="setModalLayoutType('comparison')" id="layout-btn-comparison" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="layout-type-buttons">
+            <button type="button" onclick="setModalLayoutType('comparison')" id="layout-btn-comparison" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow">
               <i data-lucide="columns" class="w-4 h-4"></i>
-              <span>مقارنة جانبية</span>
-              <span class="text-[9px] opacity-80 font-normal">Side-by-side</span>
+              <span>مقارنة (Comparison)</span>
+              <span class="text-[9px] opacity-80 font-normal">قبل وبعد جنباً إلى جنب</span>
             </button>
-            <button type="button" onclick="setModalLayoutType('single_panorama')" id="layout-btn-single_panorama" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+            <button type="button" onclick="setModalLayoutType('single_panorama')" id="layout-btn-single_panorama" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
               <i data-lucide="maximize" class="w-4 h-4"></i>
-              <span>بانوراما عريضة</span>
-              <span class="text-[9px] opacity-80 font-normal">Single Wide</span>
+              <span>صورة بانورامية / منفردة</span>
+              <span class="text-[9px] opacity-80 font-normal">عرض كامل للواجهات والمخازن</span>
             </button>
-            <button type="button" onclick="setModalLayoutType('stacked_panorama')" id="layout-btn-stacked_panorama" class="px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+            <button type="button" onclick="setModalLayoutType('stacked_panorama')" id="layout-btn-stacked_panorama" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
               <i data-lucide="rows" class="w-4 h-4"></i>
-              <span>بانوراما مكدسة</span>
-              <span class="text-[9px] opacity-80 font-normal">Stacked Wide</span>
+              <span>بانوراما مزدوجة (Stacked)</span>
+              <span class="text-[9px] opacity-80 font-normal">قبل فوق وبعد تحت مكدسة</span>
             </button>
           </div>
           <input type="hidden" id="modal-layout-type" value="comparison">
         </div>
 
-        <!-- 2. رفع صور التوثيق مع ضغط Canvas التلقائي -->
+        <!-- 2. رفع صور التوثيق مع ضغط Canvas التلقائي ودعم المعرض والكاميرا في الجوال -->
         <div id="modal-images-container" class="grid grid-cols-2 gap-3">
           
           <!-- صندوق صورة قبل (Before) -->
           <div id="box-wrapper-before" class="border-2 border-dashed border-rose-500/40 bg-rose-950/10 hover:bg-rose-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#9f1239] shadow-sm text-[10px] font-bold tracking-wide">
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
               <span>● Before</span>
             </div>
@@ -1150,16 +1150,17 @@
               <div class="w-10 h-10 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center mb-1">
                 <i data-lucide="camera" class="w-5 h-5"></i>
               </div>
-              <span class="text-xs font-bold text-rose-300">التقاط أو رفع</span>
-              <span class="text-[10px] text-slate-400 mt-0.5">صورة الوضع السابق</span>
+              <span class="text-xs font-bold text-rose-300">كاميرا أو من المعرض</span>
+              <span class="text-[10px] text-slate-400 mt-0.5">صورة قبل التعديل</span>
             </div>
 
-            <input type="file" id="file-input-before" accept="image/*" capture="environment" onchange="processImageFile(event, 'before')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+            <!-- تم إزالة capture="environment" لتمكين اختيار الصورة من معرض الجوال أو التقاطها بالكاميرا بحرية -->
+            <input type="file" id="file-input-before" accept="image/*" onchange="processImageFile(event, 'before')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" title="رفع صورة من المعرض أو التقاطها بالكاميرا">
           </div>
 
           <!-- صندوق صورة بعد (After) / أو البانوراما -->
           <div id="box-wrapper-after" class="border-2 border-dashed border-emerald-500/40 bg-emerald-950/10 hover:bg-emerald-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition">
-            <div id="badge-label-after" class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide">
+            <div id="badge-label-after" class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
               <span id="badge-text-after">● After</span>
             </div>
@@ -1175,11 +1176,12 @@
               <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-1">
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
               </div>
-              <span id="placeholder-title-after" class="text-xs font-bold text-emerald-300">التقاط أو رفع</span>
+              <span id="placeholder-title-after" class="text-xs font-bold text-emerald-300">كاميرا أو من المعرض</span>
               <span id="placeholder-sub-after" class="text-[10px] text-slate-400 mt-0.5">صورة بعد التعديل</span>
             </div>
 
-            <input type="file" id="file-input-after" accept="image/*" capture="environment" onchange="processImageFile(event, 'after')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+            <!-- تم إزالة capture="environment" لتمكين اختيار الصورة من معرض الجوال أو التقاطها بالكاميرا بحرية -->
+            <input type="file" id="file-input-after" accept="image/*" onchange="processImageFile(event, 'after')" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" title="رفع صورة من المعرض أو التقاطها بالكاميرا">
           </div>
 
         </div>

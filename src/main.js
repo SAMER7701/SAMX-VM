@@ -865,13 +865,14 @@ export function setModalLayoutType(layoutType = 'comparison') {
   const badgeLabelAfter = document.getElementById('badge-label-after');
   const placeholderTitleAfter = document.getElementById('placeholder-title-after');
   const placeholderSubAfter = document.getElementById('placeholder-sub-after');
+  const placeholderTitleBefore = document.querySelector('#placeholder-before .text-rose-300');
+  const placeholderSubBefore = document.querySelector('#placeholder-before .text-slate-400');
   const imagesContainer = document.getElementById('modal-images-container');
 
   if (layoutType === 'single_panorama') {
     if (boxBefore) boxBefore.classList.add('hidden');
     if (boxAfter) {
-      boxAfter.classList.remove('col-span-1');
-      boxAfter.classList.add('col-span-2');
+      boxAfter.classList.remove('hidden');
     }
     if (imagesContainer) {
       imagesContainer.classList.remove('grid-cols-2');
@@ -879,25 +880,40 @@ export function setModalLayoutType(layoutType = 'comparison') {
     }
     if (badgeTextAfter) badgeTextAfter.innerText = '● Panorama View';
     if (badgeLabelAfter) {
-      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide';
+      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none';
     }
-    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'التقاط أو رفع بانوراما';
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubAfter) placeholderSubAfter.innerText = 'صورة الواجهة العريضة أو المخزن (Wide Panorama)';
-  } else {
+  } else if (layoutType === 'stacked_panorama') {
     if (boxBefore) boxBefore.classList.remove('hidden');
-    if (boxAfter) {
-      boxAfter.classList.remove('col-span-2');
-      boxAfter.classList.add('col-span-1');
+    if (boxAfter) boxAfter.classList.remove('hidden');
+    if (imagesContainer) {
+      imagesContainer.classList.remove('grid-cols-2');
+      imagesContainer.classList.add('grid-cols-1');
     }
+    if (badgeTextAfter) badgeTextAfter.innerText = '● After (بانوراما بعد)';
+    if (badgeLabelAfter) {
+      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
+    }
+    if (placeholderTitleBefore) placeholderTitleBefore.innerText = 'كاميرا أو من المعرض';
+    if (placeholderSubBefore) placeholderSubBefore.innerText = 'بانوراما علوية (قبل التعديل)';
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'كاميرا أو من المعرض';
+    if (placeholderSubAfter) placeholderSubAfter.innerText = 'بانوراما سفلية (بعد التعديل)';
+  } else {
+    // Comparison (مقارنة جانبية جنباً إلى جنب)
+    if (boxBefore) boxBefore.classList.remove('hidden');
+    if (boxAfter) boxAfter.classList.remove('hidden');
     if (imagesContainer) {
       imagesContainer.classList.remove('grid-cols-1');
       imagesContainer.classList.add('grid-cols-2');
     }
     if (badgeTextAfter) badgeTextAfter.innerText = '● After';
     if (badgeLabelAfter) {
-      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#059669] shadow-sm text-[10px] font-bold tracking-wide';
+      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
     }
-    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'التقاط أو رفع';
+    if (placeholderTitleBefore) placeholderTitleBefore.innerText = 'كاميرا أو من المعرض';
+    if (placeholderSubBefore) placeholderSubBefore.innerText = 'صورة قبل التعديل';
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubAfter) placeholderSubAfter.innerText = 'صورة بعد التعديل';
   }
 }

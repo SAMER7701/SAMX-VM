@@ -2,6 +2,8 @@
  * SAMX-VM Client-Side PDF Generation Engine
  * Generates high-fidelity downloadable A4 PDF reports reflecting custom brand identity and logo.
  * Strict Page-Break Guardrails: Discrete A4 page rendering to eliminate any image or text cropping across pages.
+ * Responsive Layout & Absolute Centering: Dynamically scales sections and images to eliminate empty gaps,
+ * maintaining perfect horizontal and vertical equilibrium around the central axis.
  */
 
 import { jsPDF } from 'jspdf';
@@ -10,11 +12,33 @@ import { currentAudit, getBrandingSettings } from './store.js';
 import { showToast, renderPrintSections, syncBrandingUI } from './renderers.js';
 
 /**
- * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي عالي الدقة
- * مع شارات كبسولية مصغرة مركزية أعلى الصورة بدون أشرطة علوية ممتدة
+ * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي متوازن وعالي الدقة
+ * مع دعم التحجيم الديناميكي للصور وشارات كبسولية مركزية مصغرة أعلى الصورة
  */
-function renderPdfSectionCardHtml(sec, globalIndex) {
+function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasSignatures = false) {
   const layout = sec.layoutType || 'comparison';
+
+  // حساب الأبعاد المثالية لارتفاع الصور لملء الصفحة بانسجام ومنع الفراغات الجانبية أو السفلية
+  let imgHeight = 235;
+  let stackedImgHeight = 114;
+
+  if (isSingleOnPage) {
+    if (hasSignatures) {
+      imgHeight = (layout === 'single_panorama') ? 320 : 285;
+      stackedImgHeight = 145;
+    } else {
+      imgHeight = (layout === 'single_panorama') ? 385 : 340;
+      stackedImgHeight = 185;
+    }
+  } else {
+    if (hasSignatures) {
+      imgHeight = 195;
+      stackedImgHeight = 95;
+    } else {
+      imgHeight = 235;
+      stackedImgHeight = 114;
+    }
+  }
 
   // شارة الحالة بتوسيط مثالي للنصوص والأيقونات
   let statusBadgeHtml = `
@@ -47,70 +71,70 @@ function renderPdfSectionCardHtml(sec, globalIndex) {
   let imagesHtml = '';
 
   if (layout === 'single_panorama') {
-    // بانوراما كاملة للواجهات أو المستودعات
+    // بانوراما كاملة للواجهات أو المستودعات - استغلال العرض الكامل بنقاء عالي
     imagesHtml = `
-      <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc; margin-bottom: 7px;">
-        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+      <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc; margin-bottom: 8px;">
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
           <span style="width: 5px; height: 5px; border-radius: 50%; background: #facc15; display: inline-block;"></span>
           <span>● Panorama View</span>
         </div>
-        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
       </div>
     `;
   } else if (layout === 'stacked_panorama') {
-    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت)
+    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 7px;">
-        <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
             <span>● Before</span>
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
         </div>
-        <div style="width: 100%; height: 105px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
             <span>● After</span>
           </div>
-          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
         </div>
       </div>
     `;
   } else {
-    // مقارنة جانبية أنيقة Side-by-Side (الافتراضي)
+    // مقارنة جانبية Side-by-Side (صورتين جنباً لجنب)
     imagesHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 7px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 8px;">
         <!-- اليمين: قبل التعديل -->
-        <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
             <span>● Before</span>
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
-        <div style="width: 100%; height: 215px; border-radius: 9px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 11px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
             <span>● After</span>
           </div>
-          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
         </div>
       </div>
     `;
   }
 
   return `
-    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 11px 13px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04); direction: rtl; box-sizing: border-box;">
+    <div style="border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%;">
       <!-- شريط عنوان القسم والشارة الملونة والوسوم -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 7px; margin-bottom: 8px; gap: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 7px; margin-bottom: 8px; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 7px; min-width: 0;">
           <span style="width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0;">
             ${globalIndex}
           </span>
-          <h4 style="margin: 0; font-size: 13px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${sec.title}
           </h4>
         </div>
@@ -120,27 +144,27 @@ function renderPdfSectionCardHtml(sec, globalIndex) {
         </div>
       </div>
 
-      <!-- صور التوثيق -->
+      <!-- صور التوثيق المحجمة بانسجام تام -->
       ${imagesHtml}
 
       <!-- معايير الـ VM المطبقة إذا وُجدت -->
       ${sec.checklist && sec.checklist.length > 0 ? `
-        <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
+        <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 4.5px 9px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
           <strong style="color: #713f12;">معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</strong>
-          ${sec.checklist.map(c => `✓ ${c}`).join('   •   ')}
+          <span style="margin-right: 6px;">${sec.checklist.map(c => `✓ ${c}`).join('   •   ')}</span>
         </div>
       ` : ''}
 
       <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
       ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 6px; padding: 4.5px 9px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
           <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
           <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
         </div>
       ` : ''}
 
       <!-- تفاصيل ومبررات التعديل الميداني -->
-      <div style="font-size: 9.5px; color: #334155; background: #f8fafc; padding: 5px 8px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.4;">
+      <div style="font-size: 9.5px; color: #334155; background: #f8fafc; padding: 5.5px 9px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.4;">
         <strong style="color: #0f172a;">تفاصيل ومبررات التعديل الميداني:</strong> ${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}
       </div>
     </div>
@@ -149,7 +173,7 @@ function renderPdfSectionCardHtml(sec, globalIndex) {
 
 /**
  * تصدير التقرير التنفيذي كملف PDF رقمي جاهز للتحميل
- * يعتمد التقسيم المقاس لصفحات A4 المستقلة لضمان عدم اقتصاص أي صورة أو نص عبر فواصل الصفحات
+ * يعتمد التقسيم المقاس لصفحات A4 المستقلة مع التوسيط الرأسي والأفقي التام لمنع أي اقتطاع أو فراغات شاذة
  */
 export async function exportAuditToPdf() {
   const sections = currentAudit.sections || [];
@@ -171,7 +195,7 @@ export async function exportAuditToPdf() {
   let renderRoot = null;
 
   try {
-    showToast('📄 جارٍ بناء صفحات الـ PDF A4 بدقة عالية وبدون اقتصاص...', 'info');
+    showToast('📄 جارٍ بناء صفحات الـ PDF A4 بتوسيط مثالي واستغلال كامل للمساحة...', 'info');
 
     // 1. استخراج بيانات الهوية والمعرض
     const branding = getBrandingSettings();
@@ -185,7 +209,7 @@ export async function exportAuditToPdf() {
     const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
     const totalSections = sections.length;
 
-    // 2. تقسيم الأقسام إلى صفحات A4 محددة مسبقاً (قسمان كحد أقصى لكل صفحة لضمان عدم الاقتصاص)
+    // 2. تقسيم الأقسام إلى صفحات A4 محددة مسبقاً (قسمان كحد أقصى لكل صفحة لضمان عدم الاقتصاص والتوازن التام)
     const chunkSize = 2;
     const totalPages = Math.max(1, Math.ceil(totalSections / chunkSize));
 
@@ -204,7 +228,7 @@ export async function exportAuditToPdf() {
     `;
     document.body.appendChild(renderRoot);
 
-    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px)
+    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px) مع توسيط محكم
     for (let p = 0; p < totalPages; p++) {
       const pageEl = document.createElement('div');
       pageEl.className = 'single-pdf-page';
@@ -212,11 +236,12 @@ export async function exportAuditToPdf() {
         width: 794px;
         height: 1123px;
         box-sizing: border-box;
-        padding: 34px 40px;
+        padding: 32px 38px;
         background: #ffffff;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        align-items: stretch;
         position: relative;
         overflow: hidden;
       `;
@@ -224,15 +249,15 @@ export async function exportAuditToPdf() {
       const startIdx = p * chunkSize;
       const endIdx = Math.min(startIdx + chunkSize, totalSections);
       const pageSections = sections.slice(startIdx, endIdx);
+      const isSingleOnPage = (pageSections.length === 1);
       const isLastPage = (p === totalPages - 1);
 
       // --- هيدر الصفحة ---
       let headerHtml = '';
       if (p === 0) {
         // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة
-        // بطاقة البيانات تحتوي فقط: اسم المعرض، أخصائي الـ VM، تاريخ التدقيق، إجمالي الأقسام
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 12px; width: 100%;">
             <!-- الشعار وهوية الشركة -->
             <div style="display: flex; align-items: center; gap: 12px;">
               ${logoData ? `
@@ -274,7 +299,7 @@ export async function exportAuditToPdf() {
       } else {
         // الصفحات اللاحقة: ترويسة مقتضبة ونقية بدون تكرار
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 10px; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <strong style="font-size: 13px; color: #0f172a;">${companyName}</strong>
               <span style="color: #94a3b8;">•</span>
@@ -291,10 +316,10 @@ export async function exportAuditToPdf() {
         `;
       }
 
-      // --- محتوى الأقسام لهذه الصفحة ---
+      // --- محتوى الأقسام لهذه الصفحة المحكوم بنظام شبكي مركزي متوازن ---
       const sectionsHtml = `
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          ${pageSections.map((sec, localIdx) => renderPdfSectionCardHtml(sec, startIdx + localIdx + 1)).join('')}
+        <div style="display: flex; flex-direction: column; gap: ${isSingleOnPage ? '0px' : '12px'}; width: 100%;">
+          ${pageSections.map((sec, localIdx) => renderPdfSectionCardHtml(sec, startIdx + localIdx + 1, isSingleOnPage, isLastPage)).join('')}
         </div>
       `;
 
@@ -302,30 +327,30 @@ export async function exportAuditToPdf() {
       let signaturesHtml = '';
       if (isLastPage) {
         signaturesHtml = `
-          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 10px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 10px;">
+          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 10px; margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 10px; width: 100%;">
             <!-- اعتماد أخصائي العرض المرئي -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px;">
               <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
                 إعداد واعتماد أخصائي العرض المرئي (VM Specialist):
               </div>
-              <div style="color: #64748b; font-size: 9px; margin-bottom: 6px;">
+              <div style="color: #64748b; font-size: 9px; margin-bottom: 5px;">
                 أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 32px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 30px;">
                 <span style="font-weight: 800; color: #0f172a; font-size: 11px;">${auditorName}</span>
                 <span style="font-size: 9px; color: #94a3b8;">التوقيع: ...........................</span>
               </div>
             </div>
 
             <!-- اعتماد مدير المعرض -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px;">
               <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
                 ملاحظات واعتماد مدير المعرض (Store Manager):
               </div>
-              <div style="color: #64748b; font-size: 9px; margin-bottom: 6px;">
+              <div style="color: #64748b; font-size: 9px; margin-bottom: 5px;">
                 تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة.
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 32px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 30px;">
                 <span style="font-size: 9px; color: #64748b;">الختم والاعتماد:</span>
                 <span style="font-size: 9px; color: #94a3b8;">...................................</span>
               </div>
@@ -333,7 +358,7 @@ export async function exportAuditToPdf() {
           </div>
 
           ${footerDisclaimer ? `
-            <div style="font-size: 9px; color: #64748b; text-align: center; margin-top: 6px; padding: 4px; background: #f8fafc; border-radius: 4px;">
+            <div style="font-size: 9px; color: #64748b; text-align: center; margin-top: 6px; padding: 4px; background: #f8fafc; border-radius: 4px; width: 100%;">
               ${footerDisclaimer}
             </div>
           ` : ''}
@@ -342,15 +367,16 @@ export async function exportAuditToPdf() {
 
       // --- تذييل الصفحة النظيف (رقم الصفحة فقط بدون روابط أو إصدارات تقنية) ---
       const footerHtml = `
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 9.5px; color: #94a3b8;">
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 9.5px; color: #94a3b8; width: 100%;">
           <span>${companyName} • تقرير تدقيق العرض المرئي</span>
           <span>صفحة ${p + 1} من ${totalPages}</span>
         </div>
       `;
 
+      // تركيب الصفحة مع التوسيط الرأسي والأفقي التام للحاوية المركزية
       pageEl.innerHTML = `
-        <div>
-          ${headerHtml}
+        ${headerHtml}
+        <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; margin: auto 0; gap: 10px;">
           ${sectionsHtml}
           ${signaturesHtml}
         </div>
@@ -420,7 +446,7 @@ export async function exportAuditToPdf() {
  * محرك تصدير تقرير الدورة الشهرية الشامل المجمع (Bulk Monthly Audit Cycle PDF Engine)
  * =========================================================================
  * يجمع عدة ملفات تدقيق سابقة مخزنة في LocalStorage ويولد تقريراً تنفيذياً شاملاً
- * بمقاس A4 عمودي دون أي اقتطاع للصور أو النصوص
+ * بمقاس A4 عمودي دون أي اقتطاع للصور أو النصوص مع التوسيط الرأسي والأفقي المتزن
  */
 export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
   let targetIds = selectedAuditIds;
@@ -645,7 +671,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     renderRoot.appendChild(coverPage);
 
     // =========================================================================
-    // الصفحات اللاحقة: تقارير الأقسام التفصيلية لكل جولة مع شارات كبسولية أنيقة
+    // الصفحات اللاحقة: تقارير الأقسام التفصيلية لكل جولة مع شارات كبسولية وتوسيط متزن
     // =========================================================================
     let pageNumber = 2;
 
@@ -664,43 +690,48 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           width: 794px;
           height: 1123px;
           box-sizing: border-box;
-          padding: 34px 40px;
+          padding: 32px 38px;
           background: #ffffff;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          align-items: stretch;
+          position: relative;
+          overflow: hidden;
         `;
 
+        const isSingleOnBulkPage = (chunk.length === 1);
+
         sectionPage.innerHTML = `
-          <div>
-            <!-- هيدر الجولة الميدانية بالأعلى (نظيف وبدون week numbers أو timestamps) -->
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
-                    الجولة #${audIdx + 1}
-                  </span>
-                  <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">
-                    ${aud.branchName}
-                  </h2>
-                </div>
-                <div style="font-size: 10.5px; color: #64748b; margin-top: 3px; font-weight: 600;">
-                  المعرض: <strong>${aud.branchName}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
-                </div>
+          <!-- هيدر الجولة الميدانية بالأعلى (نظيف وبدون week numbers أو timestamps) -->
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 12px; width: 100%;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
+                  الجولة #${audIdx + 1}
+                </span>
+                <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">
+                  ${aud.branchName}
+                </h2>
               </div>
-              <div style="text-align: left; font-size: 10.5px; font-weight: bold; color: #0f172a; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                الأقسام: ${sIdx + 1}-${Math.min(sIdx + chunkSize, sections.length)} من ${sections.length}
+              <div style="font-size: 10.5px; color: #64748b; margin-top: 3px; font-weight: 600;">
+                المعرض: <strong>${aud.branchName}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
               </div>
             </div>
+            <div style="text-align: left; font-size: 10.5px; font-weight: bold; color: #0f172a; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              الأقسام: ${sIdx + 1}-${Math.min(sIdx + chunkSize, sections.length)} من ${sections.length}
+            </div>
+          </div>
 
-            <!-- بطاقات الأقسام الموثقة -->
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              ${chunk.map((sec, localIdx) => renderPdfSectionCardHtml(sec, sIdx + localIdx + 1)).join('')}
+          <!-- بطاقات الأقسام الموثقة المتمركزة رأسياً وأفقياً -->
+          <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; margin: auto 0; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: ${isSingleOnBulkPage ? '0px' : '12px'}; width: 100%;">
+              ${chunk.map((sec, localIdx) => renderPdfSectionCardHtml(sec, sIdx + localIdx + 1, isSingleOnBulkPage, false)).join('')}
             </div>
           </div>
 
           <!-- تذييل الصفحة النظيف -->
-          <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8;">
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8; width: 100%;">
             <span>${aud.branchName}</span>
             <span>صفحة ${pageNumber++}</span>
           </div>
