@@ -197,6 +197,8 @@ export const modalState = {
   editingSectionId: null,
   tempImgBefore: null,
   tempImgAfter: null,
+  imgConfigBefore: { aspectRatio: 'standard', scale: 100, align: 'center' },
+  imgConfigAfter: { aspectRatio: 'standard', scale: 100, align: 'center' },
   activeModalTags: [],
   activeModalChecklist: [],
   selectedModalStatus: 'resolved',

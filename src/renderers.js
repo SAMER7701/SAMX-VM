@@ -897,6 +897,15 @@ export function renderQuickAssigneesList() {
   container.appendChild(addBtn);
 }
 
+// استخراج تنسيق التحجيم والمحاذاة للصور
+export function getImageTransformStyle(cfg) {
+  if (!cfg) return '';
+  const scale = (typeof cfg.scale === 'number' ? cfg.scale : 100) / 100;
+  const align = cfg.align || 'center';
+  const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
+  return `transform: scale(${scale}); transform-origin: ${pos}; object-position: ${pos};`;
+}
+
 // عرض بطاقات الأقسام في شاشة الجولة الميدانية
 export function renderAuditCards(customSections = null) {
   const container = document.getElementById('audit-cards-container');
@@ -928,6 +937,9 @@ export function renderAuditCards(customSections = null) {
     const statusBadgeHtml = getStatusBadgeHtml(sec.status || 'resolved');
     const hasBoth = sec.beforeImg && sec.afterImg && !sec.beforeImg.includes('placehold.co') && !sec.afterImg.includes('placehold.co');
     const isSlider = hasBoth && modalState.cardViewModes[sec.id] === 'slider';
+    const beforeStyle = getImageTransformStyle(sec.beforeConfig);
+    const afterStyle = getImageTransformStyle(sec.afterConfig);
+    const panoStyle = getImageTransformStyle(sec.afterConfig || sec.beforeConfig);
 
     card.innerHTML = `
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-corp-800">
@@ -998,7 +1010,7 @@ export function renderAuditCards(customSections = null) {
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
             <span>● Panorama View</span>
           </div>
-          <img src="${sec.afterImg || sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Panorama+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+          <img src="${sec.afterImg || sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Panorama+Image'}" style="${panoStyle}" class="w-full h-full object-cover transition duration-300">
           <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
             <i data-lucide="zoom-in" class="w-4 h-4"></i>
             <span>تكبير البانوراما</span>
@@ -1012,7 +1024,7 @@ export function renderAuditCards(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
               <span>● Before</span>
             </div>
-            <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
@@ -1023,7 +1035,7 @@ export function renderAuditCards(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
               <span>● After</span>
             </div>
-            <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
@@ -1039,7 +1051,7 @@ export function renderAuditCards(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
               <span>● Before</span>
             </div>
-            <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
@@ -1052,7 +1064,7 @@ export function renderAuditCards(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
               <span>● After</span>
             </div>
-            <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+            <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
               <span>تكبير الصورة</span>
@@ -1154,6 +1166,10 @@ export function renderPrintSections(customSections = null) {
       </span>
     `).join(' ');
 
+    const beforeStyle = getImageTransformStyle(sec.beforeConfig);
+    const afterStyle = getImageTransformStyle(sec.afterConfig);
+    const panoStyle = getImageTransformStyle(sec.afterConfig || sec.beforeConfig);
+
     item.innerHTML = `
       <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
         <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1174,7 +1190,7 @@ export function renderPrintSections(customSections = null) {
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
             <span>● Panorama View</span>
           </div>
-          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" class="w-full h-full object-cover">
+          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" class="w-full h-full object-cover">
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
         <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) -->
@@ -1184,14 +1200,14 @@ export function renderPrintSections(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
               <span>● Before</span>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
           </div>
           <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
             <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
               <span>● After</span>
             </div>
-            <img src="${sec.afterImg}" alt="After" class="w-full h-full object-cover">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
           </div>
         </div>
       ` : `
@@ -1203,7 +1219,7 @@ export function renderPrintSections(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
               <span>● Before</span>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" class="w-full h-full object-cover">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
           </div>
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
@@ -1212,7 +1228,7 @@ export function renderPrintSections(customSections = null) {
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
               <span>● After</span>
             </div>
-            <img src="${sec.afterImg}" alt="After" class="w-full h-full object-cover">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
           </div>
         </div>
       `)}

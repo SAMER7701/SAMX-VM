@@ -956,6 +956,15 @@ export function resetModalFields() {
   clearModalImage('before');
   clearModalImage('after');
   
+  if (typeof resetImageConfig === 'function') {
+    resetImageConfig('before');
+    resetImageConfig('after');
+  }
+  const ctrlBefore = document.getElementById('image-controls-before');
+  const ctrlAfter = document.getElementById('image-controls-after');
+  if (ctrlBefore) ctrlBefore.classList.add('hidden');
+  if (ctrlAfter) ctrlAfter.classList.add('hidden');
+
   renderQuickTagsList();
   renderQuickAssigneesList();
 
@@ -1507,6 +1516,101 @@ export function setModalStatus(statusKey) {
   }
 }
 
+// ==================== التحكم اليدوي بأبعاد وحجم الصور (Image Dimension & Scale Controls) ====================
+
+export function applyImageConfigToPreview(type) {
+  const isBefore = (type === 'before');
+  const cfg = isBefore ? modalState.imgConfigBefore : modalState.imgConfigAfter;
+  const imgEl = document.getElementById(`img-elem-${type}`);
+  const previewBox = document.getElementById(`box-preview-${type}`);
+
+  if (!imgEl || !cfg) return;
+
+  const scale = (typeof cfg.scale === 'number' ? cfg.scale : 100) / 100;
+  const align = cfg.align || 'center';
+  const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
+
+  imgEl.style.transform = `scale(${scale})`;
+  imgEl.style.transformOrigin = pos;
+  imgEl.style.objectPosition = pos;
+
+  if (previewBox) {
+    if (cfg.aspectRatio === 'square') {
+      previewBox.style.height = '145px';
+    } else if (cfg.aspectRatio === 'wide') {
+      previewBox.style.height = '105px';
+    } else {
+      previewBox.style.height = '128px';
+    }
+  }
+}
+
+export function setImageAlign(type, align) {
+  const isBefore = (type === 'before');
+  const cfg = isBefore ? modalState.imgConfigBefore : modalState.imgConfigAfter;
+  cfg.align = align;
+
+  const btnTop = document.getElementById(`btn-align-${type}-top`);
+  const btnCenter = document.getElementById(`btn-align-${type}-center`);
+  const btnBottom = document.getElementById(`btn-align-${type}-bottom`);
+
+  const activeClass = "py-1 text-[10px] font-bold rounded bg-gold-500 text-slate-950 border border-gold-400 shadow";
+  const inactiveClass = "py-1 text-[10px] font-bold rounded bg-corp-900 text-slate-400 border border-corp-700 hover:text-white";
+
+  if (btnTop) btnTop.className = (align === 'top') ? activeClass : inactiveClass;
+  if (btnCenter) btnCenter.className = (align === 'center') ? activeClass : inactiveClass;
+  if (btnBottom) btnBottom.className = (align === 'bottom') ? activeClass : inactiveClass;
+
+  applyImageConfigToPreview(type);
+}
+
+export function updateImageConfigFromUI(type) {
+  const isBefore = (type === 'before');
+  const cfg = isBefore ? modalState.imgConfigBefore : modalState.imgConfigAfter;
+
+  const aspectSel = document.getElementById(`ctrl-${type}-aspect`);
+  const scaleSlider = document.getElementById(`ctrl-${type}-scale`);
+  const scaleVal = document.getElementById(`ctrl-${type}-scale-val`);
+
+  if (aspectSel) cfg.aspectRatio = aspectSel.value || 'standard';
+  if (scaleSlider) {
+    const val = parseInt(scaleSlider.value, 10) || 100;
+    cfg.scale = val;
+    if (scaleVal) scaleVal.innerText = `${val}%`;
+  }
+
+  applyImageConfigToPreview(type);
+}
+
+export function syncImageControlsUI(type) {
+  const isBefore = (type === 'before');
+  const cfg = isBefore ? modalState.imgConfigBefore : modalState.imgConfigAfter;
+  if (!cfg) return;
+
+  const aspectSel = document.getElementById(`ctrl-${type}-aspect`);
+  const scaleSlider = document.getElementById(`ctrl-${type}-scale`);
+  const scaleVal = document.getElementById(`ctrl-${type}-scale-val`);
+
+  if (aspectSel) aspectSel.value = cfg.aspectRatio || 'standard';
+  if (scaleSlider) scaleSlider.value = String(cfg.scale || 100);
+  if (scaleVal) scaleVal.innerText = `${cfg.scale || 100}%`;
+
+  setImageAlign(type, cfg.align || 'center');
+  applyImageConfigToPreview(type);
+}
+
+export function resetImageConfig(type) {
+  const isBefore = (type === 'before');
+  const defaultCfg = { aspectRatio: 'standard', scale: 100, align: 'center' };
+  if (isBefore) {
+    modalState.imgConfigBefore = { ...defaultCfg };
+  } else {
+    modalState.imgConfigAfter = { ...defaultCfg };
+  }
+
+  syncImageControlsUI(type);
+}
+
 // ضغط الصور الميدانية الذكي عبر Canvas
 export function processImageFile(event, type) {
   const file = event.target.files[0];
@@ -1546,6 +1650,9 @@ export function processImageFile(event, type) {
         if (box) box.classList.remove('hidden');
         const ph = document.getElementById('placeholder-before');
         if (ph) ph.classList.add('hidden');
+        const ctrl = document.getElementById('image-controls-before');
+        if (ctrl) ctrl.classList.remove('hidden');
+        applyImageConfigToPreview('before');
       } else {
         modalState.tempImgAfter = compressedDataUrl;
         const imgEl = document.getElementById('img-elem-after');
@@ -1554,6 +1661,9 @@ export function processImageFile(event, type) {
         if (box) box.classList.remove('hidden');
         const ph = document.getElementById('placeholder-after');
         if (ph) ph.classList.add('hidden');
+        const ctrl = document.getElementById('image-controls-after');
+        if (ctrl) ctrl.classList.remove('hidden');
+        applyImageConfigToPreview('after');
       }
 
       showToast('تمت إضافة الصورة بنجاح', 'success');
@@ -1577,6 +1687,9 @@ export function clearModalImage(type) {
     if (box) box.classList.add('hidden');
     const ph = document.getElementById('placeholder-before');
     if (ph) ph.classList.remove('hidden');
+    const ctrl = document.getElementById('image-controls-before');
+    if (ctrl) ctrl.classList.add('hidden');
+    resetImageConfig('before');
   } else {
     modalState.tempImgAfter = null;
     const fi = document.getElementById('file-input-after');
@@ -1587,6 +1700,9 @@ export function clearModalImage(type) {
     if (box) box.classList.add('hidden');
     const ph = document.getElementById('placeholder-after');
     if (ph) ph.classList.remove('hidden');
+    const ctrl = document.getElementById('image-controls-after');
+    if (ctrl) ctrl.classList.add('hidden');
+    resetImageConfig('after');
   }
 }
 
@@ -1620,6 +1736,9 @@ export function saveSectionEntry() {
     finalAfter = singleImg;
   }
 
+  const beforeConfig = { ...(modalState.imgConfigBefore || { aspectRatio: 'standard', scale: 100, align: 'center' }) };
+  const afterConfig = { ...(modalState.imgConfigAfter || { aspectRatio: 'standard', scale: 100, align: 'center' }) };
+
   if (modalState.editingSectionId) {
     const index = currentAudit.sections.findIndex(s => s.id === modalState.editingSectionId);
     if (index !== -1) {
@@ -1633,6 +1752,8 @@ export function saveSectionEntry() {
         checklist: [...modalState.activeModalChecklist],
         beforeImg: finalBefore || currentAudit.sections[index].beforeImg,
         afterImg: finalAfter || currentAudit.sections[index].afterImg,
+        beforeConfig: beforeConfig,
+        afterConfig: afterConfig,
         tags: [...modalState.activeModalTags],
         notes: notes
       };
@@ -1649,6 +1770,8 @@ export function saveSectionEntry() {
       checklist: [...modalState.activeModalChecklist],
       beforeImg: finalBefore || 'https://placehold.co/600x450/0f172a/94a3b8?text=No+Image',
       afterImg: finalAfter || 'https://placehold.co/600x450/0f172a/94a3b8?text=No+Image',
+      beforeConfig: beforeConfig,
+      afterConfig: afterConfig,
       tags: [...modalState.activeModalTags],
       notes: notes
     };
@@ -1705,6 +1828,13 @@ export function editSectionEntry(id) {
   const notesEl = document.getElementById('modal-notes');
   if (notesEl) notesEl.value = sec.notes || '';
 
+  // استعادة إعدادات الأبعاد والتكبير والمحاذاة
+  modalState.imgConfigBefore = sec.beforeConfig ? { ...sec.beforeConfig } : { aspectRatio: 'standard', scale: 100, align: 'center' };
+  modalState.imgConfigAfter = sec.afterConfig ? { ...sec.afterConfig } : { aspectRatio: 'standard', scale: 100, align: 'center' };
+
+  syncImageControlsUI('before');
+  syncImageControlsUI('after');
+
   if (sec.beforeImg) {
     modalState.tempImgBefore = sec.beforeImg;
     const imgEl = document.getElementById('img-elem-before');
@@ -1713,6 +1843,9 @@ export function editSectionEntry(id) {
     if (box) box.classList.remove('hidden');
     const ph = document.getElementById('placeholder-before');
     if (ph) ph.classList.add('hidden');
+    const ctrl = document.getElementById('image-controls-before');
+    if (ctrl) ctrl.classList.remove('hidden');
+    applyImageConfigToPreview('before');
   }
 
   if (sec.afterImg) {
@@ -1723,6 +1856,9 @@ export function editSectionEntry(id) {
     if (box) box.classList.remove('hidden');
     const ph = document.getElementById('placeholder-after');
     if (ph) ph.classList.add('hidden');
+    const ctrl = document.getElementById('image-controls-after');
+    if (ctrl) ctrl.classList.remove('hidden');
+    applyImageConfigToPreview('after');
   }
 
   modalState.activeModalTags = [...(sec.tags || [])];
@@ -2680,11 +2816,11 @@ export async function exportPptxA4Report() {
   }
 }
 
-export function shareWhatsAppSummary() {
+export async function shareWhatsAppSummary() {
   let msg = `*تقرير العرض المرئي الأسبوعي (SAMX-VM Report)*\n`;
-  msg += `🏪 *المعرض:* ${currentAudit.branchName}\n`;
-  msg += `📅 *التاريخ:* ${currentAudit.auditDate} | *الأسبوع:* ${currentAudit.weekNumber}\n`;
-  msg += `👔 *أخصائي الـ VM:* ${currentAudit.auditorName}\n`;
+  msg += `🏪 *المعرض:* ${currentAudit.branchName || 'معرض غير محدد'}\n`;
+  msg += `📅 *التاريخ:* ${currentAudit.auditDate || '-'} | *الأسبوع:* ${currentAudit.weekNumber || '1'}\n`;
+  msg += `👔 *أخصائي الـ VM:* ${currentAudit.auditorName || '-'}\n`;
   msg += `--------------------------------------\n`;
   msg += `📊 *إجمالي الأقسام الموثقة (${currentAudit.sections.length}):*\n`;
 
@@ -2705,18 +2841,47 @@ export function shareWhatsAppSummary() {
     }
   });
 
-  msg += `\n_تم إعداد وتوثيق التقرير ميدانياً عبر نظام SAMX-VM_`;
+  msg += `\n_تم إعداد وتوثيق التقرير ميدانياً عبر منصة SAMX-VM_`;
 
-  const encoded = encodeURIComponent(msg);
-  const url = `https://api.whatsapp.com/send?text=${encoded}`;
+  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '');
   
-  try {
-    const opened = window.open(url, '_blank');
-    if (!opened) {
-      window.location.href = url;
+  // استخدام المشاركة الأصلية في الجوال إن كانت مدعومة
+  if (navigator.share && isMobile) {
+    try {
+      await navigator.share({
+        title: `تقرير SAMX-VM: ${currentAudit.branchName || 'العرض المرئي'}`,
+        text: msg
+      });
+      showToast('تمت مشاركة التقرير بنجاح عبر الجوال', 'success');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        return; // المستخدم أغلق نافذة المشاركة بنفسه
+      }
+      console.warn('Native share failed, falling back to WhatsApp link:', err);
     }
+  }
+
+  // التوجيه المباشر لتطبيق واتساب في الجوال أو واتساب ويب في أجهزة الكمبيوتر
+  const encoded = encodeURIComponent(msg);
+  const targetUrl = isMobile 
+    ? `whatsapp://send?text=${encoded}` 
+    : `https://api.whatsapp.com/send?text=${encoded}`;
+
+  try {
+    const link = document.createElement('a');
+    link.href = targetUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      link.remove();
+    }, 150);
+    showToast('جاري توجيه التقرير إلى تطبيق واتساب... 💬', 'info');
   } catch (e) {
-    window.location.href = url;
+    // في حال تعذر تشغيل الرابط البروتوكولي، استخدام واجهة ويب واتساب
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   }
 }
 
@@ -2848,6 +3013,11 @@ if (typeof window !== 'undefined') {
   window.dismissSplashScreen = dismissSplashScreen;
   window.replaySplashScreen = replaySplashScreen;
   window.setModalLayoutType = setModalLayoutType;
+  window.setImageAlign = setImageAlign;
+  window.updateImageConfigFromUI = updateImageConfigFromUI;
+  window.syncImageControlsUI = syncImageControlsUI;
+  window.resetImageConfig = resetImageConfig;
+  window.applyImageConfigToPreview = applyImageConfigToPreview;
   window.archiveCurrentAuditToStorage = archiveCurrentAuditToStorage;
   window.uploadJsonToArchive = uploadJsonToArchive;
   window.toggleSelectAllArchivedAudits = toggleSelectAllArchivedAudits;
@@ -2861,6 +3031,12 @@ if (typeof window !== 'undefined') {
   window.closeArchivedAuditPreview = closeArchivedAuditPreview;
   window.exportBulkMonthlyAuditPdf = exportBulkMonthlyAuditPdf;
   window.exportBulkSelectedJson = exportBulkSelectedJson;
+  window.setImageAlign = setImageAlign;
+  window.updateImageConfigFromUI = updateImageConfigFromUI;
+  window.syncImageControlsUI = syncImageControlsUI;
+  window.resetImageConfig = resetImageConfig;
+  window.applyImageConfigToPreview = applyImageConfigToPreview;
+  window.shareWhatsAppSummary = shareWhatsAppSummary;
   window.bootApp = bootApp;
 }
 

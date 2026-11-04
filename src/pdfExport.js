@@ -67,6 +67,19 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
     </span>
   `).join(' ');
 
+  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية المحفوظة
+  const getPdfImgStyle = (cfg) => {
+    const config = cfg || { aspectRatio: 'standard', scale: 100, align: 'center' };
+    const scale = (typeof config.scale === 'number' ? config.scale : 100) / 100;
+    const align = config.align || 'center';
+    const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
+    return `width: 100%; height: 100%; object-fit: cover; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block;`;
+  };
+
+  const beforeStyle = getPdfImgStyle(sec.beforeConfig);
+  const afterStyle = getPdfImgStyle(sec.afterConfig);
+  const panoStyle = getPdfImgStyle(sec.afterConfig || sec.beforeConfig);
+
   // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية المركزية أعلى الصور
   let imagesHtml = '';
 
@@ -78,7 +91,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
           <span style="width: 5px; height: 5px; border-radius: 50%; background: #facc15; display: inline-block;"></span>
           <span>● Panorama View</span>
         </div>
-        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
+        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" />
       </div>
     `;
   } else if (layout === 'stacked_panorama') {
@@ -90,14 +103,14 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
             <span>● Before</span>
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
+          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
         <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
           <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
             <span>● After</span>
           </div>
-          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
+          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
         </div>
       </div>
     `;
@@ -111,7 +124,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
             <span>● Before</span>
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
+          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
@@ -120,7 +133,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
             <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
             <span>● After</span>
           </div>
-          <img src="${sec.afterImg}" alt="After" style="width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;" />
+          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
         </div>
       </div>
     `;
