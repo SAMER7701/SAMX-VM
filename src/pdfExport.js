@@ -284,7 +284,7 @@ export async function exportAuditToPdf() {
     // 1. استخراج بيانات الهوية والمعرض
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
     const footerDisclaimer = branding.footerDisclaimer || '';
     const logoData = branding.logoData || null;
 
@@ -572,7 +572,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
   try {
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Department';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
     const footerDisclaimer = branding.footerDisclaimer || '';
 
     // احتساب الإحصاءات التجميعية للدورة الشهرية

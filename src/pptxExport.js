@@ -109,7 +109,7 @@ export async function exportAuditToPptx() {
     
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Field Audit Report';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
     const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق للمعايير المعتمدة';
     const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
 
@@ -1018,7 +1018,7 @@ export async function exportAuditToPptxA4() {
 
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report (A4)';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
     const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق لمقاس A4 المطبوع • قابل للتعديل بالكامل';
     const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
 

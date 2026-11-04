@@ -262,10 +262,10 @@ export function syncBrandingUI() {
     badgeCompanyName.innerText = branding.companyName || 'SAMX-VM';
   }
 
-  // 2. العنوان الفرعي للإدارة أو التنسيق التجاري
+  // 2. العنوان الفرعي للتنسيق التجاري
   const headerSubtitle = document.getElementById('print-header-subtitle');
   if (headerSubtitle) {
-    headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري (Visual Merchandising Department)';
+    headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
   }
 
   // 3. حاوية الشعار في التقرير الرسمي

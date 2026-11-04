@@ -22,7 +22,7 @@ export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
 // الهوية البصرية وشعار الشركة الافتراضي
 export const DEFAULT_BRANDING = {
   companyName: 'SAMX-VM',
-  companySubtitle: 'العرض المرئي والتنسيق التجاري (Visual Merchandising Department)',
+  companySubtitle: 'العرض المرئي والتنسيق التجاري',
   logoData: '', // Base64 Data URL للعلامة التجارية
   footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
 };
@@ -846,9 +846,24 @@ export function getBrandingSettings() {
     const raw = localStorage.getItem(STORAGE_KEY_BRANDING);
     if (raw) {
       const parsed = JSON.parse(raw);
+      let subtitle = parsed.companySubtitle !== undefined ? parsed.companySubtitle : DEFAULT_BRANDING.companySubtitle;
+      // تنظيف أي بيانات قديمة مخزنة في متصفح المستخدم تحتوي على كلمة "إدارة"
+      if (typeof subtitle === 'string' && (subtitle.includes('إدارة') || subtitle.includes('ادارة') || subtitle.includes('Department'))) {
+        subtitle = subtitle
+          .replace(/[إا]دارة\s+العرض\s+المرئي\s+والتنسيق\s+التجاري/g, 'العرض المرئي والتنسيق التجاري')
+          .replace(/[إا]دارة\s+العرض\s+المرئي/g, 'العرض المرئي')
+          .replace(/\s*\(Visual\s+Merchandising\s+Department\)/gi, '')
+          .replace(/\s*•\s*Visual\s+Merchandising\s+Department/gi, '')
+          .trim();
+        if (!subtitle) subtitle = DEFAULT_BRANDING.companySubtitle;
+        parsed.companySubtitle = subtitle;
+        try {
+          localStorage.setItem(STORAGE_KEY_BRANDING, JSON.stringify(parsed));
+        } catch (_) {}
+      }
       return {
         companyName: (parsed.companyName && parsed.companyName.trim()) || DEFAULT_BRANDING.companyName,
-        companySubtitle: parsed.companySubtitle !== undefined ? parsed.companySubtitle : DEFAULT_BRANDING.companySubtitle,
+        companySubtitle: subtitle || DEFAULT_BRANDING.companySubtitle,
         logoData: parsed.logoData || '',
         footerDisclaimer: parsed.footerDisclaimer !== undefined ? parsed.footerDisclaimer : DEFAULT_BRANDING.footerDisclaimer
       };
@@ -862,9 +877,18 @@ export function getBrandingSettings() {
 export function saveBrandingSettings(settings = {}) {
   try {
     const current = getBrandingSettings();
+    let newSubtitle = settings.companySubtitle !== undefined ? settings.companySubtitle.trim() : current.companySubtitle;
+    if (typeof newSubtitle === 'string') {
+      newSubtitle = newSubtitle
+        .replace(/[إا]دارة\s+العرض\s+المرئي\s+والتنسيق\s+التجاري/g, 'العرض المرئي والتنسيق التجاري')
+        .replace(/[إا]دارة\s+العرض\s+المرئي/g, 'العرض المرئي')
+        .replace(/\s*\(Visual\s+Merchandising\s+Department\)/gi, '')
+        .replace(/\s*•\s*Visual\s+Merchandising\s+Department/gi, '')
+        .trim();
+    }
     const updated = {
       companyName: settings.companyName !== undefined ? settings.companyName.trim() : current.companyName,
-      companySubtitle: settings.companySubtitle !== undefined ? settings.companySubtitle.trim() : current.companySubtitle,
+      companySubtitle: newSubtitle || DEFAULT_BRANDING.companySubtitle,
       logoData: settings.logoData !== undefined ? settings.logoData : current.logoData,
       footerDisclaimer: settings.footerDisclaimer !== undefined ? settings.footerDisclaimer.trim() : current.footerDisclaimer
     };

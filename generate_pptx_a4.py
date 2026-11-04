@@ -201,7 +201,7 @@ def build_a4_presentation(output_filepath="public/تقرير_تدقيق_VM_A4.pp
     p_st.alignment = PP_ALIGN.RIGHT
 
     p_sub = tf_st.add_paragraph()
-    p_sub.text = "إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report"
+    p_sub.text = "العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report"
     p_sub.font.size = Pt(12)
     p_sub.font.color.rgb = SLATE_400
     p_sub.alignment = PP_ALIGN.RIGHT
