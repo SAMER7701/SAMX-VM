@@ -12,32 +12,70 @@ import { currentAudit, getBrandingSettings } from './store.js';
 import { showToast, renderPrintSections, syncBrandingUI } from './renderers.js';
 
 /**
- * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي متوازن وعالي الدقة
- * مع دعم التحجيم الديناميكي للصور وشارات كبسولية مركزية مصغرة أعلى الصورة
+ * دالة مساعدة لتفكيك الملاحظات والمبررات الميدانية إلى قائمة نقاط رأسية متسلسلة ونقية
  */
-function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasSignatures = false) {
+export function parseJustificationNotes(notes) {
+  if (!notes || !notes.trim()) {
+    return [
+      'تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري.',
+      'التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه.'
+    ];
+  }
+
+  const raw = notes.trim();
+
+  // 1. تقسيم وفق الأسطر المتعددة
+  if (raw.includes('\n')) {
+    const lines = raw.split('\n')
+      .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(line => line.length > 0);
+    if (lines.length > 0) return lines;
+  }
+
+  // 2. تقسيم وفق علامات التعداد النقطي الشائعة (• أو - أو *)
+  if (/[•\*]|\s[-–—]\s/.test(raw)) {
+    const parts = raw.split(/[•\*]|\s[-–—]\s/)
+      .map(p => p.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(p => p.length > 0);
+    if (parts.length > 0) return parts;
+  }
+
+  // 3. تقسيم وفق الجمل المنتهية بنقطة
+  if (raw.includes('. ') || raw.includes('.\n')) {
+    const sentences = raw.split(/\.\s+|\.\n+/)
+      .map(s => s.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(s => s.length > 0);
+    if (sentences.length > 1) return sentences;
+  }
+
+  // 4. تقسيم وفق الفواصل إذا كان النص طويلاً ومتصلاً بأكثر من إجراء
+  if (raw.includes('، ') && raw.length > 75) {
+    const clauses = raw.split(/،\s+/)
+      .map(c => c.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(c => c.length > 0);
+    if (clauses.length > 1) return clauses;
+  }
+
+  return [raw];
+}
+
+/**
+ * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي متوازن وعالي الدقة
+ * مع دعم شارات كبسولية مركزية مصغرة أعلى الصورة وقائمة مبررات رأسية متسلسلة
+ */
+function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSignatures = false) {
   const layout = sec.layoutType || 'comparison';
 
-  // حساب الأبعاد المثالية لارتفاع الصور لملء الصفحة بانسجام ومنع الفراغات الجانبية أو السفلية
-  let imgHeight = 218;
-  let stackedImgHeight = 104;
+  // حساب الأبعاد المثالية لارتفاع الصور لملء الصفحة بانسجام تام ومنع أي فراغات سفلية
+  let imgHeight = 330;
+  let stackedImgHeight = 160;
 
-  if (isSingleOnPage) {
-    if (hasSignatures) {
-      imgHeight = (layout === 'single_panorama') ? 305 : 270;
-      stackedImgHeight = 135;
-    } else {
-      imgHeight = (layout === 'single_panorama') ? 370 : 325;
-      stackedImgHeight = 175;
-    }
+  if (hasSignatures) {
+    imgHeight = (layout === 'single_panorama') ? 285 : 255;
+    stackedImgHeight = 120;
   } else {
-    if (hasSignatures) {
-      imgHeight = 180;
-      stackedImgHeight = 88;
-    } else {
-      imgHeight = 218;
-      stackedImgHeight = 104;
-    }
+    imgHeight = (layout === 'single_panorama') ? 370 : 335;
+    stackedImgHeight = 165;
   }
 
   // شارة الحالة بتوسيط مثالي للنصوص والأيقونات
@@ -86,11 +124,11 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
   if (layout === 'single_panorama') {
     // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 7px;">
-        <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
+        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
           Panorama View
         </div>
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
           <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" />
         </div>
       </div>
@@ -98,10 +136,10 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
   } else if (layout === 'stacked_panorama') {
     // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل وشارات خارجية علوية
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
         <!-- قبل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             Before
           </div>
           <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -110,7 +148,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
         </div>
         <!-- بعد -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             After
           </div>
           <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -122,23 +160,23 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
   } else {
     // مقارنة جانبية Side-by-Side (صورتين جنباً لجنب) مع شارات كبسولية خارجية أعلى الإطار
     imagesHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 7px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
         <!-- اليمين: قبل التعديل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             Before
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
             <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
           </div>
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             After
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
             <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
           </div>
         </div>
@@ -146,15 +184,18 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
     `;
   }
 
+  // تفكيك المبررات إلى قائمة رأسية متسلسلة
+  const justificationsList = parseJustificationNotes(sec.notes);
+
   return `
-    <div style="border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%;">
+    <div style="border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 13px 15px; background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; page-break-inside: avoid; break-inside: avoid;">
       <!-- شريط عنوان القسم والشارة الملونة والوسوم -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 7px; margin-bottom: 8px; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 7px; min-width: 0;">
-          <span style="width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 7px; margin-bottom: 9px; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+          <span style="width: 24px; height: 24px; border-radius: 7px; background: #0f172a; color: #facc15; font-size: 11.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
             ${globalIndex}
           </span>
-          <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${sec.title}
           </h4>
         </div>
@@ -169,23 +210,46 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
 
       <!-- معايير الـ VM المطبقة إذا وُجدت -->
       ${sec.checklist && sec.checklist.length > 0 ? `
-        <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 4.5px 9px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
-          <strong style="color: #713f12;">معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</strong>
-          <span style="margin-right: 6px;">${sec.checklist.map(c => `✓ ${c}`).join('   •   ')}</span>
+        <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
+          <div style="font-weight: 800; color: #713f12; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
+            <span>✓</span>
+            <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            ${sec.checklist.map(c => `
+              <span style="display: inline-flex; align-items: center; gap: 3px; background: #ffffff; color: #713f12; border: 1px solid #fde047; padding: 2px 7px; border-radius: 4px; font-size: 9px; font-weight: 600;">
+                <span style="color: #ca8a04; font-weight: 900;">✓</span>
+                <span>${c}</span>
+              </span>
+            `).join('')}
+          </div>
         </div>
       ` : ''}
 
       <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
       ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 6px; padding: 4.5px 9px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1.5px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
           <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
           <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
         </div>
       ` : ''}
 
-      <!-- تفاصيل ومبررات التعديل الميداني -->
-      <div style="font-size: 9.5px; color: #334155; background: #f8fafc; padding: 5.5px 9px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.4;">
-        <strong style="color: #0f172a;">تفاصيل ومبررات التعديل الميداني:</strong> ${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}
+      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة وأنيقة -->
+      <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 8px 12px; margin-top: 5px; box-sizing: border-box; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 10.5px; color: #0f172a; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 4px; background: #0f172a; color: #facc15; font-size: 9px; line-height: 1;">📋</span>
+          <span>تفاصيل ومبررات التعديل الميداني:</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+          ${justificationsList.map(item => `
+            <div style="display: flex; align-items: flex-start; gap: 7px; font-size: 10px; color: #1e293b; line-height: 1.45; text-align: right; direction: rtl;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 8.5px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.12);">
+                ✔
+              </span>
+              <span style="flex: 1; font-weight: 600;">${item}</span>
+            </div>
+          `).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -193,7 +257,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
 
 /**
  * تصدير التقرير التنفيذي كملف PDF رقمي جاهز للتحميل
- * يعتمد التقسيم المقاس لصفحات A4 المستقلة مع التوسيط الرأسي والأفقي التام لمنع أي اقتطاع أو فراغات شاذة
+ * يخصص صفحة A4 مستقلة تماماً لكل قسم لضمان منع التداخل والتوسيط الرأسي والأفقي المثالي
  */
 export async function exportAuditToPdf() {
   const sections = currentAudit.sections || [];
@@ -215,7 +279,7 @@ export async function exportAuditToPdf() {
   let renderRoot = null;
 
   try {
-    showToast('📄 جارٍ بناء صفحات الـ PDF A4 بتوسيط مثالي واستغلال كامل للمساحة...', 'info');
+    showToast('📄 جارٍ بناء صفحات الـ PDF (صفحة مخصصة لكل قسم بتوسيط كامل)...', 'info');
 
     // 1. استخراج بيانات الهوية والمعرض
     const branding = getBrandingSettings();
@@ -229,9 +293,8 @@ export async function exportAuditToPdf() {
     const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
     const totalSections = sections.length;
 
-    // 2. تقسيم الأقسام إلى صفحات A4 محددة مسبقاً (قسمان كحد أقصى لكل صفحة لضمان عدم الاقتصاص والتوازن التام)
-    const chunkSize = 2;
-    const totalPages = Math.max(1, Math.ceil(totalSections / chunkSize));
+    // 2. تقسيم الأقسام: قسم واحد فقط لكل صفحة A4 مستقلة تماماً لمنع التداخل أو الاقتطاع
+    const totalPages = totalSections;
 
     // 3. إنشاء حاوية التقديم خارج الشاشة
     renderRoot = document.createElement('div');
@@ -248,7 +311,7 @@ export async function exportAuditToPdf() {
     `;
     document.body.appendChild(renderRoot);
 
-    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px) مع توسيط محكم
+    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px) مع توسيط محكم (One Section Per Page)
     for (let p = 0; p < totalPages; p++) {
       const pageEl = document.createElement('div');
       pageEl.className = 'single-pdf-page';
@@ -256,7 +319,7 @@ export async function exportAuditToPdf() {
         width: 794px;
         height: 1123px;
         box-sizing: border-box;
-        padding: 32px 38px;
+        padding: 30px 38px;
         background: #ffffff;
         display: flex;
         flex-direction: column;
@@ -264,20 +327,24 @@ export async function exportAuditToPdf() {
         align-items: stretch;
         position: relative;
         overflow: hidden;
+        page-break-before: ${p === 0 ? 'auto' : 'always'};
+        break-before: ${p === 0 ? 'auto' : 'page'};
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-after: ${p === totalPages - 1 ? 'auto' : 'always'};
+        break-after: ${p === totalPages - 1 ? 'auto' : 'page'};
       `;
 
-      const startIdx = p * chunkSize;
-      const endIdx = Math.min(startIdx + chunkSize, totalSections);
-      const pageSections = sections.slice(startIdx, endIdx);
-      const isSingleOnPage = (pageSections.length === 1);
+      const sec = sections[p];
+      const isFirstPage = (p === 0);
       const isLastPage = (p === totalPages - 1);
 
       // --- هيدر الصفحة ---
       let headerHtml = '';
-      if (p === 0) {
+      if (isFirstPage) {
         // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 12px; width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 10px; width: 100%;">
             <!-- الشعار وهوية الشركة -->
             <div style="display: flex; align-items: center; gap: 12px;">
               ${logoData ? `
@@ -319,27 +386,27 @@ export async function exportAuditToPdf() {
       } else {
         // الصفحات اللاحقة: ترويسة مقتضبة ونقية بدون تكرار
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 10px; width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 8px; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <strong style="font-size: 13px; color: #0f172a;">${companyName}</strong>
               <span style="color: #94a3b8;">•</span>
               <span style="font-size: 12px; color: #334155; font-weight: bold;">${branchName}</span>
             </div>
-            <div style="font-size: 10px; color: #64748b; display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 9.5px; color: #64748b; display: flex; align-items: center; gap: 8px;">
               <span>التاريخ: <strong style="color: #0f172a;">${auditDate}</strong></span>
               <span>•</span>
               <span>الأخصائي: <strong style="color: #0f172a;">${auditorName}</strong></span>
               <span>•</span>
-              <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">الأقسام: ${startIdx + 1}-${endIdx} من ${totalSections}</span>
+              <span style="background: #0f172a; color: #facc15; padding: 2px 7px; border-radius: 4px; font-weight: 800;">القسم ${p + 1} من ${totalSections}</span>
             </div>
           </div>
         `;
       }
 
-      // --- محتوى الأقسام لهذه الصفحة المحكوم بنظام شبكي مركزي متوازن ---
+      // --- محتوى القسم لهذه الصفحة المخصص والمحكوم بتوسيط تام (One Section Per Page) ---
       const sectionsHtml = `
-        <div style="display: flex; flex-direction: column; gap: ${isSingleOnPage ? '0px' : '12px'}; width: 100%;">
-          ${pageSections.map((sec, localIdx) => renderPdfSectionCardHtml(sec, startIdx + localIdx + 1, isSingleOnPage, isLastPage)).join('')}
+        <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
+          ${renderPdfSectionCardHtml(sec, p + 1, true, isLastPage)}
         </div>
       `;
 
@@ -347,38 +414,38 @@ export async function exportAuditToPdf() {
       let signaturesHtml = '';
       if (isLastPage) {
         signaturesHtml = `
-          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 10px; margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 10px; width: 100%;">
+          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 8px; margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 9.5px; width: 100%; page-break-inside: avoid; break-inside: avoid;">
             <!-- اعتماد أخصائي العرض المرئي -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 11px;">
               <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
                 إعداد واعتماد أخصائي العرض المرئي (VM Specialist):
               </div>
-              <div style="color: #64748b; font-size: 9px; margin-bottom: 5px;">
+              <div style="color: #64748b; font-size: 8.5px; margin-bottom: 4px;">
                 أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 30px;">
-                <span style="font-weight: 800; color: #0f172a; font-size: 11px;">${auditorName}</span>
-                <span style="font-size: 9px; color: #94a3b8;">التوقيع: ...........................</span>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 26px;">
+                <span style="font-weight: 800; color: #0f172a; font-size: 10.5px;">${auditorName}</span>
+                <span style="font-size: 8.5px; color: #94a3b8;">التوقيع: ...........................</span>
               </div>
             </div>
 
             <!-- اعتماد مدير المعرض -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 11px;">
               <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
                 ملاحظات واعتماد مدير المعرض (Store Manager):
               </div>
-              <div style="color: #64748b; font-size: 9px; margin-bottom: 5px;">
+              <div style="color: #64748b; font-size: 8.5px; margin-bottom: 4px;">
                 تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة.
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 30px;">
-                <span style="font-size: 9px; color: #64748b;">الختم والاعتماد:</span>
-                <span style="font-size: 9px; color: #94a3b8;">...................................</span>
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 26px;">
+                <span style="font-size: 8.5px; color: #64748b;">الختم والاعتماد:</span>
+                <span style="font-size: 8.5px; color: #94a3b8;">...................................</span>
               </div>
             </div>
           </div>
 
           ${footerDisclaimer ? `
-            <div style="font-size: 9px; color: #64748b; text-align: center; margin-top: 6px; padding: 4px; background: #f8fafc; border-radius: 4px; width: 100%;">
+            <div style="font-size: 8.5px; color: #64748b; text-align: center; margin-top: 5px; padding: 3px 8px; background: #f8fafc; border-radius: 4px; width: 100%;">
               ${footerDisclaimer}
             </div>
           ` : ''}
@@ -396,7 +463,7 @@ export async function exportAuditToPdf() {
       // تركيب الصفحة مع التوسيط الرأسي والأفقي التام للحاوية المركزية
       pageEl.innerHTML = `
         ${headerHtml}
-        <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; margin: auto 0; gap: 10px;">
+        <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; min-height: 0; margin: auto 0; gap: 8px;">
           ${sectionsHtml}
           ${signaturesHtml}
         </div>
@@ -701,16 +768,16 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
 
       if (sections.length === 0) continue;
 
-      const chunkSize = 2;
-      for (let sIdx = 0; sIdx < sections.length; sIdx += chunkSize) {
-        const chunk = sections.slice(sIdx, sIdx + chunkSize);
+      // كل قسم في جولات التدقيق الشهرية يخصص له صفحة مستقلة تماماً (One Section Per Page)
+      for (let sIdx = 0; sIdx < sections.length; sIdx++) {
+        const sec = sections[sIdx];
         const sectionPage = document.createElement('div');
         sectionPage.className = 'bulk-pdf-page';
         sectionPage.style.cssText = `
           width: 794px;
           height: 1123px;
           box-sizing: border-box;
-          padding: 32px 38px;
+          padding: 30px 38px;
           background: #ffffff;
           display: flex;
           flex-direction: column;
@@ -718,35 +785,37 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           align-items: stretch;
           position: relative;
           overflow: hidden;
+          page-break-before: always;
+          break-before: page;
+          page-break-inside: avoid;
+          break-inside: avoid;
         `;
-
-        const isSingleOnBulkPage = (chunk.length === 1);
 
         sectionPage.innerHTML = `
           <!-- هيدر الجولة الميدانية بالأعلى (نظيف وبدون week numbers أو timestamps) -->
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 12px; width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 8px; width: 100%;">
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
                   الجولة #${audIdx + 1}
                 </span>
-                <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">
+                <h2 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a;">
                   ${aud.branchName}
                 </h2>
               </div>
-              <div style="font-size: 10.5px; color: #64748b; margin-top: 3px; font-weight: 600;">
+              <div style="font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 600;">
                 المعرض: <strong>${aud.branchName}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
               </div>
             </div>
-            <div style="text-align: left; font-size: 10.5px; font-weight: bold; color: #0f172a; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-              الأقسام: ${sIdx + 1}-${Math.min(sIdx + chunkSize, sections.length)} من ${sections.length}
+            <div style="text-align: left; font-size: 10px; font-weight: 800; color: #facc15; background: #0f172a; padding: 3px 9px; border-radius: 6px;">
+              القسم ${sIdx + 1} من ${sections.length}
             </div>
           </div>
 
-          <!-- بطاقات الأقسام الموثقة المتمركزة رأسياً وأفقياً -->
-          <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; margin: auto 0; gap: 12px;">
-            <div style="display: flex; flex-direction: column; gap: ${isSingleOnBulkPage ? '0px' : '12px'}; width: 100%;">
-              ${chunk.map((sec, localIdx) => renderPdfSectionCardHtml(sec, sIdx + localIdx + 1, isSingleOnBulkPage, false)).join('')}
+          <!-- بطاقة القسم الموثق المتمركزة رأسياً وأفقياً تماماً في منتصف الصفحة -->
+          <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; min-height: 0; margin: auto 0;">
+            <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
+              ${renderPdfSectionCardHtml(sec, sIdx + 1, true, false)}
             </div>
           </div>
 

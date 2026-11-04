@@ -23,6 +23,54 @@ import {
   deleteArchivedAudit
 } from './store.js';
 
+/**
+ * دالة مساعدة لتفكيك الملاحظات والمبررات الميدانية إلى قائمة نقاط رأسية متسلسلة ونقية
+ */
+export function parseJustificationNotes(notes) {
+  if (!notes || !notes.trim()) {
+    return [
+      'تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري.',
+      'التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه.'
+    ];
+  }
+
+  const raw = notes.trim();
+
+  // 1. تقسيم وفق الأسطر المتعددة
+  if (raw.includes('\n')) {
+    const lines = raw.split('\n')
+      .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(line => line.length > 0);
+    if (lines.length > 0) return lines;
+  }
+
+  // 2. تقسيم وفق علامات التعداد النقطي الشائعة (• أو - أو *)
+  if (/[•\*]|\s[-–—]\s/.test(raw)) {
+    const parts = raw.split(/[•\*]|\s[-–—]\s/)
+      .map(p => p.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(p => p.length > 0);
+    if (parts.length > 0) return parts;
+  }
+
+  // 3. تقسيم وفق الجمل المنتهية بنقطة
+  if (raw.includes('. ') || raw.includes('.\n')) {
+    const sentences = raw.split(/\.\s+|\.\n+/)
+      .map(s => s.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(s => s.length > 0);
+    if (sentences.length > 1) return sentences;
+  }
+
+  // 4. تقسيم وفق الفواصل إذا كان النص مركباً وطويلاً
+  if (raw.includes('، ') && raw.length > 75) {
+    const clauses = raw.split(/،\s+/)
+      .map(c => c.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+      .filter(c => c.length > 0);
+    if (clauses.length > 1) return clauses;
+  }
+
+  return [raw];
+}
+
 // توليد شارة الحالة الملونة
 export function getStatusBadgeHtml(statusKey, isPrint = false) {
   const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
@@ -1136,10 +1184,20 @@ export function renderAuditCards(customSections = null) {
       <!-- الوسوم المطبقة -->
       ${sec.tags && sec.tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-3">${tagsHtml}</div>` : ''}
 
-      <!-- الملاحظات الفنية -->
-      <div class="bg-corp-950/80 p-3 rounded-xl border border-corp-800 text-xs text-slate-300 leading-relaxed">
-        <span class="text-gold-500 font-bold block mb-1">الملاحظات والمبررات الميدانية:</span>
-        ${sec.notes || 'تم التنفيذ وفق المعايير المعتمدة دون ملاحظات إضافية.'}
+      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة -->
+      <div class="bg-corp-950/80 p-3 rounded-xl border border-corp-800 text-xs text-slate-300">
+        <div class="text-gold-400 font-bold pb-1.5 mb-2 border-b border-corp-800/80 flex items-center gap-1.5 text-[11px]">
+          <span class="w-4 h-4 rounded bg-corp-900 text-gold-400 flex items-center justify-center text-[10px] shrink-0 font-bold border border-corp-700">📋</span>
+          <span>الملاحظات والمبررات الميدانية:</span>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          ${parseJustificationNotes(sec.notes).map(item => `
+            <div class="flex items-start gap-2 text-[11px] leading-relaxed">
+              <span class="w-3.5 h-3.5 rounded-full bg-gold-500/20 text-gold-400 border border-gold-500/40 flex items-center justify-center text-[8px] font-black shrink-0 mt-0.5">✔</span>
+              <span class="font-normal text-slate-200">${item}</span>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
 
@@ -1295,9 +1353,20 @@ export function renderPrintSections(customSections = null) {
         </div>
       ` : ''}
 
-      <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed">
-        <span class="font-bold text-slate-900 block mb-0.5">تفاصيل ومبررات التعديل الميداني:</span>
-        <p>${sec.notes || 'تم التنفيذ والتعديل وفق معايير التنسيق المعتمدة.'}</p>
+      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة -->
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-700">
+        <div class="font-bold text-slate-900 pb-1.5 mb-2 border-b border-slate-200 flex items-center gap-1.5 text-[11px]">
+          <span class="w-4 h-4 rounded bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] shrink-0 font-bold">📋</span>
+          <span>تفاصيل ومبررات التعديل الميداني:</span>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          ${parseJustificationNotes(sec.notes).map(item => `
+            <div class="flex items-start gap-2 text-[11px] leading-relaxed">
+              <span class="w-3.5 h-3.5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[8px] font-black shrink-0 mt-0.5 shadow-sm">✔</span>
+              <span class="font-medium text-slate-800">${item}</span>
+            </div>
+          `).join('')}
+        </div>
       </div>
     `;
 

@@ -108,13 +108,33 @@
         max-width: 100% !important;
       }
       .print-break-inside-avoid {
-        page-break-inside: avoid;
-        break-inside: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       .print-card {
-        border: 1px solid #cbd5e1 !important;
+        border: 1.5px solid #cbd5e1 !important;
         box-shadow: none !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 0 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-before: always !important;
+        break-before: page !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+        min-height: calc(100vh - 40mm) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+      }
+      .print-card:first-child {
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        min-height: auto !important;
+      }
+      #print-signatures-footer {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
     }
 
