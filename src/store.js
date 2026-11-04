@@ -22,7 +22,7 @@ export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
 // الهوية البصرية وشعار الشركة الافتراضي
 export const DEFAULT_BRANDING = {
   companyName: 'SAMX-VM',
-  companySubtitle: 'إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)',
+  companySubtitle: 'العرض المرئي والتنسيق التجاري (Visual Merchandising Department)',
   logoData: '', // Base64 Data URL للعلامة التجارية
   footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
 };

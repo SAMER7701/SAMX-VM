@@ -217,7 +217,7 @@ export function syncBrandingUI() {
   // 2. العنوان الفرعي للإدارة أو التنسيق التجاري
   const headerSubtitle = document.getElementById('print-header-subtitle');
   if (headerSubtitle) {
-    headerSubtitle.innerText = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)';
+    headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري (Visual Merchandising Department)';
   }
 
   // 3. حاوية الشعار في التقرير الرسمي
@@ -271,7 +271,7 @@ export function updateBrandingLivePreview(tempOverrides = null) {
   }
 
   if (previewSub) {
-    previewSub.innerText = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري';
+    previewSub.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
   }
 
   if (previewDisc) {
@@ -983,15 +983,13 @@ export function renderAuditCards(customSections = null) {
       ${isSlider ? `
         <div class="relative w-full aspect-video rounded-xl overflow-hidden select-none bg-corp-950 border border-corp-800 mb-3 shadow-inner" id="slider-box-${sec.id}">
           <img src="${sec.afterImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none">
-          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-200 border border-emerald-500/50 shadow text-[10px] font-bold">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-            <span>● After</span>
+          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center justify-center px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-200 border border-emerald-500/50 shadow text-[10px] font-bold select-none" dir="ltr">
+            <span>After</span>
           </div>
 
           <img id="slider-before-img-${sec.id}" src="${sec.beforeImg}" class="absolute inset-0 w-full h-full object-cover pointer-events-none z-10" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
-          <div class="absolute top-2 right-4 z-20 pointer-events-none flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#881337]/90 text-rose-200 border border-rose-500/50 shadow text-[10px] font-bold">
-            <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
-            <span>● Before</span>
+          <div class="absolute top-2 right-4 z-20 pointer-events-none flex items-center justify-center px-3 py-0.5 rounded-full bg-[#881337]/90 text-rose-200 border border-rose-500/50 shadow text-[10px] font-bold select-none" dir="ltr">
+            <span>Before</span>
           </div>
 
           <div id="slider-handle-${sec.id}" class="absolute top-0 bottom-0 pointer-events-none z-20 flex items-center justify-center -translate-x-1/2" style="left: 50%;">
@@ -1004,70 +1002,85 @@ export function renderAuditCards(customSections = null) {
           <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
         </div>
       ` : (sec.layoutType === 'single_panorama' ? `
-        <!-- عرض بانوراما عريضة موحدة -->
-        <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md mb-3.5" onclick="openLightbox('${sec.afterImg || sec.beforeImg}', '${sec.title} - Panorama')">
-          <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
-            <span>● Panorama View</span>
+        <!-- عرض بانوراما عريضة موحدة مع شارة خارجية فوق الصورة تماماً -->
+        <div class="mb-3.5">
+          <div class="flex justify-center w-full mb-1.5">
+            <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+              <span>Panorama View</span>
+            </div>
           </div>
-          <img src="${sec.afterImg || sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Panorama+Image'}" style="${panoStyle}" class="w-full h-full object-cover transition duration-300">
-          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-            <i data-lucide="zoom-in" class="w-4 h-4"></i>
-            <span>تكبير البانوراما</span>
+          <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg || sec.beforeImg}', '${sec.title} - Panorama')">
+            <img src="${sec.afterImg || sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Panorama+Image'}" style="${panoStyle}" class="w-full h-full object-cover transition duration-300">
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+              <span>تكبير البانوراما</span>
+            </div>
           </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
-        <!-- عرض بانوراما رأسية مكدسة -->
+        <!-- عرض بانوراما رأسية مكدسة مع شارات خارجية فوق كل صورة تماماً -->
         <div class="space-y-3 mb-3.5">
-          <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
-            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
-              <span>● Before</span>
+          <div>
+            <div class="flex justify-center w-full mb-1.5">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>Before</span>
+              </div>
             </div>
-            <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
-            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-              <i data-lucide="zoom-in" class="w-4 h-4"></i>
-              <span>تكبير الصورة</span>
+            <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
+              <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير الصورة</span>
+              </div>
             </div>
           </div>
-          <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
-            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-              <span>● After</span>
+          <div>
+            <div class="flex justify-center w-full mb-1.5">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>After</span>
+              </div>
             </div>
-            <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
-            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-              <i data-lucide="zoom-in" class="w-4 h-4"></i>
-              <span>تكبير الصورة</span>
+            <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
+              <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير الصورة</span>
+              </div>
             </div>
           </div>
         </div>
       ` : `
-        <!-- مقارنة جانبية افتراضية مع شارات وسط أعلى الصورة -->
+        <!-- مقارنة جانبية افتراضية مع شارات خارجية فوق كل صورة تماماً -->
         <div class="grid grid-cols-2 gap-3.5 mb-3.5">
           <!-- اليمين: قبل التعديل -->
-          <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
-            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
-              <span>● Before</span>
+          <div class="flex flex-col">
+            <div class="flex justify-center w-full mb-1.5">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>Before</span>
+              </div>
             </div>
-            <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
-            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-              <i data-lucide="zoom-in" class="w-4 h-4"></i>
-              <span>تكبير الصورة</span>
+            <div class="relative rounded-2xl overflow-hidden border border-rose-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Before')">
+              <img src="${sec.beforeImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير الصورة</span>
+              </div>
             </div>
           </div>
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
-          <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
-            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-md text-[11px] font-bold tracking-wide">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-              <span>● After</span>
+          <div class="flex flex-col">
+            <div class="flex justify-center w-full mb-1.5">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b]/90 text-emerald-100 border border-emerald-400/60 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>After</span>
+              </div>
             </div>
-            <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
-            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-              <i data-lucide="zoom-in" class="w-4 h-4"></i>
-              <span>تكبير الصورة</span>
+            <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 bg-corp-950 aspect-[16/10] sm:aspect-[4/3] group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - After')">
+              <img src="${sec.afterImg || 'https://placehold.co/600x400/0f172a/94a3b8?text=No+Image'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير الصورة</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1182,53 +1195,68 @@ export function renderPrintSections(customSections = null) {
         </div>
       </div>
 
-      <!-- صور التوثيق وفق نمط التخطيط مع شارات وسط أعلى الصورة بدون أشرطة علوية ممتدة -->
+      <!-- صور التوثيق وفق نمط التخطيط مع شارات خارجية فوق إطار الصورة بدون نقاط -->
       ${sec.layoutType === 'single_panorama' ? `
-        <!-- بانوراما كاملة للواجهات والمخازن -->
-        <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm mb-3">
-          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
-            <span>● Panorama View</span>
+        <!-- بانوراما كاملة للواجهات والمخازن مع شارة خارجية فوق الصورة تماماً -->
+        <div class="w-full mb-3">
+          <div class="flex justify-center w-full mb-1">
+            <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+              <span>Panorama View</span>
+            </div>
           </div>
-          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" class="w-full h-full object-cover">
+          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+            <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" class="w-full h-full object-cover">
+          </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
-        <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) -->
+        <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) مع شارات خارجية فوق كل صورة تماماً -->
         <div class="space-y-2.5 mb-3">
-          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
-              <span>● Before</span>
+          <div>
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>Before</span>
+              </div>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            </div>
           </div>
-          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
-              <span>● After</span>
+          <div>
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>After</span>
+              </div>
             </div>
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+              <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            </div>
           </div>
         </div>
       ` : `
-        <!-- مقارنة جانبية أنيقة مع شارات وسط أعلى الصورة -->
+        <!-- مقارنة جانبية أنيقة مع شارات خارجية فوق كل صورة تماماً -->
         <div class="grid grid-cols-2 gap-3 mb-3">
           <!-- اليمين: قبل التعديل -->
-          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
-              <span>● Before</span>
+          <div class="flex flex-col">
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>Before</span>
+              </div>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            </div>
           </div>
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
-          <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
-              <span>● After</span>
+          <div class="flex flex-col">
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span>After</span>
+              </div>
             </div>
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
+              <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            </div>
           </div>
         </div>
       `)}

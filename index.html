@@ -682,16 +682,16 @@
               <div id="print-header-logo-container" class="shrink-0"></div>
               <div>
                 <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-                <p class="text-xs text-slate-600 mt-1 font-medium" id="print-header-subtitle">إدارة العرض المرئي والتنسيق التجاري</p>
+                <p class="text-xs text-slate-600 mt-1 font-medium" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
               </div>
             </div>
 
-            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) -->
-            <div class="text-left text-xs space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 min-w-[190px] shrink-0">
-              <div><span class="text-slate-400">اسم المعرض:</span> <span class="font-black text-slate-900" id="print-header-branch">فرع العليا العام</span></div>
-              <div><span class="text-slate-400">أخصائي الـ VM:</span> <span class="font-bold text-slate-900" id="print-header-auditor">أحمد المهندس</span></div>
-              <div><span class="text-slate-400">تاريخ التدقيق:</span> <span class="font-bold text-slate-900" id="print-header-date">2026-10-30</span></div>
-              <div><span class="text-slate-400">إجمالي الأقسام:</span> <span class="font-bold text-amber-700" id="print-header-count">0</span></div>
+            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
+            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
+              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
+              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
+              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
+              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
             </div>
           </div>
         </div>
@@ -1130,12 +1130,14 @@
           
           <!-- عمود صورة قبل (Before Column) -->
           <div id="col-wrapper-before" class="flex flex-col space-y-1.5">
-            <div id="box-wrapper-before" class="border-2 border-dashed border-rose-500/40 bg-rose-950/10 hover:bg-rose-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition overflow-hidden">
-              <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow text-[10px] font-bold tracking-wide select-none" dir="ltr">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-300 inline-block"></span>
-                <span>● Before</span>
+            <!-- الشارة الخارجية فوق إطار الصورة تماماً بدون نقاط -->
+            <div class="flex justify-center w-full">
+              <div id="badge-label-before" class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span id="badge-text-before">Before</span>
               </div>
-              
+            </div>
+
+            <div id="box-wrapper-before" class="border-2 border-dashed border-rose-500/40 bg-rose-950/10 hover:bg-rose-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition overflow-hidden">
               <div id="box-preview-before" class="w-full h-32 hidden rounded-xl overflow-hidden relative mb-1 group bg-black/40">
                 <img id="img-elem-before" src="" class="w-full h-full object-cover transition-transform duration-150">
                 <button type="button" onclick="clearModalImage('before')" class="absolute top-1.5 left-1.5 bg-rose-600/90 hover:bg-rose-700 text-white p-1 rounded-full shadow z-10" title="حذف الصورة">
@@ -1204,12 +1206,14 @@
 
           <!-- عمود صورة بعد / البانوراما (After Column) -->
           <div id="col-wrapper-after" class="flex flex-col space-y-1.5">
-            <div id="box-wrapper-after" class="border-2 border-dashed border-emerald-500/40 bg-emerald-950/10 hover:bg-emerald-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition overflow-hidden">
-              <div id="badge-label-after" class="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none" dir="ltr">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
-                <span id="badge-text-after">● After</span>
+            <!-- الشارة الخارجية فوق إطار الصورة تماماً بدون نقاط -->
+            <div class="flex justify-center w-full">
+              <div id="badge-label-after" class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
+                <span id="badge-text-after">After</span>
               </div>
-              
+            </div>
+
+            <div id="box-wrapper-after" class="border-2 border-dashed border-emerald-500/40 bg-emerald-950/10 hover:bg-emerald-950/20 rounded-2xl p-2 text-center relative flex flex-col items-center justify-center min-h-[170px] transition overflow-hidden">
               <div id="box-preview-after" class="w-full h-32 hidden rounded-xl overflow-hidden relative mb-1 group bg-black/40">
                 <img id="img-elem-after" src="" class="w-full h-full object-cover transition-transform duration-150">
                 <button type="button" onclick="clearModalImage('after')" class="absolute top-1.5 left-1.5 bg-rose-600/90 hover:bg-rose-700 text-white p-1 rounded-full shadow z-10" title="حذف الصورة">
@@ -1534,7 +1538,7 @@
               <i data-lucide="briefcase" class="w-3.5 h-3.5 text-sky-400"></i>
               <span>المسمى الإداري / القسم الفرعي (Subtitle)</span>
             </label>
-            <input type="text" id="branding-input-company-subtitle" placeholder="مثال: إدارة العرض المرئي والتنسيق التجاري (Visual Merchandising Department)" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition placeholder:text-slate-500" />
+            <input type="text" id="branding-input-company-subtitle" placeholder="مثال: العرض المرئي والتنسيق التجاري (Visual Merchandising Department)" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition placeholder:text-slate-500" />
           </div>
 
           <!-- منطقة رفع وإدارة الشعار (Logo Upload Dropzone) -->
@@ -1607,7 +1611,7 @@
                     <span class="text-slate-400 font-normal">| تدقيق أسبوعي</span>
                   </div>
                   <h4 class="text-xs font-black text-slate-950 mt-1">فرع العليا العام - الرياض</h4>
-                  <p class="text-[9px] text-slate-500" id="branding-preview-sub">إدارة العرض المرئي والتنسيق التجاري</p>
+                  <p class="text-[9px] text-slate-500" id="branding-preview-sub">العرض المرئي والتنسيق التجاري</p>
                 </div>
               </div>
               <div class="text-[9px] bg-slate-50 border border-slate-200 p-1.5 rounded text-left shrink-0">

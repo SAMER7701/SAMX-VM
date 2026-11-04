@@ -859,6 +859,7 @@ export function setModalLayoutType(layoutType = 'comparison') {
   if (btnSingle) btnSingle.className = (layoutType === 'single_panorama') ? activeCls : inactiveCls;
   if (btnStacked) btnStacked.className = (layoutType === 'stacked_panorama') ? activeCls : inactiveCls;
 
+  const colBefore = document.getElementById('col-wrapper-before');
   const boxBefore = document.getElementById('box-wrapper-before');
   const boxAfter = document.getElementById('box-wrapper-after');
   const badgeTextAfter = document.getElementById('badge-text-after');
@@ -870,7 +871,8 @@ export function setModalLayoutType(layoutType = 'comparison') {
   const imagesContainer = document.getElementById('modal-images-container');
 
   if (layoutType === 'single_panorama') {
-    if (boxBefore) boxBefore.classList.add('hidden');
+    if (colBefore) colBefore.classList.add('hidden');
+    else if (boxBefore) boxBefore.classList.add('hidden');
     if (boxAfter) {
       boxAfter.classList.remove('hidden');
     }
@@ -878,22 +880,23 @@ export function setModalLayoutType(layoutType = 'comparison') {
       imagesContainer.classList.remove('grid-cols-2');
       imagesContainer.classList.add('grid-cols-1');
     }
-    if (badgeTextAfter) badgeTextAfter.innerText = '● Panorama View';
+    if (badgeTextAfter) badgeTextAfter.innerText = 'Panorama View';
     if (badgeLabelAfter) {
-      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none';
+      badgeLabelAfter.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none';
     }
     if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubAfter) placeholderSubAfter.innerText = 'صورة الواجهة العريضة أو المخزن (Wide Panorama)';
   } else if (layoutType === 'stacked_panorama') {
+    if (colBefore) colBefore.classList.remove('hidden');
     if (boxBefore) boxBefore.classList.remove('hidden');
     if (boxAfter) boxAfter.classList.remove('hidden');
     if (imagesContainer) {
       imagesContainer.classList.remove('grid-cols-2');
       imagesContainer.classList.add('grid-cols-1');
     }
-    if (badgeTextAfter) badgeTextAfter.innerText = '● After (بانوراما بعد)';
+    if (badgeTextAfter) badgeTextAfter.innerText = 'After';
     if (badgeLabelAfter) {
-      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
+      badgeLabelAfter.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
     }
     if (placeholderTitleBefore) placeholderTitleBefore.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubBefore) placeholderSubBefore.innerText = 'بانوراما علوية (قبل التعديل)';
@@ -901,15 +904,16 @@ export function setModalLayoutType(layoutType = 'comparison') {
     if (placeholderSubAfter) placeholderSubAfter.innerText = 'بانوراما سفلية (بعد التعديل)';
   } else {
     // Comparison (مقارنة جانبية جنباً إلى جنب)
+    if (colBefore) colBefore.classList.remove('hidden');
     if (boxBefore) boxBefore.classList.remove('hidden');
     if (boxAfter) boxAfter.classList.remove('hidden');
     if (imagesContainer) {
       imagesContainer.classList.remove('grid-cols-1');
       imagesContainer.classList.add('grid-cols-2');
     }
-    if (badgeTextAfter) badgeTextAfter.innerText = '● After';
+    if (badgeTextAfter) badgeTextAfter.innerText = 'After';
     if (badgeLabelAfter) {
-      badgeLabelAfter.className = 'absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
+      badgeLabelAfter.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
     }
     if (placeholderTitleBefore) placeholderTitleBefore.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubBefore) placeholderSubBefore.innerText = 'صورة قبل التعديل';
@@ -2670,7 +2674,7 @@ export function saveBrandingFromModal() {
 
   saveBrandingSettings({
     companyName: companyName || 'SAMX-VM',
-    companySubtitle: companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري',
+    companySubtitle: companySubtitle || 'العرض المرئي والتنسيق التجاري',
     logoData: tempBrandingState.logoData || '',
     footerDisclaimer: footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي'
   });

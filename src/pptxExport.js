@@ -109,7 +109,7 @@ export async function exportAuditToPptx() {
     
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Field Audit Report';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Field Audit Report';
     const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق للمعايير المعتمدة';
     const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
 
@@ -518,7 +518,7 @@ export async function exportAuditToPptx() {
           line: { color: 'F59E0B', width: 1 }
         });
 
-        slide.addText('● Panorama View', {
+        slide.addText('Panorama View', {
           x: pillX,
           y: pillY,
           w: pillW,
@@ -577,7 +577,7 @@ export async function exportAuditToPptx() {
           fill: { color: '881337' },
           line: { color: 'EF4444', width: 1 }
         });
-        slide.addText('● Before', {
+        slide.addText('Before', {
           x: pillX,
           y: beforeStackY + 0.08,
           w: pillW,
@@ -625,7 +625,7 @@ export async function exportAuditToPptx() {
           fill: { color: '064E3B' },
           line: { color: '10B981', width: 1 }
         });
-        slide.addText('● After', {
+        slide.addText('After', {
           x: pillX,
           y: afterStackY + 0.08,
           w: pillW,
@@ -706,7 +706,7 @@ export async function exportAuditToPptx() {
           fill: { color: '881337' },
           line: { color: 'EF4444', width: 1 }
         });
-        slide.addText('● Before', {
+        slide.addText('Before', {
           x: beforePillX,
           y: pillY,
           w: pillW,
@@ -777,7 +777,7 @@ export async function exportAuditToPptx() {
           fill: { color: '064E3B' },
           line: { color: '10B981', width: 1 }
         });
-        slide.addText('● After', {
+        slide.addText('After', {
           x: afterPillX,
           y: pillY,
           w: pillW,
@@ -1018,7 +1018,7 @@ export async function exportAuditToPptxA4() {
 
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report (A4)';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Audit Report (A4)';
     const footerDisclaimer = branding.footerDisclaimer || 'منظومة SAMX-VM • تقرير تدقيق رسمي مطابق لمقاس A4 المطبوع • قابل للتعديل بالكامل';
     const logoObj = branding.logoData ? await preparePptxImage(branding.logoData) : null;
 
@@ -1462,7 +1462,7 @@ export async function exportAuditToPptxA4() {
           line: { color: 'F59E0B', width: 1 }
         });
 
-        slide.addText('● Panorama View', {
+        slide.addText('Panorama View', {
           x: pillX,
           y: pillY,
           w: pillW,
@@ -1521,7 +1521,7 @@ export async function exportAuditToPptxA4() {
           fill: { color: '881337' },
           line: { color: 'EF4444', width: 1 }
         });
-        slide.addText('● Before', {
+        slide.addText('Before', {
           x: pillX,
           y: beforeStackY + 0.1,
           w: pillW,
@@ -1569,7 +1569,7 @@ export async function exportAuditToPptxA4() {
           fill: { color: '064E3B' },
           line: { color: '10B981', width: 1 }
         });
-        slide.addText('● After', {
+        slide.addText('After', {
           x: pillX,
           y: afterStackY + 0.1,
           w: pillW,
@@ -1650,7 +1650,7 @@ export async function exportAuditToPptxA4() {
           fill: { color: '881337' },
           line: { color: 'EF4444', width: 1 }
         });
-        slide.addText('● Before', {
+        slide.addText('Before', {
           x: beforePillX,
           y: pillY,
           w: pillW,
@@ -1721,7 +1721,7 @@ export async function exportAuditToPptxA4() {
           fill: { color: '064E3B' },
           line: { color: '10B981', width: 1 }
         });
-        slide.addText('● After', {
+        slide.addText('After', {
           x: afterPillX,
           y: pillY,
           w: pillW,

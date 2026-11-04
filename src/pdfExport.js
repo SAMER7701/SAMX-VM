@@ -19,24 +19,24 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
   const layout = sec.layoutType || 'comparison';
 
   // حساب الأبعاد المثالية لارتفاع الصور لملء الصفحة بانسجام ومنع الفراغات الجانبية أو السفلية
-  let imgHeight = 235;
-  let stackedImgHeight = 114;
+  let imgHeight = 218;
+  let stackedImgHeight = 104;
 
   if (isSingleOnPage) {
     if (hasSignatures) {
-      imgHeight = (layout === 'single_panorama') ? 320 : 285;
-      stackedImgHeight = 145;
+      imgHeight = (layout === 'single_panorama') ? 305 : 270;
+      stackedImgHeight = 135;
     } else {
-      imgHeight = (layout === 'single_panorama') ? 385 : 340;
-      stackedImgHeight = 185;
+      imgHeight = (layout === 'single_panorama') ? 370 : 325;
+      stackedImgHeight = 175;
     }
   } else {
     if (hasSignatures) {
-      imgHeight = 195;
-      stackedImgHeight = 95;
+      imgHeight = 180;
+      stackedImgHeight = 88;
     } else {
-      imgHeight = 235;
-      stackedImgHeight = 114;
+      imgHeight = 218;
+      stackedImgHeight = 104;
     }
   }
 
@@ -80,60 +80,67 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = false, hasS
   const afterStyle = getPdfImgStyle(sec.afterConfig);
   const panoStyle = getPdfImgStyle(sec.afterConfig || sec.beforeConfig);
 
-  // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية المركزية أعلى الصور
+  // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية الخارجية أعلى إطار الصور
   let imagesHtml = '';
 
   if (layout === 'single_panorama') {
-    // بانوراما كاملة للواجهات أو المستودعات - استغلال العرض الكامل بنقاء عالي
+    // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار
     imagesHtml = `
-      <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc; margin-bottom: 8px;">
-        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
-          <span style="width: 5px; height: 5px; border-radius: 50%; background: #facc15; display: inline-block;"></span>
-          <span>● Panorama View</span>
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 7px;">
+        <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          Panorama View
         </div>
-        <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" />
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" />
+        </div>
       </div>
     `;
   } else if (layout === 'stacked_panorama') {
-    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل
+    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل وشارات خارجية علوية
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
-        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
-            <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
-            <span>● Before</span>
+      <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 7px;">
+        <!-- قبل -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+            Before
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
+          </div>
         </div>
-        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2px 10px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
-            <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
-            <span>● After</span>
+        <!-- بعد -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+            After
           </div>
-          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
+          </div>
         </div>
       </div>
     `;
   } else {
-    // مقارنة جانبية Side-by-Side (صورتين جنباً لجنب)
+    // مقارنة جانبية Side-by-Side (صورتين جنباً لجنب) مع شارات كبسولية خارجية أعلى الإطار
     imagesHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 8px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 7px;">
         <!-- اليمين: قبل التعديل -->
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
-            <span style="width: 5px; height: 5px; border-radius: 50%; background: #fca5a5; display: inline-block;"></span>
-            <span>● Before</span>
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+            Before
           </div>
-          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
+          </div>
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; position: relative; border: 1.5px solid #cbd5e1; background: #f8fafc;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 10; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 2.5px 12px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; user-select: none;">
-            <span style="width: 5px; height: 5px; border-radius: 50%; background: #86efac; display: inline-block;"></span>
-            <span>● After</span>
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+            After
           </div>
-          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 9px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
+          </div>
         </div>
       </div>
     `;
@@ -213,7 +220,7 @@ export async function exportAuditToPdf() {
     // 1. استخراج بيانات الهوية والمعرض
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising';
     const footerDisclaimer = branding.footerDisclaimer || '';
     const logoData = branding.logoData || null;
 
@@ -288,23 +295,23 @@ export async function exportAuditToPdf() {
               </div>
             </div>
 
-            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store Name, Specialist, Date, Total Sections) -->
-            <div style="text-align: right; font-size: 10.5px; background: #f8fafc; padding: 7px 12px; border-radius: 10px; border: 1px solid #e2e8f0; min-width: 200px; display: flex; flex-direction: column; gap: 3px;">
-              <div style="display: flex; justify-content: space-between; gap: 8px;">
-                <span style="color: #64748b; font-weight: 600;">اسم المعرض:</span>
-                <strong style="color: #0f172a;">${branchName}</strong>
+            <!-- بطاقة بيانات التقرير الرسمية (محاذاة لليمين، خط مصغر خطوتين، وتباين ألوان حاد وواضح) -->
+            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.4; background: #f8fafc; padding: 6px 11px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 195px; display: flex; flex-direction: column; gap: 3.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
+                <span style="color: #334155; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${branchName}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 8px;">
-                <span style="color: #64748b; font-weight: 600;">أخصائي الـ VM:</span>
-                <strong style="color: #0f172a;">${auditorName}</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
+                <span style="color: #334155; font-weight: 700; white-space: nowrap;">أخصائي الـ VM:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${auditorName}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 8px;">
-                <span style="color: #64748b; font-weight: 600;">تاريخ التدقيق:</span>
-                <strong style="color: #0f172a;">${auditDate}</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
+                <span style="color: #334155; font-weight: 700; white-space: nowrap;">تاريخ التدقيق:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${auditDate}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; gap: 8px;">
-                <span style="color: #64748b; font-weight: 600;">إجمالي الأقسام:</span>
-                <strong style="color: #b45309;">${totalSections} أقسام</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
+                <span style="color: #334155; font-weight: 700; white-space: nowrap;">إجمالي الأقسام:</span>
+                <strong style="color: #9a3412; font-weight: 900; font-size: 9.5px; background: #ffedd5; padding: 1px 7px; border-radius: 4px; border: 1px solid #fdba74;">${totalSections} أقسام</strong>
               </div>
             </div>
           </div>
@@ -498,7 +505,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
   try {
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
-    const companySubtitle = branding.companySubtitle || 'إدارة العرض المرئي والتنسيق التجاري • Visual Merchandising Department';
+    const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري • Visual Merchandising Department';
     const footerDisclaimer = branding.footerDisclaimer || '';
 
     // احتساب الإحصاءات التجميعية للدورة الشهرية
@@ -796,7 +803,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
           <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px;">
             <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">
-              إدارة العرض المرئي والتنسيق التجاري
+              العرض المرئي والتنسيق التجاري
             </div>
             <div style="font-size: 10px; color: #64748b; margin-bottom: 12px;">
               Head of Visual Merchandising
