@@ -70,25 +70,25 @@ export const STATUS_MAP = {
   resolved: {
     id: 'resolved',
     label: 'تم المعالجة ميدانياً ✅',
-    shortLabel: 'تم المعالجة ✅',
+    shortLabel: 'تم المعالجة ميدانياً ✅',
     badgeClass: 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/50',
-    printBadgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-400 font-bold',
+    printBadgeClass: 'bg-emerald-50 text-emerald-800 border border-emerald-400 font-bold',
     icon: 'check-circle-2'
   },
   store_followup: {
     id: 'store_followup',
-    label: 'تتطلب متابعة الفرع ⏳',
-    shortLabel: 'متابعة الفرع ⏳',
+    label: 'متابعة المعرض ⏳',
+    shortLabel: 'متابعة المعرض ⏳',
     badgeClass: 'bg-amber-950/80 text-amber-400 border border-amber-500/50',
-    printBadgeClass: 'bg-amber-100 text-amber-900 border border-amber-400 font-bold',
+    printBadgeClass: 'bg-amber-50 text-amber-900 border border-amber-400 font-bold',
     icon: 'clock'
   },
   management_action: {
     id: 'management_action',
-    label: 'تتطلب صيانة / إدارة ⚠️',
-    shortLabel: 'صيانة / إدارة ⚠️',
+    label: 'طلب صيانة / إدارة ⚠️',
+    shortLabel: 'طلب صيانة / إدارة ⚠️',
     badgeClass: 'bg-rose-950/80 text-rose-400 border border-rose-500/50',
-    printBadgeClass: 'bg-rose-100 text-rose-900 border border-rose-400 font-bold',
+    printBadgeClass: 'bg-rose-50 text-rose-900 border border-rose-400 font-bold',
     icon: 'alert-triangle'
   }
 };

@@ -9,98 +9,74 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { currentAudit, getBrandingSettings } from './store.js';
-import { showToast, renderPrintSections, syncBrandingUI } from './renderers.js';
-
-/**
- * دالة مساعدة لتفكيك الملاحظات والمبررات الميدانية إلى قائمة نقاط رأسية متسلسلة ونقية
- */
-export function parseJustificationNotes(notes) {
-  if (!notes || !notes.trim()) {
-    return [
-      'تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري.',
-      'التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه.'
-    ];
-  }
-
-  const raw = notes.trim();
-
-  // 1. تقسيم وفق الأسطر المتعددة
-  if (raw.includes('\n')) {
-    const lines = raw.split('\n')
-      .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
-      .filter(line => line.length > 0);
-    if (lines.length > 0) return lines;
-  }
-
-  // 2. تقسيم وفق علامات التعداد النقطي الشائعة (• أو - أو *)
-  if (/[•\*]|\s[-–—]\s/.test(raw)) {
-    const parts = raw.split(/[•\*]|\s[-–—]\s/)
-      .map(p => p.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
-      .filter(p => p.length > 0);
-    if (parts.length > 0) return parts;
-  }
-
-  // 3. تقسيم وفق الجمل المنتهية بنقطة
-  if (raw.includes('. ') || raw.includes('.\n')) {
-    const sentences = raw.split(/\.\s+|\.\n+/)
-      .map(s => s.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
-      .filter(s => s.length > 0);
-    if (sentences.length > 1) return sentences;
-  }
-
-  // 4. تقسيم وفق الفواصل إذا كان النص طويلاً ومتصلاً بأكثر من إجراء
-  if (raw.includes('، ') && raw.length > 75) {
-    const clauses = raw.split(/،\s+/)
-      .map(c => c.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
-      .filter(c => c.length > 0);
-    if (clauses.length > 1) return clauses;
-  }
-
-  return [raw];
-}
+import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText } from './renderers.js';
+export { parseJustificationNotes } from './renderers.js';
 
 /**
  * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي متوازن وعالي الدقة
- * مع دعم شارات كبسولية مركزية مصغرة أعلى الصورة وقائمة مبررات رأسية متسلسلة
+ * مع دعم شارات كبسولية موحدة، حساب ديناميكي للأبعاد لمنع الفراغات أو الاقتطاع، ومبررات مخصصة
  */
 function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSignatures = false) {
   const layout = sec.layoutType || 'comparison';
+  const checklistCount = (sec.checklist && sec.checklist.length) || 0;
+  const hasAction = Boolean(sec.status === 'store_followup' || sec.status === 'management_action');
+  const justificationsList = getDynamicJustifications(sec);
+  const justificationsCount = justificationsList.length;
 
-  // حساب الأبعاد المثالية لارتفاع الصور لملء الصفحة بانسجام تام ومنع أي فراغات سفلية
-  let imgHeight = 330;
-  let stackedImgHeight = 160;
+  // حساب الأبعاد الديناميكية لارتفاع الصور لملء الصفحة بانسجام تام ومنع أي فراغات سفلية غريبة
+  let imgHeight;
+  let stackedImgHeight;
 
   if (hasSignatures) {
-    imgHeight = (layout === 'single_panorama') ? 285 : 255;
-    stackedImgHeight = 120;
+    if (layout === 'single_panorama') {
+      imgHeight = 310 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
+      imgHeight = Math.max(260, Math.min(330, imgHeight));
+    } else if (layout === 'stacked_panorama') {
+      stackedImgHeight = 135 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0);
+      stackedImgHeight = Math.max(115, Math.min(145, stackedImgHeight));
+    } else {
+      imgHeight = 285 - (checklistCount > 3 ? 25 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
+      imgHeight = Math.max(245, Math.min(310, imgHeight));
+    }
   } else {
-    imgHeight = (layout === 'single_panorama') ? 370 : 335;
-    stackedImgHeight = 165;
+    if (layout === 'single_panorama') {
+      imgHeight = 440 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
+      imgHeight = Math.max(370, Math.min(480, imgHeight));
+    } else if (layout === 'stacked_panorama') {
+      stackedImgHeight = 195 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
+      stackedImgHeight = Math.max(160, Math.min(220, stackedImgHeight));
+    } else {
+      imgHeight = 415 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
+      imgHeight = Math.max(350, Math.min(455, imgHeight));
+    }
   }
 
-  // شارة الحالة بتوسيط مثالي للنصوص والأيقونات
+  // شارة الحالة ككبسولة موحدة متناسقة (Harmonized Status Pill)
   let statusBadgeHtml = `
-    <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #dcfce7; color: #166534; border: 1px solid #86efac; white-space: nowrap; direction: rtl;">
-      <span>تم المعالجة ✅</span>
+    <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <span>تم المعالجة ميدانياً</span>
+      <span style="font-size: 8.5px;">✅</span>
     </span>
   `;
   if (sec.status === 'store_followup') {
     statusBadgeHtml = `
-      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; white-space: nowrap; direction: rtl;">
-        <span>متابعة الفرع ⏳</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span>متابعة المعرض</span>
+        <span style="font-size: 8.5px;">⏳</span>
       </span>
     `;
   } else if (sec.status === 'management_action') {
     statusBadgeHtml = `
-      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 9px; border-radius: 9999px; font-size: 9.5px; font-weight: 700; line-height: 1; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; white-space: nowrap; direction: rtl;">
-        <span>صيانة / إدارة ⚠️</span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span>طلب صيانة / إدارة</span>
+        <span style="font-size: 8.5px;">⚠️</span>
       </span>
     `;
   }
 
-  // وسوم الأقسام
+  // وسوم الأقسام ككبسولات موحدة متناسقة (Harmonized Category Tags)
   const tagsHtml = (sec.tags || []).map(t => `
-    <span style="display: inline-flex; align-items: center; justify-content: center; padding: 2px 7px; border-radius: 6px; font-size: 9px; font-weight: 600; line-height: 1; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; white-space: nowrap;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 9px; border-radius: 9999px; font-size: 9px; font-weight: 700; line-height: 1.2; background: #f8fafc; color: #334155; border: 1.5px solid #cbd5e1; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
       ${t}
     </span>
   `).join(' ');
@@ -125,7 +101,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار
     imagesHtml = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
           Panorama View
         </div>
         <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -139,7 +115,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
       <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
         <!-- قبل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             Before
           </div>
           <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -148,7 +124,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
         </div>
         <!-- بعد -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             After
           </div>
           <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -158,12 +134,12 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
       </div>
     `;
   } else {
-    // مقارنة جانبية Side-by-Side (صورتين جنباً لجنب) مع شارات كبسولية خارجية أعلى الإطار
+    // مقارنة جانبية Side-by-Side مع شارات كبسولية خارجية أعلى الإطار
     imagesHtml = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
         <!-- اليمين: قبل التعديل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             Before
           </div>
           <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -173,7 +149,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
         <!-- اليسار: بعد التنفيذ والتعديل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 700; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
             After
           </div>
           <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
@@ -184,11 +160,8 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     `;
   }
 
-  // تفكيك المبررات إلى قائمة رأسية متسلسلة
-  const justificationsList = parseJustificationNotes(sec.notes);
-
   return `
-    <div style="border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 13px 15px; background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; page-break-inside: avoid; break-inside: avoid;">
+    <div style="border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 13px 16px; background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; page-break-inside: avoid; break-inside: avoid;">
       <!-- شريط عنوان القسم والشارة الملونة والوسوم -->
       <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 7px; margin-bottom: 9px; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
@@ -205,19 +178,19 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
         </div>
       </div>
 
-      <!-- صور التوثيق المحجمة بانسجام تام -->
+      <!-- صور التوثيق المحجمة ديناميكياً بانسجام تام -->
       ${imagesHtml}
 
       <!-- معايير الـ VM المطبقة إذا وُجدت -->
       ${sec.checklist && sec.checklist.length > 0 ? `
-        <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
+        <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
           <div style="font-weight: 800; color: #713f12; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
             <span>✓</span>
             <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
           </div>
           <div style="display: flex; flex-wrap: wrap; gap: 4px;">
             ${sec.checklist.map(c => `
-              <span style="display: inline-flex; align-items: center; gap: 3px; background: #ffffff; color: #713f12; border: 1px solid #fde047; padding: 2px 7px; border-radius: 4px; font-size: 9px; font-weight: 600;">
+              <span style="display: inline-flex; align-items: center; gap: 3px; background: #ffffff; color: #713f12; border: 1px solid #fde047; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 700;">
                 <span style="color: #ca8a04; font-weight: 900;">✓</span>
                 <span>${c}</span>
               </span>
@@ -228,16 +201,16 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
       <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
       ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1.5px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1.5px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
           <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
           <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
         </div>
       ` : ''}
 
-      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة وأنيقة -->
+      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة مخصصة وديناميكية -->
       <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 8px 12px; margin-top: 5px; box-sizing: border-box; width: 100%;">
         <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 10.5px; color: #0f172a; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 4px; background: #0f172a; color: #facc15; font-size: 9px; line-height: 1;">📋</span>
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 4px; background: #0f172a; color: #facc15; font-size: 9.5px; line-height: 1;">📋</span>
           <span>تفاصيل ومبررات التعديل الميداني:</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 5px;">
@@ -281,16 +254,16 @@ export async function exportAuditToPdf() {
   try {
     showToast('📄 جارٍ بناء صفحات الـ PDF (صفحة مخصصة لكل قسم بتوسيط كامل)...', 'info');
 
-    // 1. استخراج بيانات الهوية والمعرض
+    // 1. استخراج وتطهير بيانات الهوية والمعرض لمنع أي نصوص طفيلية
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
     const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
     const footerDisclaimer = branding.footerDisclaimer || '';
     const logoData = branding.logoData || null;
 
-    const branchName = currentAudit.branchName || 'فرع المعرض العام';
-    const auditorName = currentAudit.auditorName || 'أخصائي الـ VM';
-    const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
+    const cleanBranch = sanitizeCorporateText(currentAudit.branchName, 'فرع المعرض العام');
+    const cleanAuditor = sanitizeCorporateText(currentAudit.auditorName, 'أخصائي العرض المرئي');
+    const cleanDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
     const totalSections = sections.length;
 
     // 2. تقسيم الأقسام: قسم واحد فقط لكل صفحة A4 مستقلة تماماً لمنع التداخل أو الاقتطاع
@@ -319,7 +292,7 @@ export async function exportAuditToPdf() {
         width: 794px;
         height: 1123px;
         box-sizing: border-box;
-        padding: 30px 38px;
+        padding: 26px 36px;
         background: #ffffff;
         display: flex;
         flex-direction: column;
@@ -339,12 +312,12 @@ export async function exportAuditToPdf() {
       const isFirstPage = (p === 0);
       const isLastPage = (p === totalPages - 1);
 
-      // --- هيدر الصفحة ---
+      // --- هيدر الصفحة الموحد والمطهر عبر جميع الصفحات (Clean Corporate Header) ---
       let headerHtml = '';
       if (isFirstPage) {
-        // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة
+        // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة مع بطاقة البيانات الموحدة
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 12px; margin-bottom: 10px; width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 11px; margin-bottom: 10px; width: 100%;">
             <!-- الشعار وهوية الشركة -->
             <div style="display: flex; align-items: center; gap: 12px;">
               ${logoData ? `
@@ -362,93 +335,145 @@ export async function exportAuditToPdf() {
               </div>
             </div>
 
-            <!-- بطاقة بيانات التقرير الرسمية (محاذاة لليمين، خط مصغر خطوتين، وتباين ألوان حاد وواضح) -->
-            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.4; background: #f8fafc; padding: 6px 11px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 195px; display: flex; flex-direction: column; gap: 3.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
-                <span style="color: #334155; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
-                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${branchName}</strong>
+            <!-- بطاقة بيانات التقرير العلوية (محاذاة لليمين، 4 بنود نقية بدون أي نصوص طفيلية) -->
+            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 6px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 200px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanBranch}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
-                <span style="color: #334155; font-weight: 700; white-space: nowrap;">أخصائي الـ VM:</span>
-                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${auditorName}</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">أخصائي الـ VM:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanAuditor}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
-                <span style="color: #334155; font-weight: 700; white-space: nowrap;">تاريخ التدقيق:</span>
-                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${auditDate}</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">تاريخ التدقيق:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanDate}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: right;">
-                <span style="color: #334155; font-weight: 700; white-space: nowrap;">إجمالي الأقسام:</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">إجمالي الأقسام:</span>
                 <strong style="color: #9a3412; font-weight: 900; font-size: 9.5px; background: #ffedd5; padding: 1px 7px; border-radius: 4px; border: 1px solid #fdba74;">${totalSections} أقسام</strong>
               </div>
             </div>
           </div>
         `;
       } else {
-        // الصفحات اللاحقة: ترويسة مقتضبة ونقية بدون تكرار
+        // الصفحات اللاحقة: نفس بطاقة البيانات الموحدة لضمان التجانس التام وعدم ظهور أي تشوهات
         headerHtml = `
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 8px; width: 100%;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <strong style="font-size: 13px; color: #0f172a;">${companyName}</strong>
-              <span style="color: #94a3b8;">•</span>
-              <span style="font-size: 12px; color: #334155; font-weight: bold;">${branchName}</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 9px; margin-bottom: 10px; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              ${logoData ? `
+                <div style="height: 42px; max-width: 150px; display: flex; align-items: center; overflow: hidden;">
+                  <img src="${logoData}" alt="${companyName}" style="max-height: 42px; max-width: 150px; width: auto; height: auto; object-fit: contain;" />
+                </div>
+              ` : `
+                <div style="width: 38px; height: 38px; border-radius: 9px; background: #0f172a; color: #facc15; border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; flex-shrink: 0;">
+                  <span>SX</span>
+                </div>
+              `}
+              <div>
+                <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">${companyName}</h2>
+                <p style="margin: 1px 0 0 0; font-size: 9.5px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
+              </div>
             </div>
-            <div style="font-size: 9.5px; color: #64748b; display: flex; align-items: center; gap: 8px;">
-              <span>التاريخ: <strong style="color: #0f172a;">${auditDate}</strong></span>
-              <span>•</span>
-              <span>الأخصائي: <strong style="color: #0f172a;">${auditorName}</strong></span>
-              <span>•</span>
-              <span style="background: #0f172a; color: #facc15; padding: 2px 7px; border-radius: 4px; font-weight: 800;">القسم ${p + 1} من ${totalSections}</span>
+
+            <!-- بطاقة بيانات مطابقة ومحاذاة لليمين في كافة الصفحات -->
+            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 5px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 200px; display: flex; flex-direction: column; gap: 2.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanBranch}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">أخصائي الـ VM:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanAuditor}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">تاريخ التدقيق:</span>
+                <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanDate}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <span style="color: #475569; font-weight: 700; white-space: nowrap;">القسم الموثق:</span>
+                <strong style="color: #854d0e; font-weight: 900; font-size: 9px; background: #fef08a; padding: 1px 7px; border-radius: 4px; border: 1px solid #facc15;">القسم ${p + 1} من ${totalSections}</strong>
+              </div>
             </div>
           </div>
         `;
       }
 
-      // --- محتوى القسم لهذه الصفحة المخصص والمحكوم بتوسيط تام (One Section Per Page) ---
+      // --- محتوى القسم لهذه الصفحة المخصص والمحكوم بتوسيط تام وملء متناسق للمساحة ---
       const sectionsHtml = `
         <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
           ${renderPdfSectionCardHtml(sec, p + 1, true, isLastPage)}
         </div>
       `;
 
-      // --- التوقيعات والاعتماد الرسمي (في الصفحة الأخيرة فقط) ---
+      // --- التوقيعات والاعتماد الرسمي المحسن (في الصفحة الأخيرة) ---
       let signaturesHtml = '';
       if (isLastPage) {
         signaturesHtml = `
-          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 8px; margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 9.5px; width: 100%; page-break-inside: avoid; break-inside: avoid;">
-            <!-- اعتماد أخصائي العرض المرئي -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 11px;">
-              <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
-                إعداد واعتماد أخصائي العرض المرئي (VM Specialist):
+          <div style="border: 1.5px solid #cbd5e1; border-radius: 12px; background: #ffffff; padding: 9px 13px; margin-top: 8px; width: 100%; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 7px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 10.5px; color: #0f172a;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 5px; background: #0f172a; color: #facc15; font-size: 9.5px;">✍️</span>
+                <span>محضر الاعتماد الميداني والتسليم الرسمي (Official VM Sign-off)</span>
               </div>
-              <div style="color: #64748b; font-size: 8.5px; margin-bottom: 4px;">
-                أقر بأن التعديلات المذكورة أعلاه تم تنفيذها وتوثيقها ميدانياً وفق المعايير.
+              <span style="font-size: 8.5px; color: #64748b; font-weight: 600;">معتمد ومطابق للمعايير</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <!-- اعتماد أخصائي العرض المرئي -->
+              <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 7px 10px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                    <strong style="color: #0f172a; font-size: 9.5px;">إعداد واعتماد أخصائي الـ VM:</strong>
+                    <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 4px;">أخصائي معتمد</span>
+                  </div>
+                  <div style="color: #475569; font-size: 8px; line-height: 1.35; margin-bottom: 5px;">
+                    أقر بأن كافة التعديلات الميدانية الموثقة أعلاه نُفذت وطُبقت بدقة وفق معايير العلامة التجارية.
+                  </div>
+                </div>
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #334155; margin-bottom: 4px;">
+                    <span>الأخصائي: <strong style="color: #0f172a;">${cleanAuditor}</strong></span>
+                    <span>التاريخ: <strong style="color: #0f172a;">${cleanDate}</strong></span>
+                  </div>
+                  <!-- صندوق التوقيع الميداني الأنيق -->
+                  <div style="height: 40px; border: 1.5px dashed #94a3b8; border-radius: 6px; background: #ffffff; display: flex; align-items: flex-end; justify-content: space-between; padding: 4px 8px; font-size: 8px; color: #94a3b8;">
+                    <span>التوقيع الميداني / الرقمي</span>
+                    <span>..................................</span>
+                  </div>
+                </div>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 26px;">
-                <span style="font-weight: 800; color: #0f172a; font-size: 10.5px;">${auditorName}</span>
-                <span style="font-size: 8.5px; color: #94a3b8;">التوقيع: ...........................</span>
+
+              <!-- اعتماد وختم إدارة المعرض -->
+              <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 7px 10px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+                    <strong style="color: #0f172a; font-size: 9.5px;">ملاحظات واعتماد مدير المعرض:</strong>
+                    <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 4px;">إدارة المعرض</span>
+                  </div>
+                  <div style="color: #475569; font-size: 8px; line-height: 1.35; margin-bottom: 5px;">
+                    تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة واستلام مهام المتابعة الدورية.
+                  </div>
+                </div>
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #334155; margin-bottom: 4px;">
+                    <span>المعرض: <strong style="color: #0f172a;">${cleanBranch}</strong></span>
+                    <span>الصفة: <strong>مدير / مشرف المعرض</strong></span>
+                  </div>
+                  <!-- صندوق الختم والتوقيع الرسمي الفسيح -->
+                  <div style="height: 40px; border: 1.5px dashed #94a3b8; border-radius: 6px; background: #ffffff; display: flex; align-items: center; justify-content: center; padding: 4px 8px; font-size: 8px; color: #94a3b8; text-align: center;">
+                    <span>مكان الختم الرسمي لإدارة المعرض والتوقيع</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- اعتماد مدير المعرض -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 11px;">
-              <div style="font-weight: 800; color: #0f172a; margin-bottom: 2px;">
-                ملاحظات واعتماد مدير المعرض (Store Manager):
+            ${footerDisclaimer ? `
+              <div style="font-size: 8px; color: #64748b; text-align: center; margin-top: 5px; padding: 2.5px 8px; background: #f8fafc; border-radius: 4px; border: 1px solid #f1f5f9;">
+                ${footerDisclaimer}
               </div>
-              <div style="color: #64748b; font-size: 8.5px; margin-bottom: 4px;">
-                تم الاطلاع على التغييرات والموافقة على خطة التنسيق المنفذة.
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; height: 26px;">
-                <span style="font-size: 8.5px; color: #64748b;">الختم والاعتماد:</span>
-                <span style="font-size: 8.5px; color: #94a3b8;">...................................</span>
-              </div>
-            </div>
+            ` : ''}
           </div>
-
-          ${footerDisclaimer ? `
-            <div style="font-size: 8.5px; color: #64748b; text-align: center; margin-top: 5px; padding: 3px 8px; background: #f8fafc; border-radius: 4px; width: 100%;">
-              ${footerDisclaimer}
-            </div>
-          ` : ''}
         `;
       }
 
@@ -504,9 +529,9 @@ export async function exportAuditToPdf() {
 
     // 6. استخراج اسم الملف النظيف
     const cleanCompany = (companyName || 'SAMX_VM').replace(/[\\/:*?"<>|]/g, '_').trim();
-    const cleanBranch = (branchName || 'Store').replace(/[\\/:*?"<>|]/g, '_').trim();
-    const cleanDate = (auditDate || '').replace(/[\\/:*?"<>|]/g, '_').trim();
-    const fileName = `تقرير_تدقيق_${cleanCompany}_${cleanBranch}_${cleanDate}.pdf`;
+    const fileBranch = (cleanBranch || 'Store').replace(/[\\/:*?"<>|]/g, '_').trim();
+    const fileDate = (cleanDate || '').replace(/[\\/:*?"<>|]/g, '_').trim();
+    const fileName = `تقرير_تدقيق_${cleanCompany}_${fileBranch}_${fileDate}.pdf`;
 
     pdf.save(fileName);
     showToast(`✅ تم تحميل تقرير الـ PDF بنجاح: ${fileName}`, 'success');
@@ -791,23 +816,27 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
           break-inside: avoid;
         `;
 
+        const audBranch = sanitizeCorporateText(aud.branchName, 'معرض تجزئة معتمد');
+        const audSpecialist = sanitizeCorporateText(aud.auditorName, 'أخصائي العرض المرئي');
+        const audDate = aud.auditDate || '-';
+
         sectionPage.innerHTML = `
-          <!-- هيدر الجولة الميدانية بالأعلى (نظيف وبدون week numbers أو timestamps) -->
-          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 8px; width: 100%;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900; padding: 2px 7px; border-radius: 6px;">
-                  الجولة #${audIdx + 1}
-                </span>
+          <!-- هيدر الجولة الميدانية بالأعلى (نظيف وموحد عبر كافة الصفحات) -->
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 9px; margin-bottom: 10px; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="background: #0f172a; color: #facc15; font-size: 10.5px; font-weight: 900; padding: 3px 8px; border-radius: 6px;">
+                الجولة #${audIdx + 1}
+              </span>
+              <div>
                 <h2 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a;">
-                  ${aud.branchName}
+                  ${audBranch}
                 </h2>
-              </div>
-              <div style="font-size: 10px; color: #64748b; margin-top: 2px; font-weight: 600;">
-                المعرض: <strong>${aud.branchName}</strong>  |  التاريخ: <strong>${aud.auditDate}</strong>  |  الأخصائي: <strong>${aud.auditorName}</strong>
+                <div style="font-size: 9.5px; color: #64748b; margin-top: 1px; font-weight: 600;">
+                  التاريخ: <strong>${audDate}</strong>  |  الأخصائي: <strong>${audSpecialist}</strong>
+                </div>
               </div>
             </div>
-            <div style="text-align: left; font-size: 10px; font-weight: 800; color: #facc15; background: #0f172a; padding: 3px 9px; border-radius: 6px;">
+            <div style="text-align: left; font-size: 9.5px; font-weight: 800; color: #854d0e; background: #fef08a; border: 1px solid #facc15; padding: 2.5px 9px; border-radius: 6px;">
               القسم ${sIdx + 1} من ${sections.length}
             </div>
           </div>
@@ -821,7 +850,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
 
           <!-- تذييل الصفحة النظيف -->
           <div style="border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #94a3b8; width: 100%;">
-            <span>${aud.branchName}</span>
+            <span>${audBranch}</span>
             <span>صفحة ${pageNumber++}</span>
           </div>
         `;
@@ -870,33 +899,40 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px;">
-            <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">
-              العرض المرئي والتنسيق التجاري
+          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 2px;">
+                العرض المرئي والتنسيق التجاري
+              </div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 12px;">
+                Head of Visual Merchandising
+              </div>
+              <div style="font-size: 11px; color: #334155; margin-bottom: 8px;">
+                الاسم: <strong>فريق إشراف الـ VM المركزي</strong>
+              </div>
             </div>
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 12px;">
-              Head of Visual Merchandising
-            </div>
-            <div style="font-size: 11px; color: #334155; margin-bottom: 8px;">
-              الاسم: <strong>فريق إشراف الـ VM المركزي</strong>
-            </div>
-            <div style="height: 50px; border-bottom: 1.5px dashed #94a3b8; display: flex; align-items: flex-end; padding-bottom: 4px; font-size: 10px; color: #64748b;">
-              الاعتماد والتوقيع: ................................................
+            <!-- صندوق التوقيع والاعتماد الفسيح -->
+            <div style="height: 52px; border: 1.5px dashed #94a3b8; border-radius: 8px; background: #f8fafc; display: flex; align-items: flex-end; justify-content: space-between; padding: 6px 10px; font-size: 9.5px; color: #64748b;">
+              <span>الاعتماد والتوقيع الرسمي</span>
+              <span>................................................</span>
             </div>
           </div>
 
-          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px;">
-            <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 4px;">
-              إدارة العمليات وتشغيل المعارض
+          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 2px;">
+                إدارة العمليات وتشغيل المعارض
+              </div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 12px;">
+                Retail Operations Director
+              </div>
+              <div style="font-size: 11px; color: #334155; margin-bottom: 8px;">
+                الاسم: <strong>إدارة تشغيل قطاع التجزئة</strong>
+              </div>
             </div>
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 12px;">
-              Retail Operations Director
-            </div>
-            <div style="font-size: 11px; color: #334155; margin-bottom: 8px;">
-              الاسم: <strong>إدارة تشغيل قطاع التجزئة</strong>
-            </div>
-            <div style="height: 50px; border-bottom: 1.5px dashed #94a3b8; display: flex; align-items: flex-end; padding-bottom: 4px; font-size: 10px; color: #64748b;">
-              الختم والاعتماد: ................................................
+            <!-- صندوق الختم والاعتماد الفسيح -->
+            <div style="height: 52px; border: 1.5px dashed #94a3b8; border-radius: 8px; background: #f8fafc; display: flex; align-items: center; justify-content: center; padding: 6px 10px; font-size: 9.5px; color: #64748b; text-align: center;">
+              <span>مكان الختم الرسمي لإدارة العمليات والتشغيل</span>
             </div>
           </div>
         </div>

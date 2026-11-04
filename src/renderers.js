@@ -24,14 +24,23 @@ import {
 } from './store.js';
 
 /**
+ * دالة تعقيم وتطهير النصوص المؤسسية لمنع ظهور أي رموز أو نصوص طفيلية مثل sam أو undefined
+ */
+export function sanitizeCorporateText(val, fallback = '') {
+  if (!val || typeof val !== 'string') return fallback;
+  const clean = val.trim();
+  if (!clean || /^(sam|samx|undefined|null|test|demo|nan)$/i.test(clean)) {
+    return fallback;
+  }
+  return clean;
+}
+
+/**
  * دالة مساعدة لتفكيك الملاحظات والمبررات الميدانية إلى قائمة نقاط رأسية متسلسلة ونقية
  */
 export function parseJustificationNotes(notes) {
   if (!notes || !notes.trim()) {
-    return [
-      'تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري.',
-      'التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه.'
-    ];
+    return [];
   }
 
   const raw = notes.trim();
@@ -71,11 +80,110 @@ export function parseJustificationNotes(notes) {
   return [raw];
 }
 
-// توليد شارة الحالة الملونة
+/**
+ * دالة ذكية لتوليد تفاصيل ومبررات التعديل الميداني مخصصة وديناميكية لكل قسم
+ * وفق المعايير المحددة (Checklist) ونوع القسم (Category/Title) وحالة الإجراء (Status)
+ */
+export function getDynamicJustifications(sec) {
+  const rawNotes = (sec && sec.notes) ? sec.notes.trim() : '';
+  const isGenericBoilerplate = !rawNotes || 
+    rawNotes.includes('تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري') ||
+    rawNotes.includes('التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه');
+
+  if (rawNotes && !isGenericBoilerplate) {
+    const userLines = parseJustificationNotes(rawNotes);
+    if (userLines && userLines.length > 0) {
+      return userLines;
+    }
+  }
+
+  const result = [];
+  const checklist = Array.isArray(sec?.checklist) ? sec.checklist : [];
+  const title = (sec?.title || '').toLowerCase();
+
+  // 1. استخراج نقاط من المعايير المطبقة المحددة في القسم
+  if (checklist.length > 0) {
+    checklist.forEach(item => {
+      const lower = item.toLowerCase();
+      if ((lower.includes('لون') || lower.includes('color')) && result.length < 3) {
+        result.push('تطبيق قصة الألوان المعتمدة وإعادة تدفق التدرج اللوني لخلق انسيابية بصرية متناسقة.');
+      } else if ((lower.includes('مانيكان') || lower.includes('وقفة') || lower.includes('تثبيت')) && result.length < 3) {
+        result.push('تنسيق وتبديل أطقم المانيكانات وضبط زوايا التثبيت لعكس أحدث القطع الترويجية بالصدارة.');
+      } else if ((lower.includes('إضاءة') || lower.includes('سبوت') || lower.includes('light')) && result.length < 3) {
+        result.push('إعادة توجيه وزوايا كشافات الإضاءة وتركيز السبوت لايت مباشرة نحو المنتجات البطلة.');
+      } else if ((lower.includes('مقاس') || lower.includes('size')) && result.length < 3) {
+        result.push('إعادة ترتيب تسلسل المقاسات تصاعدياً وفرز الأكواد لضمان سلاسة وسرعة وصول العميل للمقاس المطلوب.');
+      } else if ((lower.includes('طي') || lower.includes('طاول') || lower.includes('fold') || lower.includes('ارتفاع')) && result.length < 3) {
+        result.push('تطبيق معيار الطي القياسي وتوحيد ارتفاعات أكوام الملابس وتناسقها البصري على طاولات العرض.');
+      } else if ((lower.includes('معاليق') || lower.includes('شماع') || lower.includes('hanger')) && result.length < 3) {
+        result.push('توحيد اتجاه ونوعية المعاليق وضبط مسافات التباعد القياسية لتحقيق سهولة التصفح.');
+      } else if ((lower.includes('سعر') || lower.includes('posm') || lower.includes('عرض') || lower.includes('لافت')) && result.length < 3) {
+        result.push('مراجعة وتحديث بطاقات الأسعار ولوحات الحملة الترويجية (POSM) وضمان وضوحها وتمركزها المعتمد.');
+      } else if ((lower.includes('نظاف') || lower.includes('تلميع') || lower.includes('فترين') || lower.includes('كوي')) && result.length < 3) {
+        result.push('العناية بنظافة وتلميع واجهات العرض وكوي القطع وتجهيزها خالية من أي تجاعيد أو شوائب.');
+      } else if ((lower.includes('نواقص') || lower.includes('تعبئة') || lower.includes('مخزون')) && result.length < 3) {
+        result.push('تعبئة النواقص وتوفير المقاسات الأساسية على الأرفف لتعزيز جاهزية المعرض البيعية.');
+      }
+    });
+  }
+
+  // 2. إذا كانت النقاط أقل من 2، استكمالها بناءً على المسمى والقسم (Department Context)
+  if (result.length < 2) {
+    if (title.includes('واجه') || title.includes('مانيكان') || title.includes('window')) {
+      if (!result.some(r => r.includes('الواجهة'))) {
+        result.push('إعادة هندسة الواجهة الرئيسية وتوزيع نقاط الجذب البصري لإبراز فخامة العلامة التجارية.');
+      }
+      if (!result.some(r => r.includes('الإضاءة'))) {
+        result.push('ضبط زوايا الإضاءة الهالوجينية لتركيز النظر على التشكيلة الموسمية المعروضة.');
+      }
+    } else if (title.includes('أبيض') || title.includes('بيضاء') || title.includes('white')) {
+      result.push('فرز وتنسيق الثياب البيضاء وفق تسلسل المقاسات وتوحيد درجات البياض وخامات الأقمشة.');
+      result.push('ضبط اتساق المعاليق وكوي الياقات والصدور لضمان الظهور بأعلى معايير الأناقة الرسمية.');
+    } else if (title.includes('ملون') || title.includes('شباب') || title.includes('color')) {
+      result.push('ترتيب تشكيلة الثياب الملونة وفق قاعدة التدرج اللوني مع إبراز القصات العصرية في الواجهة.');
+      result.push('التحقق من اكتمال سلسلة المقاسات للقطع الأكثر طلباً ومطابقة لوحات الأسعار.');
+    } else if (title.includes('شماغ') || title.includes('غتر') || title.includes('مستلزم') || title.includes('headgear')) {
+      result.push('تنظيم وترتيب فترينات الأشمغة والغتر حسب الماركات الرسمية والمقاسات المعتمدة.');
+      result.push('تنسيق الإكسسوارات المرافقة (العقال والطواقي) وتلميع واجهات العرض الزجاجية.');
+    } else if (title.includes('عطر') || title.includes('نظار') || title.includes('perfume')) {
+      result.push('تنظيم منصات العطور والنظارات وتجهيز عبوات التجربة (Testers) ومرايا الفحص.');
+      result.push('ضبط الإضاءة الموجهة وإبراز التغليف الفاخر للمجموعات العطرية الحصرية.');
+    } else if (title.includes('حذاء') || title.includes('أحذية') || title.includes('footwear')) {
+      result.push('توجيه فردة الحذاء اليمنى بزاوية العرض المعتمدة وترتيب تسلسل الموديلات والألوان.');
+      result.push('التأكد من نظافة منصات العرض وتوفر المقاسات القياسية المخصصة للتجربة.');
+    } else if (title.includes('داخل') || title.includes('ولادي') || title.includes('kid') || title.includes('underwear')) {
+      result.push('ترتيب مقاسات القطنيات والملابس الداخلية وتوحيد واجهة العلب المغلفة على الرفوف.');
+      result.push('تنظيم قسم الأطفال حسب الفئات العمرية مع إبراز جداول المقاسات التوضيحية.');
+    } else if (title.includes('طاول') || title.includes('جندول') || title.includes('table') || title.includes('gondola')) {
+      result.push('تطبيق تقنية الطي الموحد وتنسيق الأكوام بارتفاعات متناغمة تعكس التوازن البصري.');
+      result.push('تثبيت حوامل الأسعار الأكريليكية بوضوح أمام كل كومة لعرض بيانات المنتج بدقة.');
+    } else if (title.includes('مستودع') || title.includes('مخزن') || title.includes('stock')) {
+      result.push('تصنيف وتنظيم ممرات المخزون الخلفي وترتيب الكراتين لتسهيل وتيرة السحب والتغذية.');
+      result.push('إخلاء ممرات الحركة وتأمين سهولة الوصول للمقاسات الحيوية لصالة العرض.');
+    } else {
+      result.push('إعادة تنظيم وتنسيق المنتجات بالقسم وفق معايير الهوية التجارية وأدلة الـ VM المعتمدة.');
+      result.push('تحسين الرؤية البصرية للعميل وضمان سهولة التصفح والوصول المباشر للمنتجات.');
+    }
+  }
+
+  // 3. إضافة بند متعلق بالإجراء أو التكليف
+  if (sec?.status === 'store_followup') {
+    result.push(`تكليف إدارة المعرض (${sec.actionAssignee || 'مدير المعرض'}) بمتابعة استكمال متطلبات القسم في الموعد المحدد.`);
+  } else if (sec?.status === 'management_action') {
+    result.push(`رفع طلب الصيانة والتدخل الإداري (${sec.actionAssignee || 'فريق الصيانة والتشغيل'}) لمعالجة الملاحظة فورياً.`);
+  } else if (result.length < 2) {
+    result.push('اكتمال التعديل الميداني الفوري واعتماد التنسيق النهائي للموقع بصورة معتمدة.');
+  }
+
+  const unique = Array.from(new Set(result));
+  return unique.slice(0, 3);
+}
+
+// توليد شارة الحالة الملونة الموحدة على شكل كبسولة أنيقة
 export function getStatusBadgeHtml(statusKey, isPrint = false) {
   const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
   const css = isPrint ? cfg.printBadgeClass : cfg.badgeClass;
-  return `<span class="${css} text-[11px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0">
+  return `<span class="${css} text-[10px] md:text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 shrink-0 shadow-sm font-bold select-none" dir="rtl">
     <span>${isPrint ? cfg.label : cfg.shortLabel}</span>
   </span>`;
 }
@@ -221,8 +329,8 @@ export function updateKPIs() {
 
 // مزامنة عروض تفاصيل المعرض في الهيدر والتقرير المطبوع
 export function syncQuickDisplays() {
-  const branchDisplay = currentAudit.branchName || 'لم يتم تحديد الفرع';
-  const auditorDisplay = currentAudit.auditorName || 'لم يتم تحديد الأخصائي';
+  const branchDisplay = sanitizeCorporateText(currentAudit.branchName, 'فرع المعرض العام');
+  const auditorDisplay = sanitizeCorporateText(currentAudit.auditorName, 'أخصائي العرض المرئي');
 
   const quickStore = document.getElementById('quick-store-name');
   if (quickStore) quickStore.innerText = branchDisplay;
@@ -237,13 +345,16 @@ export function syncQuickDisplays() {
   if (printBranch) printBranch.innerText = branchDisplay;
 
   const printDate = document.getElementById('print-header-date');
-  if (printDate) printDate.innerText = currentAudit.auditDate || '';
+  if (printDate) printDate.innerText = currentAudit.auditDate || new Date().toISOString().split('T')[0];
 
   const printAuditor = document.getElementById('print-header-auditor');
   if (printAuditor) printAuditor.innerText = auditorDisplay;
 
   const printSign = document.getElementById('print-sign-auditor');
   if (printSign) printSign.innerText = auditorDisplay;
+
+  const printSignBranch = document.getElementById('print-sign-branch');
+  if (printSignBranch) printSignBranch.innerText = branchDisplay;
 
   const printCount = document.getElementById('print-header-count');
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
@@ -1360,7 +1471,7 @@ export function renderPrintSections(customSections = null) {
           <span>تفاصيل ومبررات التعديل الميداني:</span>
         </div>
         <div class="flex flex-col gap-1.5">
-          ${parseJustificationNotes(sec.notes).map(item => `
+          ${getDynamicJustifications(sec).map(item => `
             <div class="flex items-start gap-2 text-[11px] leading-relaxed">
               <span class="w-3.5 h-3.5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[8px] font-black shrink-0 mt-0.5 shadow-sm">✔</span>
               <span class="font-medium text-slate-800">${item}</span>
