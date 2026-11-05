@@ -6,6 +6,8 @@
 
 export const APP_VERSION = '1.4.0';
 
+import { ALSHIAK_LOGO_BASE64 } from './logo.js';
+
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
 export const STORAGE_KEY_BRANCHES = 'samx_branches_clean_v1';
@@ -23,7 +25,7 @@ export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
 export const DEFAULT_BRANDING = {
   companyName: 'SAMX-VM',
   companySubtitle: 'العرض المرئي والتنسيق التجاري',
-  logoData: '', // Base64 Data URL للعلامة التجارية
+  logoData: ALSHIAK_LOGO_BASE64, // الشعار الرسمي لشركة الشياكة (الشياكة alshiak)
   footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
 };
 
@@ -864,7 +866,7 @@ export function getBrandingSettings() {
       return {
         companyName: (parsed.companyName && parsed.companyName.trim()) || DEFAULT_BRANDING.companyName,
         companySubtitle: subtitle || DEFAULT_BRANDING.companySubtitle,
-        logoData: parsed.logoData || '',
+        logoData: (parsed.logoData && parsed.logoData.trim()) || ALSHIAK_LOGO_BASE64,
         footerDisclaimer: parsed.footerDisclaimer !== undefined ? parsed.footerDisclaimer : DEFAULT_BRANDING.footerDisclaimer
       };
     }

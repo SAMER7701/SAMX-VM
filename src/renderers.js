@@ -379,23 +379,23 @@ export function syncBrandingUI() {
     headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
   }
 
-  // 3. حاوية الشعار في التقرير الرسمي
+  // 3. شارة المنظومة والشعار الرسمي الموسط في التقرير الرسمي
   const logoContainer = document.getElementById('print-header-logo-container');
   if (logoContainer) {
-    if (branding.logoData) {
-      logoContainer.innerHTML = `
-        <div class="h-14 max-w-[190px] flex items-center justify-start overflow-hidden py-0.5">
-          <img src="${branding.logoData}" alt="${branding.companyName}" class="max-h-14 max-w-[190px] w-auto h-auto object-contain rounded drop-shadow-sm" />
-        </div>
-      `;
-      logoContainer.classList.remove('hidden');
-    } else {
-      logoContainer.innerHTML = `
-        <div class="w-12 h-12 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-sm">
-          <span>SX</span>
-        </div>
-      `;
-      logoContainer.classList.remove('hidden');
+    logoContainer.innerHTML = `
+      <div class="w-11 h-11 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-sm">
+        <span>SX</span>
+      </div>
+    `;
+    logoContainer.classList.remove('hidden');
+  }
+
+  // تحديث الشعار الرسمي الموسط في الترويسة
+  const centerLogoContainer = document.getElementById('print-header-center-logo');
+  if (centerLogoContainer) {
+    const centerLogoImg = centerLogoContainer.querySelector('img');
+    if (centerLogoImg) {
+      centerLogoImg.src = branding.logoData || '/assets/alshiak_logo_2x.png';
     }
   }
 

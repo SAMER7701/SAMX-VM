@@ -696,15 +696,24 @@
         
         <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
         <div class="border-b-2 border-slate-900 pb-5 mb-6">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-center gap-3.5">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5 min-w-[210px] shrink-0">
               <!-- حاوية شعار الشركة الرسمي أو شارة النظام -->
-              <div id="print-header-logo-container" class="shrink-0"></div>
+              <div id="print-header-logo-container" class="shrink-0">
+                <div class="w-11 h-11 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-sm">
+                  <span>SX</span>
+                </div>
+              </div>
               <div>
-                <h2 class="text-xl md:text-2xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-                <p class="text-xs text-slate-700 mt-1 font-bold" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
+                <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+                <p class="text-xs text-slate-700 mt-0.5 font-bold" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
                 <p class="text-[9.5px] text-slate-500 font-medium tracking-wide" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
               </div>
+            </div>
+
+            <!-- الوسط: الشعار الرسمي لشركة الشياكة (توسيط تام ومتوازن) -->
+            <div class="flex-1 flex items-center justify-center px-4" id="print-header-center-logo">
+              <img src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
             </div>
 
             <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
