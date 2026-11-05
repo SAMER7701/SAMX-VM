@@ -319,27 +319,30 @@ export async function exportAuditToPdf() {
         // الصفحة الأولى: الترويسة التنفيذية الرسمية الكاملة مع بطاقة البيانات الموحدة
         headerHtml = `
           <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 11px; margin-bottom: 10px; width: 100%;">
-            <!-- الطرف الأيمن: هوية النظام وتوصيف العرض المرئي -->
-            <div style="display: flex; align-items: center; gap: 11px; min-width: 200px; flex-shrink: 0;">
-              <div style="width: 44px; height: 44px; border-radius: 11px; background: #0f172a; color: #facc15; border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; flex-shrink: 0; box-shadow: 0 1.5px 3px rgba(0,0,0,0.1);">
-                <span>SX</span>
+            <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً بدقة متناهية -->
+            <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: right; min-width: 240px; flex-shrink: 0;">
+              <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
+              <div style="display: inline-flex; align-items: center; gap: 5px; background: #0f172a; color: #facc15; font-size: 9.5px; font-weight: 900; padding: 2px 9px; border-radius: 9999px; border: 1.5px solid #1e293b; margin-bottom: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                <span style="color: #facc15;">${companyName}</span>
+                <span style="color: #64748b; font-weight: normal;">|</span>
+                <span style="color: #cbd5e1; font-weight: 700;">تدقيق أسبوعي</span>
               </div>
-              <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 17px; font-weight: 900; color: #0f172a; letter-spacing: -0.3px;">${companyName}</h2>
-                <p style="margin: 1.5px 0 0 0; font-size: 9.5px; color: #334155; font-weight: 700;">${companySubtitle}</p>
-                <p style="margin: 1px 0 0 0; font-size: 8px; color: #64748b; font-weight: 500; letter-spacing: 0.25px; line-height: 1.2;">Visual Merchandising & Commercial Styling</p>
-              </div>
+              <!-- اسم المعرض/الفرع المختار ديناميكياً -->
+              <h2 style="margin: 0; font-size: 19px; font-weight: 900; color: #020617; letter-spacing: -0.3px; line-height: 1.2;">
+                ${cleanBranch}
+              </h2>
+              <!-- العنوان الفرعي العربي من إعدادات الهوية -->
+              <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #334155; font-weight: 700; line-height: 1.3;">
+                ${companySubtitle}
+              </p>
+              <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
+              <p style="margin: 1.5px 0 0 0; font-size: 8px; color: #64748b; font-weight: 500; letter-spacing: 0.3px; line-height: 1.2; direction: ltr; text-align: right;">
+                Visual Merchandising & Commercial Styling
+              </p>
             </div>
 
-            <!-- الوسط: الشعار الرسمي لشركة الشياكة (توسيط تام ومتناغم في الترويسة) -->
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 14px; min-width: 0;">
-              <div style="display: flex; align-items: center; justify-content: center; height: 50px; max-width: 220px;">
-                <img src="${officialLogo}" alt="الشياكة alShiaka" style="max-height: 48px; max-width: 210px; width: auto; height: auto; object-fit: contain; display: block;" />
-              </div>
-            </div>
-
-            <!-- الطرف الأيسر: بطاقة بيانات التقرير العلوية (محاذاة لليمين، 4 بنود نقية بدون أي نصوص طفيلية) -->
-            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 6px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <!-- 2. الوسط: بطاقة بيانات التقرير العلوية (محاذاة لليمين، 4 بنود نقية بدون أي نصوص طفيلية) -->
+            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 6px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 195px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
                 <span style="color: #475569; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
                 <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanBranch}</strong>
@@ -357,33 +360,38 @@ export async function exportAuditToPdf() {
                 <strong style="color: #9a3412; font-weight: 900; font-size: 9.5px; background: #ffedd5; padding: 1px 7px; border-radius: 4px; border: 1px solid #fdba74;">${totalSections} أقسام</strong>
               </div>
             </div>
+
+            <!-- 3. أقصى اليسار: الشعار الرسمي للشركة -->
+            <div style="display: flex; align-items: center; justify-content: flex-end; min-width: 170px; max-width: 220px; flex-shrink: 0;">
+              <img src="${officialLogo}" alt="${companyName}" style="max-height: 52px; max-width: 210px; width: auto; height: auto; object-fit: contain; display: block;" />
+            </div>
           </div>
         `;
       } else {
         // الصفحات اللاحقة: نفس بطاقة البيانات الموحدة لضمان التجانس التام وعدم ظهور أي تشوهات
         headerHtml = `
           <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0f172a; padding-bottom: 8px; margin-bottom: 10px; width: 100%;">
-            <!-- الطرف الأيمن: هوية النظام وتوصيف العرض المرئي -->
-            <div style="display: flex; align-items: center; gap: 9px; min-width: 190px; flex-shrink: 0;">
-              <div style="width: 38px; height: 38px; border-radius: 9px; background: #0f172a; color: #facc15; border: 1.5px solid #eab308; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; flex-shrink: 0;">
-                <span>SX</span>
+            <!-- 1. الطرف الأيمن: الترويسة المكدسة الموحدة -->
+            <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: right; min-width: 210px; flex-shrink: 0;">
+              <!-- شارة الشركة الكبسولية الداكنة -->
+              <div style="display: inline-flex; align-items: center; gap: 4px; background: #0f172a; color: #facc15; font-size: 9px; font-weight: 900; padding: 1.5px 8px; border-radius: 9999px; border: 1.5px solid #1e293b; margin-bottom: 2px;">
+                <span style="color: #facc15;">${companyName}</span>
+                <span style="color: #64748b; font-weight: normal;">|</span>
+                <span style="color: #cbd5e1; font-weight: 700;">تدقيق أسبوعي</span>
               </div>
-              <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a;">${companyName}</h2>
-                <p style="margin: 1px 0 0 0; font-size: 9px; color: #334155; font-weight: 700;">${companySubtitle}</p>
-                <p style="margin: 0.5px 0 0 0; font-size: 7.5px; color: #64748b; font-weight: 500; letter-spacing: 0.25px; line-height: 1.1;">Visual Merchandising & Commercial Styling</p>
-              </div>
+              <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #020617; line-height: 1.2;">
+                ${cleanBranch}
+              </h2>
+              <p style="margin: 1px 0 0 0; font-size: 9.5px; color: #334155; font-weight: 700;">
+                ${companySubtitle}
+              </p>
+              <p style="margin: 0.5px 0 0 0; font-size: 7.5px; color: #64748b; font-weight: 500; letter-spacing: 0.25px; line-height: 1.1; direction: ltr; text-align: right;">
+                Visual Merchandising & Commercial Styling
+              </p>
             </div>
 
-            <!-- الوسط: الشعار الرسمي لشركة الشياكة موسط في الترويسة -->
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 12px; min-width: 0;">
-              <div style="display: flex; align-items: center; justify-content: center; height: 42px; max-width: 190px;">
-                <img src="${officialLogo}" alt="الشياكة alShiaka" style="max-height: 40px; max-width: 180px; width: auto; height: auto; object-fit: contain; display: block;" />
-              </div>
-            </div>
-
-            <!-- الطرف الأيسر: بطاقة بيانات مطابقة ومحاذاة لليمين في كافة الصفحات -->
-            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 5px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 200px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+            <!-- 2. الوسط: بطاقة بيانات التقرير العلوية -->
+            <div style="text-align: right; direction: rtl; font-size: 8.5px; line-height: 1.45; background: #f8fafc; padding: 5px 12px; border-radius: 9px; border: 1.5px solid #cbd5e1; min-width: 195px; display: flex; flex-direction: column; gap: 2.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
                 <span style="color: #475569; font-weight: 700; white-space: nowrap;">اسم المعرض:</span>
                 <strong style="color: #020617; font-weight: 900; font-size: 9px;">${cleanBranch}</strong>
@@ -400,6 +408,11 @@ export async function exportAuditToPdf() {
                 <span style="color: #475569; font-weight: 700; white-space: nowrap;">القسم الموثق:</span>
                 <strong style="color: #854d0e; font-weight: 900; font-size: 9px; background: #fef08a; padding: 1px 7px; border-radius: 4px; border: 1px solid #facc15;">القسم ${p + 1} من ${totalSections}</strong>
               </div>
+            </div>
+
+            <!-- 3. أقصى اليسار: الشعار الرسمي للشركة -->
+            <div style="display: flex; align-items: center; justify-content: flex-end; min-width: 150px; max-width: 190px; flex-shrink: 0;">
+              <img src="${officialLogo}" alt="${companyName}" style="max-height: 44px; max-width: 180px; width: auto; height: auto; object-fit: contain; display: block;" />
             </div>
           </div>
         `;

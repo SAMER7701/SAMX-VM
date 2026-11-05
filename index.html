@@ -695,34 +695,38 @@
       <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-slate-200">
         
         <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
-        <div class="border-b-2 border-slate-900 pb-5 mb-6">
+        <div class="border-b-2 border-slate-900 pb-4 mb-6">
           <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3.5 min-w-[210px] shrink-0">
-              <!-- حاوية شعار الشركة الرسمي أو شارة النظام -->
-              <div id="print-header-logo-container" class="shrink-0">
-                <div class="w-11 h-11 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-sm">
-                  <span>SX</span>
-                </div>
+            
+            <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
+            <div class="flex flex-col items-start text-right min-w-[230px] shrink-0" dir="rtl">
+              <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
+              <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
+                <span id="print-badge-company-name">الشياكة</span>
+                <span class="text-slate-400 font-normal">|</span>
+                <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
               </div>
-              <div>
-                <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-                <p class="text-xs text-slate-700 mt-0.5 font-bold" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
-                <p class="text-[9.5px] text-slate-500 font-medium tracking-wide" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
-              </div>
+              <!-- اسم المعرض/الفرع المختار ديناميكياً -->
+              <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight leading-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+              <!-- العنوان الفرعي العربي من إعدادات الهوية -->
+              <p class="text-xs text-slate-700 mt-0.5 font-bold leading-snug" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
+              <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
+              <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
             </div>
 
-            <!-- الوسط: الشعار الرسمي لشركة الشياكة (توسيط تام ومتوازن) -->
-            <div class="flex-1 flex items-center justify-center px-4" id="print-header-center-logo">
-              <img src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
-            </div>
-
-            <!-- بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
-            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
+            <!-- 2. الوسط: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
+            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[200px] shrink-0 shadow-sm" dir="rtl">
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
             </div>
+
+            <!-- 3. أقصى اليسار: الشعار الرسمي للشركة -->
+            <div class="flex items-center justify-end min-w-[170px] max-w-[220px] shrink-0" id="print-header-logo-container">
+              <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
+            </div>
+
           </div>
         </div>
 
@@ -1663,25 +1667,20 @@
           <!-- ورقة مصغرة واقعية تماثل رأس صفحة A4 الحقيقية -->
           <div class="bg-white text-slate-900 rounded-xl p-4 shadow-lg border border-slate-300 flex flex-col gap-3 select-none">
             
-            <!-- ترويسة المعاينة -->
-            <div class="border-b-2 border-slate-900 pb-3 flex items-start justify-between gap-2">
-              <div class="flex items-center gap-2.5">
-                <div id="branding-preview-logo" class="shrink-0">
-                  <!-- الشعار الحي المصغر -->
+            <!-- ترويسة المعاينة (تطابق تام: اليمين هوية مكدسة، اليسار الشعار الرسمي) -->
+            <div class="border-b-2 border-slate-900 pb-3 flex items-start justify-between gap-2" dir="rtl">
+              <div class="text-right">
+                <div class="inline-flex items-center gap-1 bg-slate-900 text-amber-400 text-[9px] font-black px-2 py-0.5 rounded-full border border-slate-800 tracking-wider mb-1">
+                  <span id="branding-preview-name">الشياكة</span>
+                  <span class="text-slate-400 font-normal">|</span>
+                  <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
                 </div>
-                <div>
-                  <div class="inline-flex items-center gap-1 bg-slate-900 text-amber-400 text-[9px] font-black px-2 py-0.5 rounded tracking-wider">
-                    <span id="branding-preview-name">SAMX-VM</span>
-                    <span class="text-slate-400 font-normal">| تدقيق أسبوعي</span>
-                  </div>
-                  <h4 class="text-xs font-black text-slate-950 mt-1">فرع العليا العام - الرياض</h4>
-                  <p class="text-[9px] text-slate-700 font-bold" id="branding-preview-sub">العرض المرئي والتنسيق التجاري</p>
-                  <p class="text-[7.5px] text-slate-400 font-medium tracking-wide" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
-                </div>
+                <h4 class="text-xs font-black text-slate-950 mt-0.5">فرع العليا العام - الرياض</h4>
+                <p class="text-[9px] text-slate-700 font-bold" id="branding-preview-sub">العرض المرئي والتنسيق التجاري</p>
+                <p class="text-[7.5px] text-slate-400 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
               </div>
-              <div class="text-[9px] bg-slate-50 border border-slate-200 p-1.5 rounded text-left shrink-0">
-                <span class="text-slate-400 block">الأسبوع 43</span>
-                <span class="font-bold text-slate-800">2026-10-30</span>
+              <div id="branding-preview-logo" class="shrink-0 flex items-center justify-end">
+                <!-- الشعار الحي المصغر بأقصى اليسار -->
               </div>
             </div>
 

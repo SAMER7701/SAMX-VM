@@ -379,24 +379,16 @@ export function syncBrandingUI() {
     headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
   }
 
-  // 3. شارة المنظومة والشعار الرسمي الموسط في التقرير الرسمي
+  // 3. الشعار الرسمي بأقصى يسار الترويسة
+  const printLogoImg = document.getElementById('print-header-logo-img');
   const logoContainer = document.getElementById('print-header-logo-container');
-  if (logoContainer) {
+  if (printLogoImg) {
+    printLogoImg.src = branding.logoData || '/assets/alshiak_logo_2x.png';
+    printLogoImg.alt = branding.companyName || 'الشعار الرسمي';
+  } else if (logoContainer) {
     logoContainer.innerHTML = `
-      <div class="w-11 h-11 rounded-xl bg-slate-900 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-sm">
-        <span>SX</span>
-      </div>
+      <img id="print-header-logo-img" src="${branding.logoData || '/assets/alshiak_logo_2x.png'}" alt="${branding.companyName || 'الشعار الرسمي'}" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
     `;
-    logoContainer.classList.remove('hidden');
-  }
-
-  // تحديث الشعار الرسمي الموسط في الترويسة
-  const centerLogoContainer = document.getElementById('print-header-center-logo');
-  if (centerLogoContainer) {
-    const centerLogoImg = centerLogoContainer.querySelector('img');
-    if (centerLogoImg) {
-      centerLogoImg.src = branding.logoData || '/assets/alshiak_logo_2x.png';
-    }
   }
 
   // 4. التذييل والملاحظات القانونية الرسمية (يظهر فقط إن تم تخصيصه بدون أي حشو تقني افتراضي)

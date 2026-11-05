@@ -23,7 +23,7 @@ export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
 
 // الهوية البصرية وشعار الشركة الافتراضي
 export const DEFAULT_BRANDING = {
-  companyName: 'SAMX-VM',
+  companyName: 'الشياكة',
   companySubtitle: 'العرض المرئي والتنسيق التجاري',
   logoData: ALSHIAK_LOGO_BASE64, // الشعار الرسمي لشركة الشياكة (الشياكة alshiak)
   footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
