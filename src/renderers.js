@@ -1087,7 +1087,7 @@ export function renderAuditCards(customSections = null) {
     card.className = "bg-corp-900 border border-corp-800 rounded-2xl p-4 md:p-5 shadow-md hover:border-corp-700 transition";
     
     const tagsHtml = (sec.tags || []).map(t => `
-      <span class="bg-corp-950 border border-corp-700/80 text-gold-400 text-[11px] px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
+      <span class="bg-corp-900 border border-corp-700/80 text-gold-400 text-[11px] px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1 shadow-xs">
         <i data-lucide="tag" class="w-3 h-3 text-gold-500"></i>
         <span>${t}</span>
       </span>
@@ -1101,13 +1101,14 @@ export function renderAuditCards(customSections = null) {
     const panoStyle = getImageTransformStyle(sec.afterConfig || sec.beforeConfig);
 
     card.innerHTML = `
-      <div class="flex items-center justify-between pb-3 mb-3 border-b border-corp-800">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="w-7 h-7 rounded-lg bg-corp-800 text-gold-400 font-black text-xs flex items-center justify-center border border-corp-700">#${idx + 1}</span>
-          <h3 class="font-bold text-sm md:text-base text-white">${sec.title}</h3>
-          ${statusBadgeHtml}
+      <!-- 1. ترويسة بطاقة القسم: توسيط الرقم والاسم في منتصف السطر مع حفظ توازن الأزرار -->
+      <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-corp-800">
+        <div class="hidden sm:flex w-24"></div>
+        <div class="flex items-center justify-center gap-2.5 mx-auto text-center">
+          <span class="w-7 h-7 rounded-lg bg-corp-800 text-gold-400 font-black text-xs flex items-center justify-center border border-corp-700 shadow-sm">#${idx + 1}</span>
+          <h3 class="font-black text-sm md:text-base text-white tracking-tight text-center">${sec.title}</h3>
         </div>
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 shrink-0">
           <button onclick="moveSection(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 p-1.5"' : 'class="text-slate-400 hover:text-white p-1.5 hover:bg-corp-800 rounded-lg"'} title="نقل لأعلى">
             <i data-lucide="arrow-up" class="w-4 h-4"></i>
           </button>
@@ -1121,6 +1122,12 @@ export function renderAuditCards(customSections = null) {
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
+      </div>
+
+      <!-- 2. شريط الإجراءات والوسوم السريعة المستقل (Dedicated Action Bar) أسفل العنوان وقبل الصور -->
+      <div class="w-full bg-corp-950/80 border border-corp-800 rounded-xl px-3 py-2 mb-3 flex items-center justify-center flex-wrap gap-2 shadow-inner">
+        ${statusBadgeHtml}
+        ${tagsHtml}
       </div>
 
       <!-- شريط التحكم بنمط العرض والتأشير -->
@@ -1292,8 +1299,6 @@ export function renderAuditCards(customSections = null) {
         </div>
       ` : ''}
 
-      <!-- الوسوم المطبقة -->
-      ${sec.tags && sec.tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-3">${tagsHtml}</div>` : ''}
 
       <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة -->
       <div class="bg-corp-950/80 p-3 rounded-xl border border-corp-800 text-xs text-slate-300">
@@ -1343,7 +1348,7 @@ export function renderPrintSections(customSections = null) {
     item.className = "print-card print-break-inside-avoid border border-slate-200 rounded-xl p-4 bg-white shadow-sm";
     
     const tagsBadge = (sec.tags || []).map(t => `
-      <span class="bg-slate-100 text-slate-800 border border-slate-300 text-[10px] px-2 py-0.5 rounded font-bold">
+      <span class="bg-white text-slate-800 border border-slate-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-xs">
         ${t}
       </span>
     `).join(' ');
@@ -1353,15 +1358,16 @@ export function renderPrintSections(customSections = null) {
     const panoStyle = getImageTransformStyle(sec.afterConfig || sec.beforeConfig);
 
     item.innerHTML = `
-      <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-          <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 text-xs font-black flex items-center justify-center shrink-0">${idx + 1}</span>
-          <span>${sec.title}</span>
-        </h4>
-        <div class="flex items-center gap-2">
-          ${getStatusBadgeHtml(sec.status || 'resolved', true)}
-          ${tagsBadge}
-        </div>
+      <!-- 1. ترويسة القسم: توسيط الرقم والاسم أفقياً في منتصف السطر تماماً -->
+      <div class="flex items-center justify-center text-center w-full pb-2 mb-2 gap-2.5 border-b border-slate-200">
+        <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 text-xs font-black flex items-center justify-center shrink-0 shadow-xs">${idx + 1}</span>
+        <h4 class="font-black text-slate-900 text-base text-center tracking-tight">${sec.title}</h4>
+      </div>
+
+      <!-- 2. شريط الإجراءات والوسوم السريعة المستقل (Dedicated Action Bar) أسفل العنوان وقبل الصور -->
+      <div class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-3.5 flex items-center justify-center flex-wrap gap-2 shadow-xs">
+        ${getStatusBadgeHtml(sec.status || 'resolved', true)}
+        ${tagsBadge}
       </div>
 
       <!-- صور التوثيق وفق نمط التخطيط مع شارات خارجية فوق إطار الصورة بدون نقاط -->

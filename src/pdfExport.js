@@ -162,20 +162,20 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
   return `
     <div style="border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 13px 16px; background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; page-break-inside: avoid; break-inside: avoid;">
-      <!-- شريط عنوان القسم والشارة الملونة والوسوم -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 7px; margin-bottom: 9px; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-          <span style="width: 24px; height: 24px; border-radius: 7px; background: #0f172a; color: #facc15; font-size: 11.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-            ${globalIndex}
-          </span>
-          <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            ${sec.title}
-          </h4>
-        </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          ${statusBadgeHtml}
-          ${tagsHtml}
-        </div>
+      <!-- 1. ترويسة القسم: توسيط رقم واسم القسم أفقياً في منتصف السطر تماماً -->
+      <div style="display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; padding-bottom: 7px; margin-bottom: 7px; gap: 9px; border-bottom: 1.5px solid #e2e8f0;">
+        <span style="width: 26px; height: 26px; border-radius: 8px; background: #0f172a; color: #facc15; font-size: 12px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1.5px 3px rgba(0,0,0,0.12); border: 1px solid #1e293b;">
+          ${globalIndex}
+        </span>
+        <h4 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px; text-align: center;">
+          ${sec.title}
+        </h4>
+      </div>
+
+      <!-- 2. شريط الإجراءات والوسوم المستقل (Dedicated Action Bar) أسفل العنوان وقبل الصور -->
+      <div style="width: 100%; box-sizing: border-box; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 5px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+        ${statusBadgeHtml}
+        ${tagsHtml}
       </div>
 
       <!-- صور التوثيق المحجمة ديناميكياً بانسجام تام -->
@@ -258,7 +258,6 @@ export async function exportAuditToPdf() {
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
     const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
-    const footerDisclaimer = branding.footerDisclaimer || '';
     const logoData = branding.logoData || null;
 
     const cleanBranch = sanitizeCorporateText(currentAudit.branchName, 'فرع المعرض العام');
@@ -331,7 +330,8 @@ export async function exportAuditToPdf() {
               `}
               <div>
                 <h2 style="margin: 0; font-size: 19px; font-weight: 900; color: #0f172a; letter-spacing: -0.3px;">${companyName}</h2>
-                <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
+                <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #334155; font-weight: 700;">${companySubtitle}</p>
+                <p style="margin: 1.5px 0 0 0; font-size: 8.5px; color: #64748b; font-weight: 500; letter-spacing: 0.3px; line-height: 1.2;">Visual Merchandising & Commercial Styling</p>
               </div>
             </div>
 
@@ -372,7 +372,8 @@ export async function exportAuditToPdf() {
               `}
               <div>
                 <h2 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">${companyName}</h2>
-                <p style="margin: 1px 0 0 0; font-size: 9.5px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
+                <p style="margin: 1px 0 0 0; font-size: 9.5px; color: #334155; font-weight: 700;">${companySubtitle}</p>
+                <p style="margin: 1px 0 0 0; font-size: 7.5px; color: #64748b; font-weight: 500; letter-spacing: 0.25px; line-height: 1.2;">Visual Merchandising & Commercial Styling</p>
               </div>
             </div>
 
@@ -467,12 +468,6 @@ export async function exportAuditToPdf() {
                 </div>
               </div>
             </div>
-
-            ${footerDisclaimer ? `
-              <div style="font-size: 8px; color: #64748b; text-align: center; margin-top: 5px; padding: 2.5px 8px; background: #f8fafc; border-radius: 4px; border: 1px solid #f1f5f9;">
-                ${footerDisclaimer}
-              </div>
-            ` : ''}
           </div>
         `;
       }
@@ -598,7 +593,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     const branding = getBrandingSettings();
     const companyName = branding.companyName || 'SAMX-VM';
     const companySubtitle = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
-    const footerDisclaimer = branding.footerDisclaimer || '';
 
     // احتساب الإحصاءات التجميعية للدورة الشهرية
     let totalSections = 0;
@@ -676,7 +670,8 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
             `}
             <div>
               <h1 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a;">${companyName}</h1>
-              <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600;">${companySubtitle}</p>
+              <p style="margin: 2px 0 0 0; font-size: 11px; color: #334155; font-weight: 700;">${companySubtitle}</p>
+              <p style="margin: 1.5px 0 0 0; font-size: 9px; color: #64748b; font-weight: 500; letter-spacing: 0.3px; line-height: 1.2;">Visual Merchandising & Commercial Styling</p>
             </div>
           </div>
           <div style="text-align: right; font-size: 10.5px; background: #f8fafc; padding: 8px 14px; border-radius: 10px; border: 1px solid #e2e8f0;">
@@ -936,12 +931,6 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
             </div>
           </div>
         </div>
-
-        ${footerDisclaimer ? `
-          <div style="background: #f1f5f9; border-radius: 10px; padding: 12px 16px; font-size: 10.5px; color: #64748b; text-align: center; line-height: 1.5;">
-            ${footerDisclaimer}
-          </div>
-        ` : ''}
       </div>
 
       <!-- تذييل الصفحة الأخيرة -->
