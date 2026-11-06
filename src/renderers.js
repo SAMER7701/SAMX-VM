@@ -1256,12 +1256,39 @@ export function renderAuditCards(customSections = null) {
 
           <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
         </div>
-      ` : (sec.layoutType === 'single_panorama' ? `
-        <!-- عرض بانوراما عريضة موحدة مع شارة خارجية فوق الصورة تماماً -->
+      ` : (sec.layoutType === 'dual_panorama' ? `
+        <!-- عرض بانوراما مزدوجة مرنة (صورتان عريضتان متجاورتان بدون تقييد قبل وبعد) -->
         <div class="mb-3.5">
           <div class="flex justify-center w-full mb-1.5">
-            <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/50 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span>Panorama View</span>
+            <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-md text-xs font-black tracking-wide select-none" dir="rtl">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse mr-1"></span>
+              <span>${sec.panoramaTitle ? sec.panoramaTitle : 'عرض بانورامي مزدوج (Dual Panorama View)'}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Panorama 1')">
+              <img src="${sec.beforeImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+1'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير بانوراما 1</span>
+              </div>
+            </div>
+            <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - Panorama 2')">
+              <img src="${sec.afterImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+2'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span>تكبير بانوراما 2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : (sec.layoutType === 'single_panorama' ? `
+        <!-- عرض بانوراما عريضة موحدة مع شارة مخصصة موسطة فوق الصورة تماماً -->
+        <div class="mb-3.5">
+          <div class="flex justify-center w-full mb-1.5">
+            <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-md text-xs font-black tracking-wide select-none" dir="rtl">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse mr-1"></span>
+              <span>${sec.panoramaTitle ? sec.panoramaTitle : 'نظرة بانورامية شاملة (Panorama View)'}</span>
             </div>
           </div>
           <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg || sec.beforeImg}', '${sec.title} - Panorama')">
@@ -1273,8 +1300,15 @@ export function renderAuditCards(customSections = null) {
           </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
-        <!-- عرض بانوراما رأسية مكدسة مع شارات خارجية فوق كل صورة تماماً -->
+        <!-- عرض بانوراما رأسية مكدسة مع شارات مخصصة فوق كل صورة -->
         <div class="space-y-3 mb-3.5">
+          ${sec.panoramaTitle ? `
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-md text-xs font-black tracking-wide select-none" dir="rtl">
+                <span>${sec.panoramaTitle}</span>
+              </div>
+            </div>
+          ` : ''}
           <div>
             <div class="flex justify-center w-full mb-1.5">
               <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337]/90 text-rose-100 border border-rose-400/60 backdrop-blur-md shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
@@ -1339,7 +1373,7 @@ export function renderAuditCards(customSections = null) {
             </div>
           </div>
         </div>
-      `))}
+      `)))}
 
       <!-- بنود معايير الـ VM المؤكدة -->
       ${sec.checklist && sec.checklist.length > 0 ? `
@@ -1460,12 +1494,31 @@ export function renderPrintSections(customSections = null) {
       </div>
 
       <!-- صور التوثيق وفق نمط التخطيط مع شارات خارجية فوق إطار الصورة بدون نقاط -->
-      ${sec.layoutType === 'single_panorama' ? `
-        <!-- بانوراما كاملة للواجهات والمخازن مع شارة خارجية فوق الصورة تماماً -->
+      ${sec.layoutType === 'dual_panorama' ? `
+        <!-- بانوراما مزدوجة مرنة بدون تقييد قبل وبعد -->
         <div class="w-full mb-3">
-          <div class="flex justify-center w-full mb-1">
-            <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#0f172a] text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
-              <span>Panorama View</span>
+          <div class="flex justify-center w-full mb-1.5">
+            <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[11px] font-black tracking-wide select-none" dir="rtl">
+              <span class="w-2 h-2 rounded-full bg-amber-400 mr-1.5"></span>
+              <span>${sec.panoramaTitle ? sec.panoramaTitle : 'عرض بانورامي مزدوج (Dual Panorama View)'}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+            </div>
+            <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+      ` : (sec.layoutType === 'single_panorama' ? `
+        <!-- بانوراما كاملة للواجهات والمخازن مع شارة مخصصة فوق الصورة تماماً -->
+        <div class="w-full mb-3">
+          <div class="flex justify-center w-full mb-1.5">
+            <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[11px] font-black tracking-wide select-none" dir="rtl">
+              <span class="w-2 h-2 rounded-full bg-amber-400 mr-1.5"></span>
+              <span>${sec.panoramaTitle ? sec.panoramaTitle : 'نظرة بانورامية شاملة (Panorama View)'}</span>
             </div>
           </div>
           <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
@@ -1473,8 +1526,15 @@ export function renderPrintSections(customSections = null) {
           </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
-        <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) مع شارات خارجية فوق كل صورة تماماً -->
+        <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) مع شارات خارجية -->
         <div class="space-y-2.5 mb-3">
+          ${sec.panoramaTitle ? `
+            <div class="flex justify-center w-full mb-1">
+              <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[11px] font-black tracking-wide select-none" dir="rtl">
+                <span>${sec.panoramaTitle}</span>
+              </div>
+            </div>
+          ` : ''}
           <div>
             <div class="flex justify-center w-full mb-1">
               <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none" dir="ltr">
@@ -1523,7 +1583,7 @@ export function renderPrintSections(customSections = null) {
             </div>
           </div>
         </div>
-      `)}
+      `))}
 
       <!-- معايير الـ VM المطبقة في التقرير الرسمي -->
       ${sec.checklist && sec.checklist.length > 0 ? `

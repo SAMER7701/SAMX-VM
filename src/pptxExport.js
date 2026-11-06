@@ -448,7 +448,94 @@ export async function exportAuditToPptx() {
       const beforeImgObj = await preparePptxImage(sec.beforeImg);
       const afterImgObj = await preparePptxImage(sec.afterImg);
 
-      if (layoutType === 'single_panorama') {
+      if (layoutType === 'dual_panorama') {
+        // --- نمط العرض البانورامي المزدوج (Dual Panorama Side-by-Side) ---
+        const colWidth = 4.45;
+        const colHeight = 2.85;
+        const colY = 1.25;
+        const view1X = 5.15; // اليمين: عرض 1
+        const view2X = 0.4;  // اليسار: عرض 2
+
+        slide.addShape(pres.ShapeType.rect, {
+          x: view1X,
+          y: colY,
+          w: colWidth,
+          h: colHeight,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: view1X,
+              y: colY,
+              w: colWidth,
+              h: colHeight,
+              sizing: { type: 'contain', w: colWidth, h: colHeight }
+            });
+          } catch (e) {
+            console.warn('Could not add View 1 image:', e);
+          }
+        }
+
+        slide.addShape(pres.ShapeType.rect, {
+          x: view2X,
+          y: colY,
+          w: colWidth,
+          h: colHeight,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: view2X,
+              y: colY,
+              w: colWidth,
+              h: colHeight,
+              sizing: { type: 'contain', w: colWidth, h: colHeight }
+            });
+          } catch (e) {
+            console.warn('Could not add View 2 image:', e);
+          }
+        }
+
+        // شارة وسط أعلى الصورتين: نص العنوان البانورامي المخصص
+        const panoTitleText = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
+        const pillW = 3.2;
+        const pillH = 0.28;
+        const pillX = 0.4 + (9.2 - pillW) / 2;
+        const pillY = colY + 0.1;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.14,
+          fill: { color: '0F172A' },
+          line: { color: 'F59E0B', width: 1 }
+        });
+
+        slide.addText(panoTitleText, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 8.5,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FDE68A',
+          align: 'center',
+          valign: 'middle',
+          rtlMode: true
+        });
+
+      } else if (layoutType === 'single_panorama') {
         // --- نمط البانوراما الكاملة (Single Panorama) ---
         const panoX = 0.4;
         const panoY = 1.25;
@@ -502,8 +589,9 @@ export async function exportAuditToPptx() {
           });
         }
 
-        // شارة وسط أعلى الصورة: ● Panorama View
-        const pillW = 1.8;
+        // شارة وسط أعلى الصورة: نص ديناميكي
+        const singlePanoTitle = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'Panorama View';
+        const pillW = 2.2;
         const pillH = 0.28;
         const pillX = panoX + (panoW - pillW) / 2;
         const pillY = panoY + 0.1;
@@ -518,17 +606,18 @@ export async function exportAuditToPptx() {
           line: { color: 'F59E0B', width: 1 }
         });
 
-        slide.addText('Panorama View', {
+        slide.addText(singlePanoTitle, {
           x: pillX,
           y: pillY,
           w: pillW,
           h: pillH,
-          fontSize: 9,
+          fontSize: 8.5,
           fontFace: 'Arial',
           bold: true,
           color: 'FDE68A',
           align: 'center',
-          valign: 'middle'
+          valign: 'middle',
+          rtlMode: true
         });
 
       } else if (layoutType === 'stacked_panorama') {
@@ -1393,7 +1482,94 @@ export async function exportAuditToPptxA4() {
       const beforeImgObj = await preparePptxImage(sec.beforeImg);
       const afterImgObj = await preparePptxImage(sec.afterImg);
 
-      if (layoutType === 'single_panorama') {
+      if (layoutType === 'dual_panorama') {
+        // --- نمط العرض البانورامي المزدوج بمقاس A4 ---
+        const colW = (contentW - 0.27) / 2; // 3.5
+        const colH = 6.35;
+        const colY = 1.4;
+        const view1X = 0.5 + colW + 0.27; // اليمين
+        const view2X = 0.5;                // اليسار
+
+        slide.addShape(pres.ShapeType.rect, {
+          x: view1X,
+          y: colY,
+          w: colW,
+          h: colH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (beforeImgObj) {
+          try {
+            slide.addImage({
+              ...beforeImgObj,
+              x: view1X,
+              y: colY,
+              w: colW,
+              h: colH,
+              sizing: { type: 'contain', w: colW, h: colH }
+            });
+          } catch (e) {
+            console.warn('Could not add View 1 image to A4 slide:', e);
+          }
+        }
+
+        slide.addShape(pres.ShapeType.rect, {
+          x: view2X,
+          y: colY,
+          w: colW,
+          h: colH,
+          fill: { color: 'E2E8F0' },
+          line: { color: 'CBD5E1', width: 1 }
+        });
+
+        if (afterImgObj) {
+          try {
+            slide.addImage({
+              ...afterImgObj,
+              x: view2X,
+              y: colY,
+              w: colW,
+              h: colH,
+              sizing: { type: 'contain', w: colW, h: colH }
+            });
+          } catch (e) {
+            console.warn('Could not add View 2 image to A4 slide:', e);
+          }
+        }
+
+        // شارة العنوان البانورامي المخصص في المنتصف بدون وسوم قبل/بعد
+        const panoTitleText = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
+        const pillW = 3.4;
+        const pillH = 0.32;
+        const pillX = 0.5 + (contentW - pillW) / 2;
+        const pillY = colY + 0.12;
+
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          rectRadius: 0.16,
+          fill: { color: '0F172A' },
+          line: { color: 'F59E0B', width: 1 }
+        });
+
+        slide.addText(panoTitleText, {
+          x: pillX,
+          y: pillY,
+          w: pillW,
+          h: pillH,
+          fontSize: 9.0,
+          fontFace: 'Arial',
+          bold: true,
+          color: 'FDE68A',
+          align: 'center',
+          valign: 'middle',
+          rtlMode: true
+        });
+
+      } else if (layoutType === 'single_panorama') {
         // --- نمط البانوراما الكاملة للواجهات والمخازن ---
         const panoX = 0.5;
         const panoY = 1.4;
@@ -1446,8 +1622,9 @@ export async function exportAuditToPptxA4() {
           });
         }
 
-        // شارة وسط أعلى الصورة: ● Panorama View
-        const pillW = 2.0;
+        // شارة وسط أعلى الصورة: نص ديناميكي
+        const singlePanoTitle = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'Panorama View';
+        const pillW = 2.4;
         const pillH = 0.32;
         const pillX = panoX + (panoW - pillW) / 2;
         const pillY = panoY + 0.12;
@@ -1462,17 +1639,18 @@ export async function exportAuditToPptxA4() {
           line: { color: 'F59E0B', width: 1 }
         });
 
-        slide.addText('Panorama View', {
+        slide.addText(singlePanoTitle, {
           x: pillX,
           y: pillY,
           w: pillW,
           h: pillH,
-          fontSize: 9.5,
+          fontSize: 9.0,
           fontFace: 'Arial',
           bold: true,
           color: 'FDE68A',
           align: 'center',
-          valign: 'middle'
+          valign: 'middle',
+          rtlMode: true
         });
 
       } else if (layoutType === 'stacked_panorama') {

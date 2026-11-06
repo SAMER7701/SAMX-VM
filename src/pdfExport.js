@@ -35,6 +35,9 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     } else if (layout === 'stacked_panorama') {
       stackedImgHeight = 135 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0);
       stackedImgHeight = Math.max(115, Math.min(145, stackedImgHeight));
+    } else if (layout === 'dual_panorama') {
+      imgHeight = 270 - (checklistCount > 3 ? 25 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
+      imgHeight = Math.max(230, Math.min(290, imgHeight));
     } else {
       imgHeight = 285 - (checklistCount > 3 ? 25 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
       imgHeight = Math.max(245, Math.min(310, imgHeight));
@@ -46,6 +49,9 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     } else if (layout === 'stacked_panorama') {
       stackedImgHeight = 195 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
       stackedImgHeight = Math.max(160, Math.min(220, stackedImgHeight));
+    } else if (layout === 'dual_panorama') {
+      imgHeight = 390 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
+      imgHeight = Math.max(330, Math.min(430, imgHeight));
     } else {
       imgHeight = 415 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
       imgHeight = Math.max(350, Math.min(455, imgHeight));
@@ -98,22 +104,53 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية الخارجية أعلى إطار الصور
   let imagesHtml = '';
 
-  if (layout === 'single_panorama') {
-    // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار
+  if (layout === 'dual_panorama') {
+    // وضع العرض البانورامي المزدوج: صورتان عريضتان متجاورتان بدون شارات قبل/بعد مع شارة عنوان بانورامي مخصصة في المنتصف
+    const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
     imagesHtml = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
-          Panorama View
+        <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
+          <span>${customTitle}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+          </div>
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+            <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'single_panorama') {
+    // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار مع نص ديناميكي مخصص
+    const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'بانوراما شاملة (Panorama View)';
+    imagesHtml = `
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
+        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: rtl; user-select: none;">
+          <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
+          <span>${customTitle}</span>
         </div>
         <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-          <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" />
+          <img src="${sec.afterImg || sec.beforeImg}" alt="${customTitle}" style="${panoStyle}" />
         </div>
       </div>
     `;
   } else if (layout === 'stacked_panorama') {
     // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل وشارات خارجية علوية
+    const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : null;
+    const optionalTitleHtml = customTitle ? `
+      <div style="margin-bottom: 6px; display: flex; justify-content: center; width: 100%;">
+        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: rtl;">
+          <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
+          <span>${customTitle}</span>
+        </div>
+      </div>
+    ` : '';
     imagesHtml = `
       <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+        ${optionalTitleHtml}
         <!-- قبل -->
         <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
           <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">

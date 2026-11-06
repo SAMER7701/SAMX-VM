@@ -849,28 +849,64 @@ export function setModalLayoutType(layoutType = 'comparison') {
   if (hiddenInput) hiddenInput.value = layoutType;
 
   const btnComparison = document.getElementById('layout-btn-comparison');
+  const btnDual = document.getElementById('layout-btn-dual_panorama');
   const btnSingle = document.getElementById('layout-btn-single_panorama');
   const btnStacked = document.getElementById('layout-btn-stacked_panorama');
 
-  const activeCls = "px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow";
-  const inactiveCls = "px-2.5 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white";
+  const activeCls = "px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-gold-500 text-slate-950 border-gold-400 shadow";
+  const inactiveCls = "px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white";
 
   if (btnComparison) btnComparison.className = (layoutType === 'comparison') ? activeCls : inactiveCls;
+  if (btnDual) btnDual.className = (layoutType === 'dual_panorama') ? activeCls : inactiveCls;
   if (btnSingle) btnSingle.className = (layoutType === 'single_panorama') ? activeCls : inactiveCls;
   if (btnStacked) btnStacked.className = (layoutType === 'stacked_panorama') ? activeCls : inactiveCls;
+
+  const customTitleWrapper = document.getElementById('wrapper-custom-panorama-title');
+  if (customTitleWrapper) {
+    if (layoutType === 'dual_panorama' || layoutType === 'single_panorama' || layoutType === 'stacked_panorama') {
+      customTitleWrapper.classList.remove('hidden');
+    } else {
+      customTitleWrapper.classList.add('hidden');
+    }
+  }
 
   const colBefore = document.getElementById('col-wrapper-before');
   const boxBefore = document.getElementById('box-wrapper-before');
   const boxAfter = document.getElementById('box-wrapper-after');
-  const badgeTextAfter = document.getElementById('badge-text-after');
+  const badgeLabelBefore = document.getElementById('badge-label-before');
+  const badgeTextBefore = document.getElementById('badge-text-before');
   const badgeLabelAfter = document.getElementById('badge-label-after');
+  const badgeTextAfter = document.getElementById('badge-text-after');
   const placeholderTitleAfter = document.getElementById('placeholder-title-after');
   const placeholderSubAfter = document.getElementById('placeholder-sub-after');
   const placeholderTitleBefore = document.querySelector('#placeholder-before .text-rose-300');
   const placeholderSubBefore = document.querySelector('#placeholder-before .text-slate-400');
   const imagesContainer = document.getElementById('modal-images-container');
 
-  if (layoutType === 'single_panorama') {
+  if (layoutType === 'dual_panorama') {
+    // العرض البانورامي المزدوج (Dual Panorama): بدون تقييد Before/After
+    if (colBefore) colBefore.classList.remove('hidden');
+    if (boxBefore) boxBefore.classList.remove('hidden');
+    if (boxAfter) boxAfter.classList.remove('hidden');
+    if (imagesContainer) {
+      imagesContainer.classList.remove('grid-cols-1');
+      imagesContainer.classList.add('grid-cols-2');
+    }
+    if (badgeLabelBefore) {
+      badgeLabelBefore.className = 'inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none';
+    }
+    if (badgeTextBefore) badgeTextBefore.innerText = 'بانوراما 1 (View 1)';
+    
+    if (badgeLabelAfter) {
+      badgeLabelAfter.className = 'inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[10px] font-bold tracking-wide select-none';
+    }
+    if (badgeTextAfter) badgeTextAfter.innerText = 'بانوراما 2 (View 2)';
+
+    if (placeholderTitleBefore) placeholderTitleBefore.innerText = 'صورة بانورامية 1';
+    if (placeholderSubBefore) placeholderSubBefore.innerText = 'عرض بانورامي من زاوية أولى';
+    if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'صورة بانورامية 2';
+    if (placeholderSubAfter) placeholderSubAfter.innerText = 'عرض بانورامي من زاوية ثانية';
+  } else if (layoutType === 'single_panorama') {
     if (colBefore) colBefore.classList.add('hidden');
     else if (boxBefore) boxBefore.classList.add('hidden');
     if (boxAfter) {
@@ -894,6 +930,10 @@ export function setModalLayoutType(layoutType = 'comparison') {
       imagesContainer.classList.remove('grid-cols-2');
       imagesContainer.classList.add('grid-cols-1');
     }
+    if (badgeLabelBefore) {
+      badgeLabelBefore.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none';
+    }
+    if (badgeTextBefore) badgeTextBefore.innerText = 'Before';
     if (badgeTextAfter) badgeTextAfter.innerText = 'After';
     if (badgeLabelAfter) {
       badgeLabelAfter.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
@@ -903,7 +943,7 @@ export function setModalLayoutType(layoutType = 'comparison') {
     if (placeholderTitleAfter) placeholderTitleAfter.innerText = 'كاميرا أو من المعرض';
     if (placeholderSubAfter) placeholderSubAfter.innerText = 'بانوراما سفلية (بعد التعديل)';
   } else {
-    // Comparison (مقارنة جانبية جنباً إلى جنب)
+    // Comparison (مقارنة جانبية جنباً إلى جنب: قبل وبعد)
     if (colBefore) colBefore.classList.remove('hidden');
     if (boxBefore) boxBefore.classList.remove('hidden');
     if (boxAfter) boxAfter.classList.remove('hidden');
@@ -911,6 +951,10 @@ export function setModalLayoutType(layoutType = 'comparison') {
       imagesContainer.classList.remove('grid-cols-1');
       imagesContainer.classList.add('grid-cols-2');
     }
+    if (badgeLabelBefore) {
+      badgeLabelBefore.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#881337] text-white border border-[#ef4444] shadow-sm text-[10px] font-bold tracking-wide select-none';
+    }
+    if (badgeTextBefore) badgeTextBefore.innerText = 'Before';
     if (badgeTextAfter) badgeTextAfter.innerText = 'After';
     if (badgeLabelAfter) {
       badgeLabelAfter.className = 'inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-[#064e3b] text-white border border-[#10b981] shadow text-[10px] font-bold tracking-wide select-none';
@@ -951,6 +995,9 @@ export function resetModalFields() {
 
   const notes = document.getElementById('modal-notes');
   if (notes) notes.value = '';
+
+  const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
+  if (customPanoTitleInput) customPanoTitleInput.value = '';
 
   const assigneeInput = document.getElementById('modal-action-assignee');
   const duedateInput = document.getElementById('modal-action-duedate');
@@ -1719,6 +1766,8 @@ export function saveSectionEntry() {
   const notes = document.getElementById('modal-notes') ? document.getElementById('modal-notes').value.trim() : '';
   const layoutInput = document.getElementById('modal-layout-type');
   const layoutType = layoutInput ? layoutInput.value : 'comparison';
+  const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
+  const panoramaTitle = customPanoTitleInput ? customPanoTitleInput.value.trim() : '';
 
   if (!modalState.tempImgBefore && !modalState.tempImgAfter) {
     showToast('يرجى التقاط أو رفع صورة واحدة على الأقل للتسجيل', 'error');
@@ -1750,6 +1799,7 @@ export function saveSectionEntry() {
         id: modalState.editingSectionId,
         title: finalTitle,
         layoutType: layoutType,
+        panoramaTitle: panoramaTitle,
         status: modalState.selectedModalStatus || 'resolved',
         actionAssignee: actionAssignee,
         actionDueDate: actionDueDate,
@@ -1768,6 +1818,7 @@ export function saveSectionEntry() {
       id: 'sec_' + Date.now(),
       title: finalTitle,
       layoutType: layoutType,
+      panoramaTitle: panoramaTitle,
       status: modalState.selectedModalStatus || 'resolved',
       actionAssignee: actionAssignee,
       actionDueDate: actionDueDate,
@@ -1799,6 +1850,10 @@ export function editSectionEntry(id) {
   if (heading) heading.innerText = 'تعديل توثيق: ' + sec.title;
   
   setModalLayoutType(sec.layoutType || 'comparison');
+  const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
+  if (customPanoTitleInput) {
+    customPanoTitleInput.value = sec.panoramaTitle || '';
+  }
   
   const typeSelect = document.getElementById('modal-section-type');
   let matched = false;

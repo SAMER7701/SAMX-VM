@@ -1193,32 +1193,49 @@
         </div>
 
         <!-- نمط تخطيط وتوثيق القسم (Section Layout & Panorama Type) -->
-        <div class="space-y-1.5 bg-corp-950/70 border border-corp-800 p-3 rounded-2xl">
+        <div class="space-y-2 bg-corp-950/70 border border-corp-800 p-3 rounded-2xl">
           <div class="flex items-center justify-between">
             <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <i data-lucide="layout" class="w-4 h-4 text-gold-400"></i>
               <span>نمط التخطيط والبانوراما (Layout & Panorama):</span>
             </label>
-            <span class="text-[10px] text-slate-400">يدعم العرض العريض للواجهات والمخازن</span>
+            <span class="text-[10px] text-slate-400">يدعم العرض البانورامي المزدوج والعريض</span>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="layout-type-buttons">
-            <button type="button" onclick="setModalLayoutType('comparison')" id="layout-btn-comparison" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-gold-500 text-slate-950 border-gold-400 shadow">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="layout-type-buttons">
+            <button type="button" onclick="setModalLayoutType('comparison')" id="layout-btn-comparison" class="px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-gold-500 text-slate-950 border-gold-400 shadow">
               <i data-lucide="columns" class="w-4 h-4"></i>
-              <span>مقارنة (Comparison)</span>
+              <span>مقارنة (Before/After)</span>
               <span class="text-[9px] opacity-80 font-normal">قبل وبعد جنباً إلى جنب</span>
             </button>
-            <button type="button" onclick="setModalLayoutType('single_panorama')" id="layout-btn-single_panorama" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+            <button type="button" onclick="setModalLayoutType('dual_panorama')" id="layout-btn-dual_panorama" class="px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+              <i data-lucide="split-square-horizontal" class="w-4 h-4"></i>
+              <span>بانوراما مزدوجة (Dual)</span>
+              <span class="text-[9px] opacity-80 font-normal">صورتان عريضتان بدون تقييد</span>
+            </button>
+            <button type="button" onclick="setModalLayoutType('single_panorama')" id="layout-btn-single_panorama" class="px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
               <i data-lucide="maximize" class="w-4 h-4"></i>
-              <span>صورة بانورامية / منفردة</span>
+              <span>بانوراما عريضة منفردة</span>
               <span class="text-[9px] opacity-80 font-normal">عرض كامل للواجهات والمخازن</span>
             </button>
-            <button type="button" onclick="setModalLayoutType('stacked_panorama')" id="layout-btn-stacked_panorama" class="px-2.5 py-2.5 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
+            <button type="button" onclick="setModalLayoutType('stacked_panorama')" id="layout-btn-stacked_panorama" class="px-2 py-2 rounded-xl text-xs font-bold border flex flex-col items-center justify-center gap-0.5 transition bg-corp-950 text-slate-300 border-corp-700 hover:text-white">
               <i data-lucide="rows" class="w-4 h-4"></i>
-              <span>بانوراما مزدوجة (Stacked)</span>
+              <span>بانوراما مكدسة رأسياً</span>
               <span class="text-[9px] opacity-80 font-normal">قبل فوق وبعد تحت مكدسة</span>
             </button>
           </div>
           <input type="hidden" id="modal-layout-type" value="comparison">
+
+          <!-- حقل تخصيص نص الشارة البانورامية (Customizable Panorama Badge / Title) -->
+          <div id="wrapper-custom-panorama-title" class="hidden pt-2 border-t border-corp-850">
+            <label class="block text-xs font-bold text-slate-200 mb-1 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="tag" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>نص الشارة البانورامية المخصصة (Custom Panorama Badge):</span>
+              </span>
+              <span class="text-[10px] text-slate-400">يظهر كشارة أنيقة موسطة أعلى الصور</span>
+            </label>
+            <input type="text" id="modal-custom-panorama-title" placeholder="مثال: نظرة شاملة للواجهة بعد التحديث / زاوية العرض الشرقية والغربية" class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-gold-500 outline-none" />
+          </div>
         </div>
 
         <!-- 2. رفع صور التوثيق مع ضغط Canvas التلقائي ودعم المعرض والكاميرا في الجوال -->
