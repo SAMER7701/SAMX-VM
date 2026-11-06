@@ -2552,12 +2552,100 @@ export function toggleReportFooter(show) {
   }
 }
 
+// التحكم في ظهور عبارة الاعتماد السفلية بالتقرير
+export function toggleFooterCompliance(show) {
+  saveBrandingSettings({ showFooterCompliance: Boolean(show) });
+  syncBrandingUI();
+  showToast(show ? 'تم تفعيل ظهور عبارة الاعتماد السفلية في التقرير' : 'تم إخفاء عبارة الاعتماد السفلية من التقرير', 'info');
+}
+
+// ==================== إدارة وتخصيص ملخص إنجازات وتعديلات الزيارة الميدانية ====================
+
+export function openVisitSummaryModal() {
+  const modalTextarea = document.getElementById('visit-summary-textarea');
+  if (modalTextarea) {
+    const points = getEffectiveVisitSummary(currentAudit);
+    modalTextarea.value = (currentAudit.visitSummary && currentAudit.visitSummary.trim())
+      ? currentAudit.visitSummary.trim()
+      : points.join('\n');
+  }
+  updateVisitSummaryModalPreview();
+  showModal('visit-summary-modal');
+}
+
+export function closeVisitSummaryModal() {
+  hideModal('visit-summary-modal');
+}
+
+export function updateVisitSummaryModalPreview() {
+  const modalTextarea = document.getElementById('visit-summary-textarea');
+  const previewContainer = document.getElementById('visit-summary-modal-preview-list');
+  const countBadge = document.getElementById('visit-summary-preview-count');
+  if (!previewContainer) return;
+
+  const raw = modalTextarea ? modalTextarea.value : '';
+  const lines = parseJustificationNotes(raw);
+
+  if (countBadge) {
+    countBadge.innerText = `${lines.length} نقاط`;
+  }
+
+  if (lines.length === 0) {
+    previewContainer.innerHTML = `
+      <div class="text-xs text-slate-400 py-2 text-center">لا توجد نقاط مسجلة حالياً</div>
+    `;
+    return;
+  }
+
+  previewContainer.innerHTML = lines.map((line, idx) => `
+    <div class="flex items-start gap-2 text-xs text-slate-800 bg-white p-2 rounded-lg border border-slate-200">
+      <span class="w-4 h-4 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5">${idx + 1}</span>
+      <span class="flex-1 font-medium">${line}</span>
+      <span class="text-emerald-600 font-bold">✓</span>
+    </div>
+  `).join('');
+}
+
+export function autoGenerateVisitSummaryPrompt() {
+  const aggregated = aggregateVisitAchievements(currentAudit);
+  const modalTextarea = document.getElementById('visit-summary-textarea');
+  if (modalTextarea) {
+    modalTextarea.value = aggregated.join('\n');
+    updateVisitSummaryModalPreview();
+    showToast('تم استخراج وتجميع الإنجازات تلقائياً من الأقسام الموثقة', 'success');
+  }
+}
+
+export function clearVisitSummaryToDefault() {
+  currentAudit.visitSummary = '';
+  saveAuditToStorage();
+  const aggregated = aggregateVisitAchievements(currentAudit);
+  const modalTextarea = document.getElementById('visit-summary-textarea');
+  if (modalTextarea) {
+    modalTextarea.value = aggregated.join('\n');
+    updateVisitSummaryModalPreview();
+  }
+  renderVisitSummary();
+  showToast('تمت استعادة التجميع الذكي التلقائي للملخص', 'info');
+}
+
+export function saveVisitSummaryFromModal() {
+  const modalTextarea = document.getElementById('visit-summary-textarea');
+  const val = modalTextarea ? modalTextarea.value.trim() : '';
+  currentAudit.visitSummary = val;
+  saveAuditToStorage();
+  renderVisitSummary();
+  closeVisitSummaryModal();
+  showToast('✅ تم حفظ ملخص إنجازات الزيارة الميدانية وتطبيقه بنجاح على التقرير!', 'success');
+}
+
 // ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity Controller) ====================
 let tempBrandingState = {
   companyName: '',
   companySubtitle: '',
   logoData: '',
-  footerDisclaimer: ''
+  footerDisclaimer: '',
+  showFooterCompliance: true
 };
 
 export function openBrandingModal() {
@@ -2572,6 +2660,9 @@ export function openBrandingModal() {
 
   const discInput = document.getElementById('branding-input-disclaimer');
   if (discInput) discInput.value = current.footerDisclaimer || '';
+
+  const showCompInput = document.getElementById('branding-toggle-show-compliance');
+  if (showCompInput) showCompInput.checked = current.showFooterCompliance !== false;
 
   updateBrandingModalLogoPreview();
   updateBrandingLivePreview(tempBrandingState);
@@ -2667,16 +2758,19 @@ export function saveBrandingFromModal() {
   const nameInput = document.getElementById('branding-input-company-name');
   const subInput = document.getElementById('branding-input-company-subtitle');
   const discInput = document.getElementById('branding-input-disclaimer');
+  const showCompInput = document.getElementById('branding-toggle-show-compliance');
 
   const companyName = nameInput ? nameInput.value.trim() : tempBrandingState.companyName;
   const companySubtitle = subInput ? subInput.value.trim() : tempBrandingState.companySubtitle;
   const footerDisclaimer = discInput ? discInput.value.trim() : tempBrandingState.footerDisclaimer;
+  const showFooterCompliance = showCompInput ? showCompInput.checked : tempBrandingState.showFooterCompliance;
 
   saveBrandingSettings({
     companyName: companyName || 'SAMX-VM',
     companySubtitle: companySubtitle || 'العرض المرئي والتنسيق التجاري',
     logoData: tempBrandingState.logoData || '',
-    footerDisclaimer: footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي'
+    footerDisclaimer: footerDisclaimer || 'تقرير تدقيق معتمد صادر من منصة العرض المرئي',
+    showFooterCompliance: showFooterCompliance !== false
   });
 
   syncBrandingUI();
@@ -2702,6 +2796,9 @@ export function resetBrandingToDefault() {
   const discInput = document.getElementById('branding-input-disclaimer');
   if (discInput) discInput.value = def.footerDisclaimer;
 
+  const showCompInput = document.getElementById('branding-toggle-show-compliance');
+  if (showCompInput) showCompInput.checked = def.showFooterCompliance !== false;
+
   const fileInput = document.getElementById('branding-input-logo');
   if (fileInput) fileInput.value = '';
 
@@ -2718,17 +2815,28 @@ export function setupBrandingRealtimeListeners() {
   const nameInput = document.getElementById('branding-input-company-name');
   const subInput = document.getElementById('branding-input-company-subtitle');
   const discInput = document.getElementById('branding-input-disclaimer');
+  const showCompInput = document.getElementById('branding-toggle-show-compliance');
 
   const onInput = () => {
     tempBrandingState.companyName = nameInput ? nameInput.value : '';
     tempBrandingState.companySubtitle = subInput ? subInput.value : '';
     tempBrandingState.footerDisclaimer = discInput ? discInput.value : '';
+    if (showCompInput) tempBrandingState.showFooterCompliance = showCompInput.checked;
     updateBrandingLivePreview(tempBrandingState);
   };
 
   if (nameInput) nameInput.addEventListener('input', onInput);
   if (subInput) subInput.addEventListener('input', onInput);
   if (discInput) discInput.addEventListener('input', onInput);
+  if (showCompInput) showCompInput.addEventListener('change', onInput);
+
+  // مستمع التغييرات اللحظية لحقل ملخص إنجازات الزيارة
+  const summaryTextarea = document.getElementById('visit-summary-textarea');
+  if (summaryTextarea) {
+    summaryTextarea.addEventListener('input', () => {
+      updateVisitSummaryModalPreview();
+    });
+  }
 }
 
 export function printReport() {
@@ -2969,8 +3077,14 @@ if (typeof window !== 'undefined') {
   window.stopVoiceDictation = stopVoiceDictation;
   window.confirmResetReport = confirmResetReport;
   window.exportJsonBackup = exportJsonBackup;
-  window.importJsonBackup = importJsonBackup;
   window.toggleReportFooter = toggleReportFooter;
+  window.toggleFooterCompliance = toggleFooterCompliance;
+  window.openVisitSummaryModal = openVisitSummaryModal;
+  window.closeVisitSummaryModal = closeVisitSummaryModal;
+  window.updateVisitSummaryModalPreview = updateVisitSummaryModalPreview;
+  window.autoGenerateVisitSummaryPrompt = autoGenerateVisitSummaryPrompt;
+  window.clearVisitSummaryToDefault = clearVisitSummaryToDefault;
+  window.saveVisitSummaryFromModal = saveVisitSummaryFromModal;
   window.printReport = printReport;
   window.exportAuditToPptx = exportAuditToPptx;
   window.exportPptxReport = exportPptxReport;

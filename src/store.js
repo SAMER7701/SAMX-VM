@@ -26,7 +26,8 @@ export const DEFAULT_BRANDING = {
   companyName: 'الشياكة',
   companySubtitle: 'العرض المرئي والتنسيق التجاري',
   logoData: ALSHIAK_LOGO_BASE64, // الشعار الرسمي لشركة الشياكة (الشياكة alshiak)
-  footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض'
+  footerDisclaimer: 'تقرير تدقيق معتمد صادر من منصة العرض المرئي الميداني SAMX-VM • سري وخاص بإدارة المعارض',
+  showFooterCompliance: true // التحكم في ظهور عبارة الاعتماد السفلية
 };
 
 // وسوم المعالجة السريعة الافتراضية
@@ -179,7 +180,8 @@ export const currentAudit = {
   auditorName: '',
   weekNumber: 43,
   auditDate: new Date().toISOString().split('T')[0],
-  sections: []
+  sections: [],
+  visitSummary: '' // ملخص إنجازات وتعديلات الزيارة الميدانية (تجميع ذكي وتعديل يدوي)
 };
 
 // مخزن الذاكرة المؤقتة (Local-First Cache)
@@ -823,15 +825,19 @@ export function loadAuditFromStorage() {
         currentAudit.weekNumber = parsed.weekNumber || currentAudit.weekNumber;
         currentAudit.auditDate = parsed.auditDate || currentAudit.auditDate;
         currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+        currentAudit.visitSummary = parsed.visitSummary !== undefined ? parsed.visitSummary : '';
       } else {
         currentAudit.sections = [];
+        currentAudit.visitSummary = '';
       }
     } else {
       currentAudit.sections = [];
+      currentAudit.visitSummary = '';
       saveAuditToStorage();
     }
   } catch (e) {
     currentAudit.sections = [];
+    currentAudit.visitSummary = '';
   }
   if (!Array.isArray(currentAudit.sections)) {
     currentAudit.sections = [];
@@ -867,7 +873,8 @@ export function getBrandingSettings() {
         companyName: (parsed.companyName && parsed.companyName.trim()) || DEFAULT_BRANDING.companyName,
         companySubtitle: subtitle || DEFAULT_BRANDING.companySubtitle,
         logoData: (parsed.logoData && parsed.logoData.trim()) || ALSHIAK_LOGO_BASE64,
-        footerDisclaimer: parsed.footerDisclaimer !== undefined ? parsed.footerDisclaimer : DEFAULT_BRANDING.footerDisclaimer
+        footerDisclaimer: parsed.footerDisclaimer !== undefined ? parsed.footerDisclaimer : DEFAULT_BRANDING.footerDisclaimer,
+        showFooterCompliance: parsed.showFooterCompliance !== undefined ? Boolean(parsed.showFooterCompliance) : DEFAULT_BRANDING.showFooterCompliance
       };
     }
   } catch (e) {
@@ -892,7 +899,8 @@ export function saveBrandingSettings(settings = {}) {
       companyName: settings.companyName !== undefined ? settings.companyName.trim() : current.companyName,
       companySubtitle: newSubtitle || DEFAULT_BRANDING.companySubtitle,
       logoData: settings.logoData !== undefined ? settings.logoData : current.logoData,
-      footerDisclaimer: settings.footerDisclaimer !== undefined ? settings.footerDisclaimer.trim() : current.footerDisclaimer
+      footerDisclaimer: settings.footerDisclaimer !== undefined ? settings.footerDisclaimer.trim() : current.footerDisclaimer,
+      showFooterCompliance: settings.showFooterCompliance !== undefined ? Boolean(settings.showFooterCompliance) : current.showFooterCompliance
     };
     localStorage.setItem(STORAGE_KEY_BRANDING, JSON.stringify(updated));
     return updated;

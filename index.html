@@ -657,10 +657,18 @@
         </div>
 
         <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition">
+          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
             <input type="checkbox" id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-            <span>إدراج التوقيعات والاعتمادات الرسمية</span>
+            <span>إدراج التوقيعات الرسمية</span>
           </label>
+          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
+            <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+            <span>إظهار عبارة الاعتماد السفلية</span>
+          </label>
+          <button onclick="openVisitSummaryModal()" class="flex-1 sm:flex-none bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>ملخص الزيارة ⭐</span>
+          </button>
           <button onclick="exportPdfReport()" id="btn-export-pdf" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="تصدير وتحميل ملف PDF رسمي عالي الدقة">
             <i data-lucide="file-down" class="w-4 h-4"></i>
             <span>تحميل PDF</span>
@@ -699,7 +707,7 @@
           <div class="flex items-center justify-between gap-4">
             
             <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
-            <div class="flex flex-col items-start text-right min-w-[230px] shrink-0" dir="rtl">
+            <div class="flex flex-col items-start text-right min-w-[220px] shrink-0" dir="rtl">
               <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
               <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
                 <span id="print-badge-company-name">الشياكة</span>
@@ -714,19 +722,39 @@
               <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
             </div>
 
-            <!-- 2. الوسط: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
-            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[200px] shrink-0 shadow-sm" dir="rtl">
+            <!-- 2. الوسط المطلق: الشعار الرسمي للشركة (توسيط كامل ونقي) -->
+            <div class="flex-1 flex items-center justify-center px-4" id="print-header-logo-container">
+              <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
+            </div>
+
+            <!-- 3. الطرف الأيسر: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
+            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
               <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
             </div>
 
-            <!-- 3. أقصى اليسار: الشعار الرسمي للشركة -->
-            <div class="flex items-center justify-end min-w-[170px] max-w-[220px] shrink-0" id="print-header-logo-container">
-              <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
-            </div>
+          </div>
+        </div>
 
+        <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section) -->
+        <div id="print-visit-summary-wrapper" class="mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900">
+          <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
+            <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
+              <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
+              <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
+              <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
+            </div>
+            <div class="no-print flex items-center gap-2">
+              <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs" title="تعديل ملخص الزيارة يدوياً">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-700"></i>
+                <span>تعديل الملخص يدوياً</span>
+              </button>
+            </div>
+          </div>
+          <div id="print-visit-summary-list" class="space-y-2">
+            <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
           </div>
         </div>
 
@@ -1640,12 +1668,18 @@
             </div>
           </div>
 
-          <!-- حقل نص التذييل والاعتماد الرسمي -->
+          <!-- حقل نص التذييل والاعتماد الرسمي وخيار الإظهار/الإخفاء -->
           <div>
-            <label class="block text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
-              <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span>نص التذييل والملاحظات الرسمية (Footer Disclaimer)</span>
-            </label>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i>
+                <span>نص التذييل والملاحظات الرسمية (Footer Disclaimer)</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-[11px] text-amber-400 font-bold cursor-pointer">
+                <input type="checkbox" id="branding-toggle-show-compliance" checked class="rounded text-gold-500 focus:ring-0 cursor-pointer" />
+                <span>إظهار في التقارير</span>
+              </label>
+            </div>
             <textarea id="branding-input-disclaimer" rows="2" placeholder="اكتب نص الاعتماد أو الملاحظة الرسمية المطبوعة أسفل كل تقرير..." class="w-full bg-corp-950 border border-corp-700 rounded-xl p-2.5 text-xs text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none leading-relaxed transition placeholder:text-slate-500"></textarea>
           </div>
 
@@ -1725,6 +1759,88 @@
           <button type="button" onclick="saveBrandingFromModal()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-xs px-6 py-2 rounded-xl shadow-lg shadow-gold-500/20 transition active:scale-95 flex items-center gap-1.5">
             <i data-lucide="check" class="w-4 h-4"></i>
             <span>حفظ وتطبيق الهوية</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== نافذة تخصيص ملخص إنجازات وتعديلات الزيارة الميدانية (VISIT ACHIEVEMENTS MODAL) ==================== -->
+  <div id="visit-summary-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px);" onclick="if(event.target === this) closeVisitSummaryModal();" class="p-2 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-2xl rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]" onclick="event.stopPropagation();">
+      
+      <!-- الرأس -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 border border-gold-500/30 flex items-center justify-center shadow-inner">
+            <i data-lucide="list-checks" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-sm md:text-base text-white flex items-center gap-2">
+              <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
+              <span class="text-xs font-normal text-gold-400">(Executive Summary)</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">تجميع ذكي لإنجازات كافة الأقسام مع إمكانية التعديل، الترتيب، والإضافة اليدوية</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeVisitSummaryModal()" class="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-corp-850 transition" title="إغلاق النافذة">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- محتوى النافذة -->
+      <div class="p-4 md:p-6 space-y-4 overflow-y-auto flex-1">
+        
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-gold-400"></i>
+            <span>قائمة نقاط ملخص الإنجازات (كل نقطة في سطر مستقل):</span>
+          </span>
+          <button type="button" onclick="autoGenerateVisitSummaryPrompt()" class="text-xs bg-corp-850 hover:bg-corp-800 text-gold-400 hover:text-gold-300 px-3 py-1.5 rounded-xl border border-gold-500/30 font-bold transition flex items-center gap-1.5 shadow-xs" title="إعادة استخراج وتلخيص الإنجازات تلقائياً من الأقسام الموثقة">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>تجميع ذكي تلقائي</span>
+          </button>
+        </div>
+
+        <div class="space-y-1.5">
+          <textarea id="visit-summary-textarea" rows="8" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-corp-950 border border-corp-700 rounded-xl p-3 text-xs md:text-sm text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none leading-relaxed transition font-medium placeholder:text-slate-500"></textarea>
+          <p class="text-[11px] text-slate-400 flex items-center gap-1">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>تظهر هذه النقاط في التقرير التنفيذي وفي الصفحة الأولى من ملف الـ PDF كقائمة رأسية مع شارات إنجاز رقمية أنيقة.</span>
+          </p>
+        </div>
+
+        <!-- معاينة مصغرة مباشرة -->
+        <div class="bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-slate-900">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+            <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+              <span>⭐</span>
+              <span>معاينة حية للملخص في التقرير:</span>
+            </span>
+            <span id="visit-summary-preview-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">0 نقاط</span>
+          </div>
+          <div id="visit-summary-modal-preview-list" class="space-y-1.5 text-xs">
+            <!-- تُحقن ديناميكياً -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- أزرار الحفظ والإغلاق -->
+      <div class="p-4 bg-corp-950 border-t border-corp-800 flex items-center justify-between gap-2.5">
+        <button type="button" onclick="clearVisitSummaryToDefault()" class="text-rose-400 hover:text-rose-300 text-xs font-bold px-3 py-2 rounded-xl border border-rose-500/30 hover:bg-rose-950/40 transition flex items-center gap-1.5">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>استعادة الملخص التلقائي</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeVisitSummaryModal()" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-4 py-2 rounded-xl border border-corp-700 transition">
+            <span>إلغاء</span>
+          </button>
+          <button type="button" onclick="saveVisitSummaryFromModal()" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-xs px-6 py-2 rounded-xl shadow-lg shadow-gold-500/20 transition active:scale-95 flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>حفظ واعتماد الملخص</span>
           </button>
         </div>
       </div>

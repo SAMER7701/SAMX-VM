@@ -179,6 +179,66 @@ export function getDynamicJustifications(sec) {
   return unique.slice(0, 3);
 }
 
+/**
+ * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
+ * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة
+ */
+export function aggregateVisitAchievements(audit = null) {
+  const activeAudit = audit || currentAudit;
+  const sections = (activeAudit && Array.isArray(activeAudit.sections)) ? activeAudit.sections : [];
+
+  if (sections.length === 0) {
+    return [
+      'بدء الجولة الميدانية لتدقيق ومتابعة معايير العرض المرئي والتنسيق التجاري بالمعرض.',
+      'مراجعة جاهزية الواجهات ونقاط الجذب البصري وترتيب الأقسام الرئيسية.'
+    ];
+  }
+
+  const points = [];
+
+  sections.forEach((sec, idx) => {
+    const title = sec.title ? sec.title.replace(/\s*\([^)]*\)/g, '').trim() : `القسم ${idx + 1}`;
+    const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
+    const tags = Array.isArray(sec.tags) ? sec.tags : [];
+    const status = sec.status || 'resolved';
+
+    let actionSnippet = '';
+    if (checklist.length > 0) {
+      actionSnippet = checklist[0];
+    } else if (tags.length > 0) {
+      actionSnippet = tags.join('، ');
+    } else {
+      const justs = getDynamicJustifications(sec);
+      actionSnippet = justs.length > 0 ? justs[0] : 'ضبط وتنسيق المعروضات وفق معايير الهوية';
+    }
+
+    if (status === 'resolved' || !status) {
+      points.push(`[${title}]: إنجاز التعديل الميداني الفوري (${actionSnippet}) واعتماد التنسيق النهائي للموقع.`);
+    } else if (status === 'store_followup') {
+      points.push(`[${title}]: تدقيق القسم وتكليف (${sec.actionAssignee || 'مدير المعرض'}) بالمتابعة الميدانية لإنجاز (${actionSnippet}).`);
+    } else if (status === 'management_action') {
+      points.push(`[${title}]: رصد ملاحظة صيانة/تشغيل وتوجيه طلب التدخل الإداري إلى (${sec.actionAssignee || 'فريق الصيانة'}).`);
+    }
+  });
+
+  return points;
+}
+
+/**
+ * الحصول على قائمة نقاط ملخص الزيارة الفعلية (سواء كانت معدلة يدوياً من الأخصائي أو مجمعة تلقائياً)
+ */
+export function getEffectiveVisitSummary(audit = null) {
+  const activeAudit = audit || currentAudit;
+  const custom = (activeAudit && typeof activeAudit.visitSummary === 'string') ? activeAudit.visitSummary.trim() : '';
+  
+  if (custom) {
+    const parsed = parseJustificationNotes(custom);
+    if (parsed.length > 0) return parsed;
+  }
+  
+  return aggregateVisitAchievements(activeAudit);
+}
+
 // توليد شارة الحالة الملونة الموحدة على شكل كبسولة أنيقة
 export function getStatusBadgeHtml(statusKey, isPrint = false) {
   const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
@@ -379,7 +439,7 @@ export function syncBrandingUI() {
     headerSubtitle.innerText = branding.companySubtitle || 'العرض المرئي والتنسيق التجاري';
   }
 
-  // 3. الشعار الرسمي بأقصى يسار الترويسة
+  // 3. الشعار الرسمي الموسط في الترويسة
   const printLogoImg = document.getElementById('print-header-logo-img');
   const logoContainer = document.getElementById('print-header-logo-container');
   if (printLogoImg) {
@@ -391,11 +451,18 @@ export function syncBrandingUI() {
     `;
   }
 
-  // 4. التذييل والملاحظات القانونية الرسمية (يظهر فقط إن تم تخصيصه بدون أي حشو تقني افتراضي)
+  // 4. التذييل والملاحظات القانونية الرسمية مع التحكم بخيار الإظهار/الإخفاء
   const footerDisclaimer = document.getElementById('print-footer-disclaimer');
   const footerDisclaimerWrapper = document.getElementById('print-footer-disclaimer-wrapper');
+  const showCompliance = branding.showFooterCompliance !== false;
+  
+  const toggleComplianceInput = document.getElementById('toggle-print-compliance');
+  if (toggleComplianceInput) {
+    toggleComplianceInput.checked = showCompliance;
+  }
+
   if (footerDisclaimer) {
-    if (branding.footerDisclaimer && branding.footerDisclaimer.trim()) {
+    if (showCompliance && branding.footerDisclaimer && branding.footerDisclaimer.trim()) {
       footerDisclaimer.innerText = branding.footerDisclaimer.trim();
       if (footerDisclaimerWrapper) footerDisclaimerWrapper.classList.remove('hidden');
     } else {
@@ -404,8 +471,38 @@ export function syncBrandingUI() {
     }
   }
 
-  // 5. تحديث نافذة المعاينة الحية إن كانت مفتوحة
+  // 5. رسم ملخص إنجازات وتعديلات الزيارة الميدانية
+  renderVisitSummary();
+
+  // 6. تحديث نافذة المعاينة الحية إن كانت مفتوحة
   updateBrandingLivePreview();
+}
+
+/**
+ * رسم ملخص إنجازات وتعديلات الزيارة الميدانية في واجهة التقرير المطبوع والمعاينة
+ */
+export function renderVisitSummary() {
+  const container = document.getElementById('print-visit-summary-list');
+  const wrapper = document.getElementById('print-visit-summary-wrapper');
+  if (!container) return;
+
+  const points = getEffectiveVisitSummary(currentAudit);
+  if (!points || points.length === 0) {
+    if (wrapper) wrapper.classList.add('hidden');
+    return;
+  }
+
+  if (wrapper) wrapper.classList.remove('hidden');
+
+  container.innerHTML = points.map((pt, idx) => `
+    <div class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed">
+      <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
+        ${idx + 1}
+      </span>
+      <span class="font-medium flex-1">${pt}</span>
+      <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
+    </div>
+  `).join('');
 }
 
 // تحديث صندوق المعاينة الحية للهوية البصرية في نافذة الإعدادات
@@ -1776,4 +1873,7 @@ if (typeof window !== 'undefined') {
   window.renderBulkExportUI = renderBulkExportUI;
   window.openArchivedAuditPreview = openArchivedAuditPreview;
   window.closeArchivedAuditPreview = closeArchivedAuditPreview;
+  window.renderVisitSummary = renderVisitSummary;
+  window.aggregateVisitAchievements = aggregateVisitAchievements;
+  window.getEffectiveVisitSummary = getEffectiveVisitSummary;
 }
