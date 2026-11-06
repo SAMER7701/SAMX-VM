@@ -111,23 +111,55 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-      #print-visit-summary-wrapper {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        min-height: calc(100vh - 40mm) !important;
+      /* الحاوية الموحدة للصفحة الأولى: دمج الترويسة والملخص التنفيذي في صفحة أولى متناسقة */
+      #print-page-1-container {
+        min-height: calc(100vh - 20mm) !important;
+        height: auto !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
         box-sizing: border-box !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      #print-page-1-container.no-summary {
+        min-height: auto !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+
+      #print-main-header {
+        flex-shrink: 0 !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         margin-bottom: 0 !important;
+      }
+
+      /* بطاقة ملخص الزيارة: توسيط رأسي تام في المساحة المتبقية من الصفحة الأولى مع ارتفاع تلقائي يتمدد حسب المحتوى */
+      #print-visit-summary-wrapper {
+        margin-top: auto !important;
+        margin-bottom: auto !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         padding: 16px 20px !important;
         border: 1.5px solid #cbd5e1 !important;
         border-top: 4px solid #0f172a !important;
         border-radius: 12px !important;
         background: #ffffff !important;
       }
+
       #print-visit-summary-list {
         display: flex !important;
         flex-direction: column !important;
@@ -144,6 +176,7 @@
         border-radius: 8px !important;
         background-color: #f8fafc !important;
       }
+
       .print-card {
         border: 1.5px solid #cbd5e1 !important;
         box-shadow: none !important;
@@ -154,7 +187,7 @@
         break-before: page !important;
         page-break-after: auto !important;
         break-after: auto !important;
-        min-height: calc(100vh - 40mm) !important;
+        min-height: calc(100vh - 20mm) !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
@@ -163,9 +196,9 @@
       .print-card:first-child {
         page-break-before: always !important;
         break-before: page !important;
-        min-height: calc(100vh - 40mm) !important;
+        min-height: calc(100vh - 20mm) !important;
       }
-      #print-visit-summary-wrapper.hidden + #print-sections-container > .print-card:first-child {
+      #print-page-1-container.no-summary + #print-sections-container > .print-card:first-child {
         page-break-before: avoid !important;
         break-before: avoid !important;
         min-height: auto !important;
@@ -740,84 +773,88 @@
       <!-- ورقة التقرير التنفيذي المطبوع (A4 Print Container) -->
       <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-slate-200">
         
-        <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
-        <div class="border-b-2 border-slate-900 pb-4 mb-6">
-          <div class="flex items-center justify-between gap-4">
-            
-            <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
-            <div class="flex flex-col items-start text-right min-w-[220px] shrink-0" dir="rtl">
-              <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
-              <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
-                <span id="print-badge-company-name">الشياكة</span>
-                <span class="text-slate-400 font-normal">|</span>
-                <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
+        <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
+        <div id="print-page-1-container" class="print-page-1-wrapper flex flex-col">
+
+          <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
+          <div id="print-main-header" class="border-b-2 border-slate-900 pb-4 mb-6">
+            <div class="flex items-center justify-between gap-4">
+              
+              <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
+              <div class="flex flex-col items-start text-right min-w-[220px] shrink-0" dir="rtl">
+                <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
+                <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
+                  <span id="print-badge-company-name">الشياكة</span>
+                  <span class="text-slate-400 font-normal">|</span>
+                  <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
+                </div>
+                <!-- اسم المعرض/الفرع المختار ديناميكياً -->
+                <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight leading-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+                <!-- العنوان الفرعي العربي من إعدادات الهوية -->
+                <p class="text-xs text-slate-700 mt-0.5 font-bold leading-snug" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
+                <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
+                <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
               </div>
-              <!-- اسم المعرض/الفرع المختار ديناميكياً -->
-              <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight leading-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-              <!-- العنوان الفرعي العربي من إعدادات الهوية -->
-              <p class="text-xs text-slate-700 mt-0.5 font-bold leading-snug" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
-              <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
-              <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
-            </div>
 
-            <!-- 2. الوسط المطلق: الشعار الرسمي للشركة (توسيط كامل ونقي) -->
-            <div class="flex-1 flex items-center justify-center px-4" id="print-header-logo-container">
-              <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
-            </div>
+              <!-- 2. الوسط المطلق: الشعار الرسمي للشركة (توسيط كامل ونقي) -->
+              <div class="flex-1 flex items-center justify-center px-4" id="print-header-logo-container">
+                <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
+              </div>
 
-            <!-- 3. الطرف الأيسر: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
-            <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
-              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
-              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
-              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
-              <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
-            </div>
+              <!-- 3. الطرف الأيسر: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
+              <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
+                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
+                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
+                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
+                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
+              </div>
 
-          </div>
-        </div>
-
-        <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
-        <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all" style="page-break-inside: avoid; break-inside: avoid;">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
-            <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
-              <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
-              <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
-              <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
-              <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
-            </div>
-            <div class="no-print flex items-center gap-1.5 flex-wrap">
-              <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
-                <span>تجميع تلقائي</span>
-              </button>
-              <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إضافة سطر نقطة جديدة">
-                <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i>
-                <span>إضافة نقطة +</span>
-              </button>
-              <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="فتح نافذة التعديل والمعاينة الكاملة">
-                <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-700"></i>
-                <span>نافذة التخصيص</span>
-              </button>
             </div>
           </div>
 
-          <!-- حاوية التحرير المباشر التفاعلي للملخص (Interactive In-Place Editor) - تظهر للشاشة وتختفي عند الطباعة -->
-          <div class="no-print space-y-2 mb-3">
-            <div class="relative">
-              <textarea id="report-visit-summary-input" rows="5" oninput="updateLiveVisitSummary(this.value)" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-slate-50 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 rounded-xl p-3 text-xs md:text-sm text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none leading-relaxed transition font-medium placeholder:text-slate-400 resize-y shadow-inner"></textarea>
+          <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
+          <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
+              <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
+                <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
+                <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
+                <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
+                <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
+              </div>
+              <div class="no-print flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
+                  <span>تجميع تلقائي</span>
+                </button>
+                <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إضافة سطر نقطة جديدة">
+                  <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>إضافة نقطة +</span>
+                </button>
+                <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="فتح نافذة التعديل والمعاينة الكاملة">
+                  <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-700"></i>
+                  <span>نافذة التخصيص</span>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
-              <span class="flex items-center gap-1">
-                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
-                <span>تحرير مباشر لحظي: يتم حفظ كل تعديل واعتماده فوراً للتصدير كـ PDF و PowerPoint.</span>
-              </span>
-              <span class="text-slate-400">سطر جديد = نقطة إنجاز مستقلة</span>
-            </div>
-          </div>
 
-          <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية -->
-          <div id="print-visit-summary-list" class="space-y-2">
-            <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
+            <!-- حاوية التحرير المباشر التفاعلي للملخص (Interactive In-Place Editor) - تظهر للشاشة وتختفي عند الطباعة -->
+            <div class="no-print space-y-2 mb-3">
+              <div class="relative">
+                <textarea id="report-visit-summary-input" rows="5" oninput="updateLiveVisitSummary(this.value)" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-slate-50 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 rounded-xl p-3 text-xs md:text-sm text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none leading-relaxed transition font-medium placeholder:text-slate-400 resize-y shadow-inner"></textarea>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>تحرير مباشر لحظي: يتم حفظ كل تعديل واعتماده فوراً للتصدير كـ PDF و PowerPoint.</span>
+                </span>
+                <span class="text-slate-400">سطر جديد = نقطة إنجاز مستقلة</span>
+              </div>
+            </div>
+
+            <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية -->
+            <div id="print-visit-summary-list" class="space-y-2">
+              <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
+            </div>
           </div>
         </div>
 

@@ -74,7 +74,9 @@ import {
   renderBulkExportUI,
   updateBulkExportSelectionCounter,
   openArchivedAuditPreview,
-  closeArchivedAuditPreview
+  closeArchivedAuditPreview,
+  cleanSummaryPointText,
+  formatSummaryPointHtml
 } from './renderers.js';
 
 import * as samxApi from './api.js';
@@ -2684,7 +2686,7 @@ export function updateVisitSummaryModalPreview() {
   previewContainer.innerHTML = lines.map((line, idx) => `
     <div class="flex items-start gap-2 text-xs text-slate-800 bg-white p-2 rounded-lg border border-slate-200">
       <span class="w-4 h-4 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5">${idx + 1}</span>
-      <span class="flex-1 font-medium">${line}</span>
+      <div class="flex-1 text-right" dir="rtl">${formatSummaryPointHtml(line)}</div>
       <span class="text-emerald-600 font-bold">✓</span>
     </div>
   `).join('');
@@ -2740,7 +2742,7 @@ export function updateLiveVisitSummary(value) {
         <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
           ${idx + 1}
         </span>
-        <span class="font-medium flex-1">${pt}</span>
+        <div class="flex-1 leading-relaxed text-right" dir="rtl">${formatSummaryPointHtml(pt)}</div>
         <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
       </div>
     `).join('');
@@ -2762,7 +2764,7 @@ export function resetVisitSummaryToAuto() {
 export function appendPointToVisitSummary() {
   const liveInput = document.getElementById('report-visit-summary-input');
   const currentVal = liveInput ? liveInput.value.trim() : (currentAudit.visitSummary || '');
-  const newPoint = 'إنجاز متابعة وضبط معايير العرض المرئي في الموقع.';
+  const newPoint = 'القسم العام: ضبط وتنسيق المعروضات وفق معايير الهوية المعتمدة.';
   const updatedVal = currentVal ? `${currentVal}\n${newPoint}` : newPoint;
   if (liveInput) {
     liveInput.value = updatedVal;

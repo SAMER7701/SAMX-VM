@@ -9,7 +9,7 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { currentAudit, getBrandingSettings } from './store.js';
-import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText, getEffectiveVisitSummary } from './renderers.js';
+import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText, getEffectiveVisitSummary, formatSummaryPointHtml, cleanSummaryPointText } from './renderers.js';
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 export { parseJustificationNotes } from './renderers.js';
 
@@ -496,7 +496,7 @@ export async function exportAuditToPdf() {
       if (isExecutiveSummaryPage) {
         // صفحة ملخص إنجازات وتعديلات الزيارة الميدانية المستقلة (Dedicated Executive Summary Page)
         mainContentHtml = `
-          <div style="width: 100%; box-sizing: border-box; background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 4px solid #0f172a; border-radius: 12px; padding: 16px 20px; margin: auto 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid; break-after: page; page-break-after: always;">
+          <div style="width: 100%; box-sizing: border-box; background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 4px solid #0f172a; border-radius: 12px; padding: 16px 20px; margin: auto 0; height: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid;">
             <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">
               <div style="display: flex; align-items: center; gap: 7px; font-weight: 900; font-size: 13px; color: #0f172a;">
                 <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900;">⭐</span>
@@ -512,7 +512,7 @@ export async function exportAuditToPdf() {
                   <span style="display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 9px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
                     ${ptIdx + 1}
                   </span>
-                  <span style="flex: 1; font-weight: 600;">${pt}</span>
+                  <div style="flex: 1; text-align: right; direction: rtl;">${formatSummaryPointHtml(pt)}</div>
                   <span style="color: #16a34a; font-weight: 800; font-size: 11px; flex-shrink: 0;">✓</span>
                 </div>
               `).join('')}

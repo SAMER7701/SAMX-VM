@@ -180,8 +180,57 @@ export function getDynamicJustifications(sec) {
 }
 
 /**
+ * دالة مساعدة لتنقية نصوص نقاط الملخص من أي عبارات نمطية وأقواس أو فواصل زائدة
+ */
+export function cleanSummaryPointText(line) {
+  if (!line || typeof line !== 'string') return '';
+  let str = line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
+
+  // 1. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري"
+  str = str.replace(/إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '');
+  str = str.replace(/التعديل الميداني الفوري\s*[:\-\s]*/g, '');
+  str = str.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '');
+  str = str.replace(/\s*واعتماد التنسيق\s*\.?$/g, '');
+
+  // 2. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين (مثل [القسم :]: أو [القسم]:)
+  str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*:\s*/, '$1: ');
+  str = str.replace(/^\[\s*([^\]]+?)\s*\]\s*[:\s]*/, '$1: ');
+
+  // 3. إزالة الأقواس الدائرية حول وصف الإجراء (مثل (الإجراء.))
+  str = str.replace(/\(\s*([^\)]+?)\s*\)\s*\.?$/, '$1.');
+
+  // 4. إزالة تكرار النقطتين أو النقاط الزائدة
+  str = str.replace(/:\s*:\s*/g, ': ');
+  str = str.replace(/\s*:\s*/g, ': ');
+  str = str.replace(/\.{2,}/g, '.');
+
+  // 5. ضبط النقطة الختامية
+  str = str.replace(/\s*\.\s*$/, '').trim();
+  if (str) {
+    str = str + '.';
+  }
+
+  return str;
+}
+
+/**
+ * دالة لتنسيق نقطة الملخص كعنصر HTML يبرز اسم القسم بخط عريض ومميز متبوعاً بالإجراء
+ * مثال: **الواجهة الرئيسية والمانيكانات:** سلامة ونظافة المانيكان وضبط التثبيت والوقفة.
+ */
+export function formatSummaryPointHtml(point) {
+  const cleaned = cleanSummaryPointText(point);
+  const colonIdx = cleaned.indexOf(':');
+  if (colonIdx > 0 && colonIdx < 60) {
+    const title = cleaned.substring(0, colonIdx).trim();
+    const action = cleaned.substring(colonIdx + 1).trim();
+    return `<strong class="font-black text-slate-950">${title}:</strong> <span class="font-medium text-slate-800">${action}</span>`;
+  }
+  return `<span class="font-medium text-slate-800">${cleaned}</span>`;
+}
+
+/**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة بدون أي عبارات مكررة
+ * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة بدون أي عبارات مكررة أو أقواس
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -189,15 +238,17 @@ export function aggregateVisitAchievements(audit = null) {
 
   if (sections.length === 0) {
     return [
-      'بدء الجولة الميدانية لتدقيق ومتابعة معايير العرض المرئي والتنسيق التجاري بالمعرض.',
-      'مراجعة جاهزية الواجهات ونقاط الجذب البصري وترتيب الأقسام الرئيسية.'
+      'الواجهات ونقاط الجذب: مراجعة جاهزية الواجهات الرئيسية وترتيب الأقسام وتطبيق معايير الهوية.',
+      'التنسيق التجاري: تدقيق اتساق المعروضات وتوزيع نقاط الجذب البصري وفق الأدلة المعتمدة.'
     ];
   }
 
   const points = [];
 
   sections.forEach((sec, idx) => {
-    const title = sec.title ? sec.title.replace(/\s*\([^)]*\)/g, '').trim() : `القسم ${idx + 1}`;
+    let cleanTitle = sec.title ? sec.title.replace(/\s*\([^)]*\)/g, '').trim() : `القسم ${idx + 1}`;
+    cleanTitle = cleanTitle.replace(/^[\[\(\s]+|[\]\)\:\s]+$/g, '').trim();
+
     const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
     const tags = Array.isArray(sec.tags) ? sec.tags : [];
     const status = sec.status || 'resolved';
@@ -212,16 +263,25 @@ export function aggregateVisitAchievements(audit = null) {
       actionSnippet = justs.length > 0 ? justs[0] : 'ضبط وتنسيق المعروضات وفق معايير الهوية';
     }
 
+    let cleanAction = actionSnippet
+      .replace(/^[\[\(\s]+|[\]\)\s]+$/g, '')
+      .replace(/^إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '')
+      .replace(/^التعديل الميداني الفوري\s*[:\-\s]*/g, '')
+      .replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '')
+      .replace(/\s*واعتماد التنسيق\s*\.?$/g, '')
+      .replace(/[:\.\s]+$/g, '')
+      .trim();
+
     if (status === 'resolved' || !status) {
-      points.push(`[${title}]: إنجاز التعديل الميداني الفوري (${actionSnippet}).`);
+      points.push(`${cleanTitle}: ${cleanAction}.`);
     } else if (status === 'store_followup') {
-      points.push(`[${title}]: تكليف (${sec.actionAssignee || 'مدير المعرض'}) بالمتابعة الميدانية لإنجاز (${actionSnippet}).`);
+      points.push(`${cleanTitle}: تكليف ${sec.actionAssignee || 'مدير المعرض'} بالمتابعة الميدانية لإنجاز ${cleanAction}.`);
     } else if (status === 'management_action') {
-      points.push(`[${title}]: توجيه طلب صيانة إلى (${sec.actionAssignee || 'فريق الصيانة'}) لمعالجة (${actionSnippet}).`);
+      points.push(`${cleanTitle}: توجيه طلب صيانة إلى ${sec.actionAssignee || 'فريق الصيانة'} لمعالجة ${cleanAction}.`);
     }
   });
 
-  return points;
+  return points.map(pt => cleanSummaryPointText(pt));
 }
 
 /**
@@ -230,9 +290,7 @@ export function aggregateVisitAchievements(audit = null) {
 export function parseVisitSummaryPoints(text) {
   if (!text || typeof text !== 'string' || !text.trim()) return [];
   return text.split('\n')
-    .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
-    .map(line => line.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '').trim())
-    .map(line => line.replace(/\s*واعتماد التنسيق\s*\.?$/g, '').trim())
+    .map(line => cleanSummaryPointText(line))
     .filter(line => line.length > 0);
 }
 
@@ -496,6 +554,7 @@ export function syncBrandingUI() {
 export function renderVisitSummary() {
   const container = document.getElementById('print-visit-summary-list');
   const wrapper = document.getElementById('print-visit-summary-wrapper');
+  const page1 = document.getElementById('print-page-1-container');
   const liveInput = document.getElementById('report-visit-summary-input');
   const liveCount = document.getElementById('visit-summary-live-count');
   if (!container) return;
@@ -503,10 +562,12 @@ export function renderVisitSummary() {
   const points = getEffectiveVisitSummary(currentAudit);
   if (!points || points.length === 0) {
     if (wrapper) wrapper.classList.add('hidden');
+    if (page1) page1.classList.add('no-summary');
     return;
   }
 
   if (wrapper) wrapper.classList.remove('hidden');
+  if (page1) page1.classList.remove('no-summary');
 
   // مزامنة حقل الإدخال المباشر إذا لم يكن المستخدم يكتب فيه حالياً
   if (liveInput && document.activeElement !== liveInput) {
@@ -524,7 +585,7 @@ export function renderVisitSummary() {
       <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
         ${idx + 1}
       </span>
-      <span class="font-medium flex-1">${pt}</span>
+      <div class="flex-1 leading-relaxed text-right" dir="rtl">${formatSummaryPointHtml(pt)}</div>
       <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
     </div>
   `).join('');
