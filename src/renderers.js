@@ -172,7 +172,7 @@ export function getDynamicJustifications(sec) {
   } else if (sec?.status === 'management_action') {
     result.push(`رفع طلب الصيانة والتدخل الإداري (${sec.actionAssignee || 'فريق الصيانة والتشغيل'}) لمعالجة الملاحظة فورياً.`);
   } else if (result.length < 2) {
-    result.push('اكتمال التعديل الميداني الفوري واعتماد التنسيق النهائي للموقع بصورة معتمدة.');
+    result.push('اكتمال التعديل الميداني الفوري وضبط معايير العرض.');
   }
 
   const unique = Array.from(new Set(result));
@@ -181,7 +181,7 @@ export function getDynamicJustifications(sec) {
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة
+ * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة بدون أي عبارات مكررة
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -213,11 +213,11 @@ export function aggregateVisitAchievements(audit = null) {
     }
 
     if (status === 'resolved' || !status) {
-      points.push(`[${title}]: إنجاز التعديل الميداني الفوري (${actionSnippet}) واعتماد التنسيق النهائي للموقع.`);
+      points.push(`[${title}]: إنجاز التعديل الميداني الفوري (${actionSnippet}).`);
     } else if (status === 'store_followup') {
-      points.push(`[${title}]: تدقيق القسم وتكليف (${sec.actionAssignee || 'مدير المعرض'}) بالمتابعة الميدانية لإنجاز (${actionSnippet}).`);
+      points.push(`[${title}]: تكليف (${sec.actionAssignee || 'مدير المعرض'}) بالمتابعة الميدانية لإنجاز (${actionSnippet}).`);
     } else if (status === 'management_action') {
-      points.push(`[${title}]: رصد ملاحظة صيانة/تشغيل وتوجيه طلب التدخل الإداري إلى (${sec.actionAssignee || 'فريق الصيانة'}).`);
+      points.push(`[${title}]: توجيه طلب صيانة إلى (${sec.actionAssignee || 'فريق الصيانة'}) لمعالجة (${actionSnippet}).`);
     }
   });
 
@@ -225,12 +225,14 @@ export function aggregateVisitAchievements(audit = null) {
 }
 
 /**
- * دالة دقيقة لتفكيك سطور ملخص الزيارة الميدانية مع الحفاظ التام على ما كتبه المستخدم
+ * دالة دقيقة لتفكيك سطور ملخص الزيارة الميدانية مع الحفاظ التام على ما كتبه المستخدم وتطهير أي لواحق مكررة
  */
 export function parseVisitSummaryPoints(text) {
   if (!text || typeof text !== 'string' || !text.trim()) return [];
   return text.split('\n')
     .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+    .map(line => line.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '').trim())
+    .map(line => line.replace(/\s*واعتماد التنسيق\s*\.?$/g, '').trim())
     .filter(line => line.length > 0);
 }
 
@@ -518,7 +520,7 @@ export function renderVisitSummary() {
   }
 
   container.innerHTML = points.map((pt, idx) => `
-    <div class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed">
+    <div class="print-break-inside-avoid flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed" style="page-break-inside: avoid; break-inside: avoid;">
       <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
         ${idx + 1}
       </span>

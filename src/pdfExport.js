@@ -341,9 +341,10 @@ export async function exportAuditToPdf() {
     }
 
     const visitSummaryPoints = getEffectiveVisitSummary(currentAudit);
+    const hasVisitSummary = Boolean(visitSummaryPoints && visitSummaryPoints.length > 0);
 
-    // 2. تقسيم الأقسام: قسم واحد فقط لكل صفحة A4 مستقلة تماماً لمنع التداخل أو الاقتطاع
-    const totalPages = totalSections;
+    // 2. تقسيم الأقسام: صفحة مخصصة ومستقلة لملخص الزيارة التنفيذي (إن وجد) وصفحة مستقلة لكل قسم موثق
+    const totalPages = hasVisitSummary ? (totalSections + 1) : totalSections;
 
     // 3. إنشاء حاوية التقديم خارج الشاشة
     renderRoot = document.createElement('div');
@@ -384,7 +385,9 @@ export async function exportAuditToPdf() {
         break-after: ${p === totalPages - 1 ? 'auto' : 'page'};
       `;
 
-      const sec = sections[p];
+      const isExecutiveSummaryPage = Boolean(hasVisitSummary && p === 0);
+      const secIndex = hasVisitSummary ? (p - 1) : p;
+      const sec = isExecutiveSummaryPage ? null : sections[secIndex];
       const isFirstPage = (p === 0);
       const isLastPage = (p === totalPages - 1);
 
@@ -481,51 +484,51 @@ export async function exportAuditToPdf() {
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                 <span style="color: #475569; font-weight: 700; white-space: nowrap;">القسم الموثق:</span>
-                <strong style="color: #854d0e; font-weight: 900; font-size: 9px; background: #fef08a; padding: 1px 7px; border-radius: 4px; border: 1px solid #facc15;">القسم ${p + 1} من ${totalSections}</strong>
+                <strong style="color: #854d0e; font-weight: 900; font-size: 9px; background: #fef08a; padding: 1px 7px; border-radius: 4px; border: 1px solid #facc15;">القسم ${secIndex + 1} من ${totalSections}</strong>
               </div>
             </div>
           </div>
         `;
       }
 
-      // --- ملخص إنجازات وتعديلات الزيارة الميدانية (في الصفحة الأولى فقط أعلى بطاقة القسم الأول) ---
-      let visitSummaryHtml = '';
-      if (isFirstPage && visitSummaryPoints && visitSummaryPoints.length > 0) {
-        visitSummaryHtml = `
-          <div style="width: 100%; box-sizing: border-box; background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 3px solid #0f172a; border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid;">
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">
-              <div style="display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 11px; color: #0f172a;">
-                <span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 5px; background: #0f172a; color: #facc15; font-size: 10px; font-weight: 900;">⭐</span>
+      // --- محتوى الصفحة الرئيسي: إما بطاقة ملخص الزيارة التنفيذي المستقلة، أو بطاقة القسم الموثق ---
+      let mainContentHtml = '';
+      if (isExecutiveSummaryPage) {
+        // صفحة ملخص إنجازات وتعديلات الزيارة الميدانية المستقلة (Dedicated Executive Summary Page)
+        mainContentHtml = `
+          <div style="width: 100%; box-sizing: border-box; background: #ffffff; border: 1.5px solid #cbd5e1; border-top: 4px solid #0f172a; border-radius: 12px; padding: 16px 20px; margin: auto 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03); page-break-inside: avoid; break-inside: avoid; break-after: page; page-break-after: always;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 7px; font-weight: 900; font-size: 13px; color: #0f172a;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900;">⭐</span>
                 <span>ملخص إنجازات وتعديلات الزيارة الميدانية (Field Visit Summary):</span>
               </div>
-              <span style="font-size: 8.5px; color: #15803d; font-weight: 800; background: #dcfce7; border: 1px solid #86efac; padding: 1.5px 7px; border-radius: 9999px;">
+              <span style="font-size: 9.5px; color: #15803d; font-weight: 800; background: #dcfce7; border: 1px solid #86efac; padding: 2.5px 9px; border-radius: 9999px;">
                 ${visitSummaryPoints.length} إنجازات موثقة ✅
               </span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
               ${visitSummaryPoints.map((pt, ptIdx) => `
-                <div style="display: flex; align-items: flex-start; gap: 7px; font-size: 9.5px; color: #1e293b; line-height: 1.4; text-align: right; direction: rtl;">
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 8px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: flex-start; gap: 9px; font-size: 10.5px; color: #1e293b; line-height: 1.45; text-align: right; direction: rtl; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; break-inside: avoid;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 9px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
                     ${ptIdx + 1}
                   </span>
                   <span style="flex: 1; font-weight: 600;">${pt}</span>
+                  <span style="color: #16a34a; font-weight: 800; font-size: 11px; flex-shrink: 0;">✓</span>
                 </div>
               `).join('')}
             </div>
           </div>
         `;
+      } else {
+        // صفحة القسم الموثق المخصص والمحكوم بتوسيط تام وملء متناسق للمساحة
+        mainContentHtml = `
+          <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
+            ${renderPdfSectionCardHtml(sec, secIndex + 1, true, isLastPage, false)}
+          </div>
+        `;
       }
 
-      // --- محتوى القسم لهذه الصفحة المخصص والمحكوم بتوسيط تام وملء متناسق للمساحة ---
-      const hasSummaryThisPage = Boolean(isFirstPage && visitSummaryPoints && visitSummaryPoints.length > 0);
-      const sectionsHtml = `
-        <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
-          ${visitSummaryHtml}
-          ${renderPdfSectionCardHtml(sec, p + 1, true, isLastPage, hasSummaryThisPage)}
-        </div>
-      `;
-
-      // --- التوقيعات والاعتماد الرسمي المحسن (في الصفحة الأخيرة) ---
+      // --- التوقيعات والاعتماد الرسمي المحسن (في الصفحة الأخيرة فقط) ---
       let signaturesHtml = '';
       if (isLastPage) {
         signaturesHtml = `
@@ -609,7 +612,7 @@ export async function exportAuditToPdf() {
       pageEl.innerHTML = `
         ${headerHtml}
         <div class="pdf-page-content-area" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; min-height: 0; margin: auto 0; gap: 7px;">
-          ${sectionsHtml}
+          ${mainContentHtml}
           ${signaturesHtml}
         </div>
         ${footerHtml}

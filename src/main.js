@@ -2736,7 +2736,7 @@ export function updateLiveVisitSummary(value) {
   const printList = document.getElementById('print-visit-summary-list');
   if (printList) {
     printList.innerHTML = points.map((pt, idx) => `
-      <div class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed">
+      <div class="print-break-inside-avoid flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed" style="page-break-inside: avoid; break-inside: avoid;">
         <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
           ${idx + 1}
         </span>
@@ -2762,7 +2762,7 @@ export function resetVisitSummaryToAuto() {
 export function appendPointToVisitSummary() {
   const liveInput = document.getElementById('report-visit-summary-input');
   const currentVal = liveInput ? liveInput.value.trim() : (currentAudit.visitSummary || '');
-  const newPoint = 'إنجاز متابعة وضبط معايير العرض المرئي في الموقع واعتماد التنسيق.';
+  const newPoint = 'إنجاز متابعة وضبط معايير العرض المرئي في الموقع.';
   const updatedVal = currentVal ? `${currentVal}\n${newPoint}` : newPoint;
   if (liveInput) {
     liveInput.value = updatedVal;

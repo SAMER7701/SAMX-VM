@@ -111,6 +111,39 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
+      #print-visit-summary-wrapper {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        min-height: calc(100vh - 40mm) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        box-sizing: border-box !important;
+        margin-bottom: 0 !important;
+        padding: 16px 20px !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-top: 4px solid #0f172a !important;
+        border-radius: 12px !important;
+        background: #ffffff !important;
+      }
+      #print-visit-summary-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 5px !important;
+      }
+      #print-visit-summary-list > div {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 6px 12px !important;
+        margin-bottom: 4px !important;
+        line-height: 1.35 !important;
+        font-size: 11px !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        background-color: #f8fafc !important;
+      }
       .print-card {
         border: 1.5px solid #cbd5e1 !important;
         box-shadow: none !important;
@@ -128,6 +161,11 @@
         box-sizing: border-box !important;
       }
       .print-card:first-child {
+        page-break-before: always !important;
+        break-before: page !important;
+        min-height: calc(100vh - 40mm) !important;
+      }
+      #print-visit-summary-wrapper.hidden + #print-sections-container > .print-card:first-child {
         page-break-before: avoid !important;
         break-before: avoid !important;
         min-height: auto !important;
@@ -739,7 +777,7 @@
         </div>
 
         <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
-        <div id="print-visit-summary-wrapper" class="mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
+        <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all" style="page-break-inside: avoid; break-inside: avoid;">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
             <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
               <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
