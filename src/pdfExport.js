@@ -17,8 +17,9 @@ export { parseJustificationNotes } from './renderers.js';
  * دالة مساعدة لتوليد HTML بطاقة القسم الميداني الموثق بتصميم مؤسسي متوازن وعالي الدقة
  * مع دعم شارات كبسولية موحدة، حساب ديناميكي للأبعاد لمنع الفراغات أو الاقتطاع، ومبررات مخصصة
  */
-function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSignatures = false) {
+function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSignatures = false, hasSummary = false) {
   const layout = sec.layoutType || 'comparison';
+  const isDualStacked = (layout === 'dual_panorama' && sec.panoramaOrientation === 'stacked_vertical');
   const checklistCount = (sec.checklist && sec.checklist.length) || 0;
   const hasAction = Boolean(sec.status === 'store_followup' || sec.status === 'management_action');
   const justificationsList = getDynamicJustifications(sec);
@@ -32,7 +33,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     if (layout === 'single_panorama') {
       imgHeight = 310 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
       imgHeight = Math.max(260, Math.min(330, imgHeight));
-    } else if (layout === 'stacked_panorama') {
+    } else if (layout === 'stacked_panorama' || isDualStacked) {
       stackedImgHeight = 135 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0);
       stackedImgHeight = Math.max(115, Math.min(145, stackedImgHeight));
     } else if (layout === 'dual_panorama') {
@@ -45,16 +46,20 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   } else {
     if (layout === 'single_panorama') {
       imgHeight = 440 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      imgHeight = Math.max(370, Math.min(480, imgHeight));
-    } else if (layout === 'stacked_panorama') {
+      if (hasSummary) imgHeight -= 60;
+      imgHeight = Math.max(300, Math.min(480, imgHeight));
+    } else if (layout === 'stacked_panorama' || isDualStacked) {
       stackedImgHeight = 195 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
-      stackedImgHeight = Math.max(160, Math.min(220, stackedImgHeight));
+      if (hasSummary) stackedImgHeight -= 25;
+      stackedImgHeight = Math.max(130, Math.min(220, stackedImgHeight));
     } else if (layout === 'dual_panorama') {
       imgHeight = 390 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      imgHeight = Math.max(330, Math.min(430, imgHeight));
+      if (hasSummary) imgHeight -= 55;
+      imgHeight = Math.max(270, Math.min(430, imgHeight));
     } else {
       imgHeight = 415 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      imgHeight = Math.max(350, Math.min(455, imgHeight));
+      if (hasSummary) imgHeight -= 60;
+      imgHeight = Math.max(290, Math.min(455, imgHeight));
     }
   }
 
@@ -105,24 +110,46 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   let imagesHtml = '';
 
   if (layout === 'dual_panorama') {
-    // وضع العرض البانورامي المزدوج: صورتان عريضتان متجاورتان بدون شارات قبل/بعد مع شارة عنوان بانورامي مخصصة في المنتصف
+    // وضع العرض البانورامي المزدوج: خياران (متجانبتان أفقياً أو فوق بعضهما عمودياً)
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
-    imagesHtml = `
-      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-        <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
-          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
-          <span>${customTitle}</span>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+    
+    if (isDualStacked) {
+      // فوق بعضهما عمودياً مع شارة مخصصة وبدون وسوم قبل/بعد
+      imagesHtml = `
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
+          <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
+            <span>${customTitle}</span>
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+              <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+            </div>
+            <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+              <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // متجانبتان أفقياً مع شارة مخصصة وبدون وسوم قبل/بعد
+      imagesHtml = `
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
+          <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
+            <span>${customTitle}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+            <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+              <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+            </div>
+            <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+              <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
+            </div>
+          </div>
+        </div>
+      `;
+    }
   } else if (layout === 'single_panorama') {
     // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار مع نص ديناميكي مخصص
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'بانوراما شاملة (Panorama View)';
@@ -305,6 +332,14 @@ export async function exportAuditToPdf() {
     const cleanAuditor = sanitizeCorporateText(currentAudit.auditorName, 'أخصائي العرض المرئي');
     const cleanDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
     const totalSections = sections.length;
+
+    // مزامنة أي تحرير يدوي نشط في حقل الإدخال المباشر لملخص الزيارة قبل تجميع الـ PDF
+    const liveSummaryInput = document.getElementById('report-visit-summary-input');
+    if (liveSummaryInput && liveSummaryInput.value && liveSummaryInput.value.trim()) {
+      currentAudit.visitSummary = liveSummaryInput.value.trim();
+      saveAuditToStorage();
+    }
+
     const visitSummaryPoints = getEffectiveVisitSummary(currentAudit);
 
     // 2. تقسيم الأقسام: قسم واحد فقط لكل صفحة A4 مستقلة تماماً لمنع التداخل أو الاقتطاع
@@ -482,10 +517,11 @@ export async function exportAuditToPdf() {
       }
 
       // --- محتوى القسم لهذه الصفحة المخصص والمحكوم بتوسيط تام وملء متناسق للمساحة ---
+      const hasSummaryThisPage = Boolean(isFirstPage && visitSummaryPoints && visitSummaryPoints.length > 0);
       const sectionsHtml = `
         <div style="width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: stretch; margin: auto 0; page-break-inside: avoid; break-inside: avoid;">
           ${visitSummaryHtml}
-          ${renderPdfSectionCardHtml(sec, p + 1, true, isLastPage)}
+          ${renderPdfSectionCardHtml(sec, p + 1, true, isLastPage, hasSummaryThisPage)}
         </div>
       `;
 

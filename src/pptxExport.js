@@ -449,91 +449,180 @@ export async function exportAuditToPptx() {
       const afterImgObj = await preparePptxImage(sec.afterImg);
 
       if (layoutType === 'dual_panorama') {
-        // --- نمط العرض البانورامي المزدوج (Dual Panorama Side-by-Side) ---
-        const colWidth = 4.45;
-        const colHeight = 2.85;
-        const colY = 1.25;
-        const view1X = 5.15; // اليمين: عرض 1
-        const view2X = 0.4;  // اليسار: عرض 2
-
-        slide.addShape(pres.ShapeType.rect, {
-          x: view1X,
-          y: colY,
-          w: colWidth,
-          h: colHeight,
-          fill: { color: 'E2E8F0' },
-          line: { color: 'CBD5E1', width: 1 }
-        });
-
-        if (beforeImgObj) {
-          try {
-            slide.addImage({
-              ...beforeImgObj,
-              x: view1X,
-              y: colY,
-              w: colWidth,
-              h: colHeight,
-              sizing: { type: 'contain', w: colWidth, h: colHeight }
-            });
-          } catch (e) {
-            console.warn('Could not add View 1 image:', e);
-          }
-        }
-
-        slide.addShape(pres.ShapeType.rect, {
-          x: view2X,
-          y: colY,
-          w: colWidth,
-          h: colHeight,
-          fill: { color: 'E2E8F0' },
-          line: { color: 'CBD5E1', width: 1 }
-        });
-
-        if (afterImgObj) {
-          try {
-            slide.addImage({
-              ...afterImgObj,
-              x: view2X,
-              y: colY,
-              w: colWidth,
-              h: colHeight,
-              sizing: { type: 'contain', w: colWidth, h: colHeight }
-            });
-          } catch (e) {
-            console.warn('Could not add View 2 image:', e);
-          }
-        }
-
-        // شارة وسط أعلى الصورتين: نص العنوان البانورامي المخصص
+        const isStacked = (sec.panoramaOrientation === 'stacked_vertical');
         const panoTitleText = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
-        const pillW = 3.2;
-        const pillH = 0.28;
-        const pillX = 0.4 + (9.2 - pillW) / 2;
-        const pillY = colY + 0.1;
 
-        slide.addShape(pres.ShapeType.roundRect, {
-          x: pillX,
-          y: pillY,
-          w: pillW,
-          h: pillH,
-          rectRadius: 0.14,
-          fill: { color: '0F172A' },
-          line: { color: 'F59E0B', width: 1 }
-        });
+        if (isStacked) {
+          // --- نمط العرض البانورامي المزدوج مكدس عمودياً (Stacked Vertical) ---
+          const stackW = 9.2;
+          const stackH = 1.38;
+          const stackX = 0.4;
+          const view1Y = 1.25;
+          const view2Y = 2.72;
 
-        slide.addText(panoTitleText, {
-          x: pillX,
-          y: pillY,
-          w: pillW,
-          h: pillH,
-          fontSize: 8.5,
-          fontFace: 'Arial',
-          bold: true,
-          color: 'FDE68A',
-          align: 'center',
-          valign: 'middle',
-          rtlMode: true
-        });
+          slide.addShape(pres.ShapeType.rect, {
+            x: stackX,
+            y: view1Y,
+            w: stackW,
+            h: stackH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (beforeImgObj) {
+            try {
+              slide.addImage({
+                ...beforeImgObj,
+                x: stackX,
+                y: view1Y,
+                w: stackW,
+                h: stackH,
+                sizing: { type: 'contain', w: stackW, h: stackH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 1 stacked image:', e);
+            }
+          }
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: stackX,
+            y: view2Y,
+            w: stackW,
+            h: stackH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (afterImgObj) {
+            try {
+              slide.addImage({
+                ...afterImgObj,
+                x: stackX,
+                y: view2Y,
+                w: stackW,
+                h: stackH,
+                sizing: { type: 'contain', w: stackW, h: stackH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 2 stacked image:', e);
+            }
+          }
+
+          const pillW = 3.2;
+          const pillH = 0.28;
+          const pillX = stackX + (stackW - pillW) / 2;
+          const pillY = view1Y + 0.08;
+
+          slide.addShape(pres.ShapeType.roundRect, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            rectRadius: 0.14,
+            fill: { color: '0F172A' },
+            line: { color: 'F59E0B', width: 1 }
+          });
+
+          slide.addText(panoTitleText, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            fontSize: 8.5,
+            fontFace: 'Arial',
+            bold: true,
+            color: 'FDE68A',
+            align: 'center',
+            valign: 'middle',
+            rtlMode: true
+          });
+
+        } else {
+          // --- نمط العرض البانورامي المزدوج متجانب أفقياً (Dual Panorama Side-by-Side) ---
+          const colWidth = 4.45;
+          const colHeight = 2.85;
+          const colY = 1.25;
+          const view1X = 5.15; // اليمين: عرض 1
+          const view2X = 0.4;  // اليسار: عرض 2
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: view1X,
+            y: colY,
+            w: colWidth,
+            h: colHeight,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (beforeImgObj) {
+            try {
+              slide.addImage({
+                ...beforeImgObj,
+                x: view1X,
+                y: colY,
+                w: colWidth,
+                h: colHeight,
+                sizing: { type: 'contain', w: colWidth, h: colHeight }
+              });
+            } catch (e) {
+              console.warn('Could not add View 1 image:', e);
+            }
+          }
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: view2X,
+            y: colY,
+            w: colWidth,
+            h: colHeight,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (afterImgObj) {
+            try {
+              slide.addImage({
+                ...afterImgObj,
+                x: view2X,
+                y: colY,
+                w: colWidth,
+                h: colHeight,
+                sizing: { type: 'contain', w: colWidth, h: colHeight }
+              });
+            } catch (e) {
+              console.warn('Could not add View 2 image:', e);
+            }
+          }
+
+          // شارة وسط أعلى الصورتين: نص العنوان البانورامي المخصص
+          const pillW = 3.2;
+          const pillH = 0.28;
+          const pillX = 0.4 + (9.2 - pillW) / 2;
+          const pillY = colY + 0.1;
+
+          slide.addShape(pres.ShapeType.roundRect, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            rectRadius: 0.14,
+            fill: { color: '0F172A' },
+            line: { color: 'F59E0B', width: 1 }
+          });
+
+          slide.addText(panoTitleText, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            fontSize: 8.5,
+            fontFace: 'Arial',
+            bold: true,
+            color: 'FDE68A',
+            align: 'center',
+            valign: 'middle',
+            rtlMode: true
+          });
+        }
 
       } else if (layoutType === 'single_panorama') {
         // --- نمط البانوراما الكاملة (Single Panorama) ---
@@ -1483,91 +1572,180 @@ export async function exportAuditToPptxA4() {
       const afterImgObj = await preparePptxImage(sec.afterImg);
 
       if (layoutType === 'dual_panorama') {
-        // --- نمط العرض البانورامي المزدوج بمقاس A4 ---
-        const colW = (contentW - 0.27) / 2; // 3.5
-        const colH = 6.35;
-        const colY = 1.4;
-        const view1X = 0.5 + colW + 0.27; // اليمين
-        const view2X = 0.5;                // اليسار
-
-        slide.addShape(pres.ShapeType.rect, {
-          x: view1X,
-          y: colY,
-          w: colW,
-          h: colH,
-          fill: { color: 'E2E8F0' },
-          line: { color: 'CBD5E1', width: 1 }
-        });
-
-        if (beforeImgObj) {
-          try {
-            slide.addImage({
-              ...beforeImgObj,
-              x: view1X,
-              y: colY,
-              w: colW,
-              h: colH,
-              sizing: { type: 'contain', w: colW, h: colH }
-            });
-          } catch (e) {
-            console.warn('Could not add View 1 image to A4 slide:', e);
-          }
-        }
-
-        slide.addShape(pres.ShapeType.rect, {
-          x: view2X,
-          y: colY,
-          w: colW,
-          h: colH,
-          fill: { color: 'E2E8F0' },
-          line: { color: 'CBD5E1', width: 1 }
-        });
-
-        if (afterImgObj) {
-          try {
-            slide.addImage({
-              ...afterImgObj,
-              x: view2X,
-              y: colY,
-              w: colW,
-              h: colH,
-              sizing: { type: 'contain', w: colW, h: colH }
-            });
-          } catch (e) {
-            console.warn('Could not add View 2 image to A4 slide:', e);
-          }
-        }
-
-        // شارة العنوان البانورامي المخصص في المنتصف بدون وسوم قبل/بعد
+        const isStacked = (sec.panoramaOrientation === 'stacked_vertical');
         const panoTitleText = (sec.panoramaTitle && sec.panoramaTitle.trim()) ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
-        const pillW = 3.4;
-        const pillH = 0.32;
-        const pillX = 0.5 + (contentW - pillW) / 2;
-        const pillY = colY + 0.12;
 
-        slide.addShape(pres.ShapeType.roundRect, {
-          x: pillX,
-          y: pillY,
-          w: pillW,
-          h: pillH,
-          rectRadius: 0.16,
-          fill: { color: '0F172A' },
-          line: { color: 'F59E0B', width: 1 }
-        });
+        if (isStacked) {
+          // --- نمط العرض البانورامي المزدوج مكدس عمودياً بمقاس A4 ---
+          const stackW = contentW; // 7.27
+          const stackH = 3.05;
+          const stackX = 0.5;
+          const view1Y = 1.4;
+          const view2Y = 4.65;
 
-        slide.addText(panoTitleText, {
-          x: pillX,
-          y: pillY,
-          w: pillW,
-          h: pillH,
-          fontSize: 9.0,
-          fontFace: 'Arial',
-          bold: true,
-          color: 'FDE68A',
-          align: 'center',
-          valign: 'middle',
-          rtlMode: true
-        });
+          slide.addShape(pres.ShapeType.rect, {
+            x: stackX,
+            y: view1Y,
+            w: stackW,
+            h: stackH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (beforeImgObj) {
+            try {
+              slide.addImage({
+                ...beforeImgObj,
+                x: stackX,
+                y: view1Y,
+                w: stackW,
+                h: stackH,
+                sizing: { type: 'contain', w: stackW, h: stackH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 1 stacked image to A4 slide:', e);
+            }
+          }
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: stackX,
+            y: view2Y,
+            w: stackW,
+            h: stackH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (afterImgObj) {
+            try {
+              slide.addImage({
+                ...afterImgObj,
+                x: stackX,
+                y: view2Y,
+                w: stackW,
+                h: stackH,
+                sizing: { type: 'contain', w: stackW, h: stackH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 2 stacked image to A4 slide:', e);
+            }
+          }
+
+          const pillW = 3.4;
+          const pillH = 0.32;
+          const pillX = 0.5 + (contentW - pillW) / 2;
+          const pillY = view1Y + 0.1;
+
+          slide.addShape(pres.ShapeType.roundRect, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            rectRadius: 0.16,
+            fill: { color: '0F172A' },
+            line: { color: 'F59E0B', width: 1 }
+          });
+
+          slide.addText(panoTitleText, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            fontSize: 9.0,
+            fontFace: 'Arial',
+            bold: true,
+            color: 'FDE68A',
+            align: 'center',
+            valign: 'middle',
+            rtlMode: true
+          });
+
+        } else {
+          // --- نمط العرض البانورامي المزدوج متجانب أفقياً بمقاس A4 ---
+          const colW = (contentW - 0.27) / 2; // 3.5
+          const colH = 6.35;
+          const colY = 1.4;
+          const view1X = 0.5 + colW + 0.27; // اليمين
+          const view2X = 0.5;                // اليسار
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: view1X,
+            y: colY,
+            w: colW,
+            h: colH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (beforeImgObj) {
+            try {
+              slide.addImage({
+                ...beforeImgObj,
+                x: view1X,
+                y: colY,
+                w: colW,
+                h: colH,
+                sizing: { type: 'contain', w: colW, h: colH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 1 image to A4 slide:', e);
+            }
+          }
+
+          slide.addShape(pres.ShapeType.rect, {
+            x: view2X,
+            y: colY,
+            w: colW,
+            h: colH,
+            fill: { color: 'E2E8F0' },
+            line: { color: 'CBD5E1', width: 1 }
+          });
+
+          if (afterImgObj) {
+            try {
+              slide.addImage({
+                ...afterImgObj,
+                x: view2X,
+                y: colY,
+                w: colW,
+                h: colH,
+                sizing: { type: 'contain', w: colW, h: colH }
+              });
+            } catch (e) {
+              console.warn('Could not add View 2 image to A4 slide:', e);
+            }
+          }
+
+          // شارة العنوان البانورامي المخصص في المنتصف بدون وسوم قبل/بعد
+          const pillW = 3.4;
+          const pillH = 0.32;
+          const pillX = 0.5 + (contentW - pillW) / 2;
+          const pillY = colY + 0.12;
+
+          slide.addShape(pres.ShapeType.roundRect, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            rectRadius: 0.16,
+            fill: { color: '0F172A' },
+            line: { color: 'F59E0B', width: 1 }
+          });
+
+          slide.addText(panoTitleText, {
+            x: pillX,
+            y: pillY,
+            w: pillW,
+            h: pillH,
+            fontSize: 9.0,
+            fontFace: 'Arial',
+            bold: true,
+            color: 'FDE68A',
+            align: 'center',
+            valign: 'middle',
+            rtlMode: true
+          });
+        }
 
       } else if (layoutType === 'single_panorama') {
         // --- نمط البانوراما الكاملة للواجهات والمخازن ---

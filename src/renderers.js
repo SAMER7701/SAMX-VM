@@ -225,6 +225,16 @@ export function aggregateVisitAchievements(audit = null) {
 }
 
 /**
+ * دالة دقيقة لتفكيك سطور ملخص الزيارة الميدانية مع الحفاظ التام على ما كتبه المستخدم
+ */
+export function parseVisitSummaryPoints(text) {
+  if (!text || typeof text !== 'string' || !text.trim()) return [];
+  return text.split('\n')
+    .map(line => line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim())
+    .filter(line => line.length > 0);
+}
+
+/**
  * الحصول على قائمة نقاط ملخص الزيارة الفعلية (سواء كانت معدلة يدوياً من الأخصائي أو مجمعة تلقائياً)
  */
 export function getEffectiveVisitSummary(audit = null) {
@@ -232,7 +242,7 @@ export function getEffectiveVisitSummary(audit = null) {
   const custom = (activeAudit && typeof activeAudit.visitSummary === 'string') ? activeAudit.visitSummary.trim() : '';
   
   if (custom) {
-    const parsed = parseJustificationNotes(custom);
+    const parsed = parseVisitSummaryPoints(custom);
     if (parsed.length > 0) return parsed;
   }
   
@@ -484,6 +494,8 @@ export function syncBrandingUI() {
 export function renderVisitSummary() {
   const container = document.getElementById('print-visit-summary-list');
   const wrapper = document.getElementById('print-visit-summary-wrapper');
+  const liveInput = document.getElementById('report-visit-summary-input');
+  const liveCount = document.getElementById('visit-summary-live-count');
   if (!container) return;
 
   const points = getEffectiveVisitSummary(currentAudit);
@@ -493,6 +505,17 @@ export function renderVisitSummary() {
   }
 
   if (wrapper) wrapper.classList.remove('hidden');
+
+  // مزامنة حقل الإدخال المباشر إذا لم يكن المستخدم يكتب فيه حالياً
+  if (liveInput && document.activeElement !== liveInput) {
+    liveInput.value = (currentAudit.visitSummary && currentAudit.visitSummary.trim())
+      ? currentAudit.visitSummary.trim()
+      : points.join('\n');
+  }
+
+  if (liveCount) {
+    liveCount.innerText = `${points.length} نقاط`;
+  }
 
   container.innerHTML = points.map((pt, idx) => `
     <div class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed">
@@ -1257,7 +1280,7 @@ export function renderAuditCards(customSections = null) {
           <input type="range" min="0" max="100" value="50" oninput="updateSliderPosition('${sec.id}', this.value)" class="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30" style="margin: 0; padding: 0;">
         </div>
       ` : (sec.layoutType === 'dual_panorama' ? `
-        <!-- عرض بانوراما مزدوجة مرنة (صورتان عريضتان متجاورتان بدون تقييد قبل وبعد) -->
+        <!-- عرض بانوراما مزدوجة مرنة (خيارات: متجانبتان أفقياً أو فوق بعضهما عمودياً) -->
         <div class="mb-3.5">
           <div class="flex justify-center w-full mb-1.5">
             <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-md text-xs font-black tracking-wide select-none" dir="rtl">
@@ -1265,22 +1288,41 @@ export function renderAuditCards(customSections = null) {
               <span>${sec.panoramaTitle ? sec.panoramaTitle : 'عرض بانورامي مزدوج (Dual Panorama View)'}</span>
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Panorama 1')">
-              <img src="${sec.beforeImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+1'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                <span>تكبير بانوراما 1</span>
+          ${sec.panoramaOrientation === 'stacked_vertical' ? `
+            <div class="space-y-3">
+              <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Panorama 1')">
+                <img src="${sec.beforeImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=Panorama+1'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير بانوراما 1</span>
+                </div>
+              </div>
+              <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[21/9] sm:aspect-[16/7] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - Panorama 2')">
+                <img src="${sec.afterImg || 'https://placehold.co/1200x500/0f172a/94a3b8?text=Panorama+2'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير بانوراما 2</span>
+                </div>
               </div>
             </div>
-            <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - Panorama 2')">
-              <img src="${sec.afterImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+2'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
-                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                <span>تكبير بانوراما 2</span>
+          ` : `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.beforeImg}', '${sec.title} - Panorama 1')">
+                <img src="${sec.beforeImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+1'}" style="${beforeStyle}" class="w-full h-full object-cover transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير بانوراما 1</span>
+                </div>
+              </div>
+              <div class="relative rounded-2xl overflow-hidden border border-amber-500/40 bg-corp-950 aspect-[16/9] w-full group cursor-pointer shadow-md" onclick="openLightbox('${sec.afterImg}', '${sec.title} - Panorama 2')">
+                <img src="${sec.afterImg || 'https://placehold.co/1200x675/0f172a/94a3b8?text=Panorama+2'}" style="${afterStyle}" class="w-full h-full object-cover transition duration-300">
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold gap-1">
+                  <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                  <span>تكبير بانوراما 2</span>
+                </div>
               </div>
             </div>
-          </div>
+          `}
         </div>
       ` : (sec.layoutType === 'single_panorama' ? `
         <!-- عرض بانوراما عريضة موحدة مع شارة مخصصة موسطة فوق الصورة تماماً -->
@@ -1503,14 +1545,25 @@ export function renderPrintSections(customSections = null) {
               <span>${sec.panoramaTitle ? sec.panoramaTitle : 'عرض بانورامي مزدوج (Dual Panorama View)'}</span>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+          ${sec.panoramaOrientation === 'stacked_vertical' ? `
+            <div class="space-y-2.5 mb-3">
+              <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+              </div>
+              <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+              </div>
             </div>
-            <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+          ` : `
+            <div class="grid grid-cols-2 gap-3">
+              <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+              </div>
+              <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
+                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+              </div>
             </div>
-          </div>
+          `}
         </div>
       ` : (sec.layoutType === 'single_panorama' ? `
         <!-- بانوراما كاملة للواجهات والمخازن مع شارة مخصصة فوق الصورة تماماً -->

@@ -738,21 +738,46 @@
           </div>
         </div>
 
-        <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section) -->
-        <div id="print-visit-summary-wrapper" class="mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900">
-          <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
+        <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
+        <div id="print-visit-summary-wrapper" class="mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
             <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
               <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
               <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
               <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
+              <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
             </div>
-            <div class="no-print flex items-center gap-2">
-              <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs" title="تعديل ملخص الزيارة يدوياً">
-                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-700"></i>
-                <span>تعديل الملخص يدوياً</span>
+            <div class="no-print flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
+                <span>تجميع تلقائي</span>
+              </button>
+              <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إضافة سطر نقطة جديدة">
+                <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>إضافة نقطة +</span>
+              </button>
+              <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="فتح نافذة التعديل والمعاينة الكاملة">
+                <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-700"></i>
+                <span>نافذة التخصيص</span>
               </button>
             </div>
           </div>
+
+          <!-- حاوية التحرير المباشر التفاعلي للملخص (Interactive In-Place Editor) - تظهر للشاشة وتختفي عند الطباعة -->
+          <div class="no-print space-y-2 mb-3">
+            <div class="relative">
+              <textarea id="report-visit-summary-input" rows="5" oninput="updateLiveVisitSummary(this.value)" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-slate-50 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 rounded-xl p-3 text-xs md:text-sm text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none leading-relaxed transition font-medium placeholder:text-slate-400 resize-y shadow-inner"></textarea>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+              <span class="flex items-center gap-1">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>تحرير مباشر لحظي: يتم حفظ كل تعديل واعتماده فوراً للتصدير كـ PDF و PowerPoint.</span>
+              </span>
+              <span class="text-slate-400">سطر جديد = نقطة إنجاز مستقلة</span>
+            </div>
+          </div>
+
+          <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية -->
           <div id="print-visit-summary-list" class="space-y-2">
             <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
           </div>
@@ -1235,6 +1260,28 @@
               <span class="text-[10px] text-slate-400">يظهر كشارة أنيقة موسطة أعلى الصور</span>
             </label>
             <input type="text" id="modal-custom-panorama-title" placeholder="مثال: نظرة شاملة للواجهة بعد التحديث / زاوية العرض الشرقية والغربية" class="w-full bg-corp-900 border border-corp-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:border-gold-500 outline-none" />
+          </div>
+
+          <!-- خيارات اتجاه وعرض الصور البانورامية المزدوجة (Dual Panorama Orientation) -->
+          <div id="wrapper-dual-panorama-orientation" class="hidden pt-2 border-t border-corp-850">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="compass" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>اتجاه وتنسيق عرض الصورتين (Panorama Orientation):</span>
+              </label>
+              <span class="text-[10px] text-slate-400">متجانبتان أو فوق بعضهما</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2" id="dual-panorama-orientation-buttons">
+              <button type="button" onclick="setModalPanoramaOrientation('side_by_side')" id="btn-orient-side_by_side" class="px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition bg-gold-500 text-slate-950 border-gold-400 shadow cursor-pointer">
+                <i data-lucide="split-square-horizontal" class="w-4 h-4"></i>
+                <span>متجانبتان أفقياً (Side-by-Side)</span>
+              </button>
+              <button type="button" onclick="setModalPanoramaOrientation('stacked_vertical')" id="btn-orient-stacked_vertical" class="px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition bg-corp-900 text-slate-300 border-corp-700 hover:text-white cursor-pointer">
+                <i data-lucide="rows" class="w-4 h-4"></i>
+                <span>فوق بعضهما عمودياً (Stacked)</span>
+              </button>
+            </div>
+            <input type="hidden" id="modal-panorama-orientation" value="side_by_side">
           </div>
         </div>
 

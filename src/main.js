@@ -870,6 +870,15 @@ export function setModalLayoutType(layoutType = 'comparison') {
     }
   }
 
+  const orientationWrapper = document.getElementById('wrapper-dual-panorama-orientation');
+  if (orientationWrapper) {
+    if (layoutType === 'dual_panorama') {
+      orientationWrapper.classList.remove('hidden');
+    } else {
+      orientationWrapper.classList.add('hidden');
+    }
+  }
+
   const colBefore = document.getElementById('col-wrapper-before');
   const boxBefore = document.getElementById('box-wrapper-before');
   const boxAfter = document.getElementById('box-wrapper-after');
@@ -966,6 +975,20 @@ export function setModalLayoutType(layoutType = 'comparison') {
   }
 }
 
+export function setModalPanoramaOrientation(orientation = 'side_by_side') {
+  const hiddenInput = document.getElementById('modal-panorama-orientation');
+  if (hiddenInput) hiddenInput.value = orientation;
+
+  const btnSide = document.getElementById('btn-orient-side_by_side');
+  const btnStacked = document.getElementById('btn-orient-stacked_vertical');
+
+  const activeCls = 'px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition bg-gold-500 text-slate-950 border-gold-400 shadow cursor-pointer';
+  const inactiveCls = 'px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition bg-corp-900 text-slate-300 border-corp-700 hover:text-white cursor-pointer';
+
+  if (btnSide) btnSide.className = (orientation === 'side_by_side') ? activeCls : inactiveCls;
+  if (btnStacked) btnStacked.className = (orientation === 'stacked_vertical') ? activeCls : inactiveCls;
+}
+
 export function resetModalFields() {
   modalState.tempImgBefore = null;
   modalState.tempImgAfter = null;
@@ -973,6 +996,7 @@ export function resetModalFields() {
   modalState.activeModalChecklist = [];
   setModalStatus('resolved');
   setModalLayoutType('comparison');
+  setModalPanoramaOrientation('side_by_side');
   
   populateSectionTypeSelect();
   const typeSelect = document.getElementById('modal-section-type');
@@ -1768,6 +1792,8 @@ export function saveSectionEntry() {
   const layoutType = layoutInput ? layoutInput.value : 'comparison';
   const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
   const panoramaTitle = customPanoTitleInput ? customPanoTitleInput.value.trim() : '';
+  const customOrientationInput = document.getElementById('modal-panorama-orientation');
+  const panoramaOrientation = customOrientationInput ? customOrientationInput.value : 'side_by_side';
 
   if (!modalState.tempImgBefore && !modalState.tempImgAfter) {
     showToast('يرجى التقاط أو رفع صورة واحدة على الأقل للتسجيل', 'error');
@@ -1800,6 +1826,7 @@ export function saveSectionEntry() {
         title: finalTitle,
         layoutType: layoutType,
         panoramaTitle: panoramaTitle,
+        panoramaOrientation: panoramaOrientation,
         status: modalState.selectedModalStatus || 'resolved',
         actionAssignee: actionAssignee,
         actionDueDate: actionDueDate,
@@ -1819,6 +1846,7 @@ export function saveSectionEntry() {
       title: finalTitle,
       layoutType: layoutType,
       panoramaTitle: panoramaTitle,
+      panoramaOrientation: panoramaOrientation,
       status: modalState.selectedModalStatus || 'resolved',
       actionAssignee: actionAssignee,
       actionDueDate: actionDueDate,
@@ -1850,6 +1878,7 @@ export function editSectionEntry(id) {
   if (heading) heading.innerText = 'تعديل توثيق: ' + sec.title;
   
   setModalLayoutType(sec.layoutType || 'comparison');
+  setModalPanoramaOrientation(sec.panoramaOrientation || 'side_by_side');
   const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
   if (customPanoTitleInput) {
     customPanoTitleInput.value = sec.panoramaTitle || '';
@@ -2694,6 +2723,56 @@ export function saveVisitSummaryFromModal() {
   showToast('✅ تم حفظ ملخص إنجازات الزيارة الميدانية وتطبيقه بنجاح على التقرير!', 'success');
 }
 
+export function updateLiveVisitSummary(value) {
+  currentAudit.visitSummary = typeof value === 'string' ? value : '';
+  saveAuditToStorage();
+  
+  const points = getEffectiveVisitSummary(currentAudit);
+  const liveCount = document.getElementById('visit-summary-live-count');
+  if (liveCount) {
+    liveCount.innerText = `${points.length} نقاط`;
+  }
+  
+  const printList = document.getElementById('print-visit-summary-list');
+  if (printList) {
+    printList.innerHTML = points.map((pt, idx) => `
+      <div class="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed">
+        <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
+          ${idx + 1}
+        </span>
+        <span class="font-medium flex-1">${pt}</span>
+        <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
+      </div>
+    `).join('');
+  }
+}
+
+export function resetVisitSummaryToAuto() {
+  currentAudit.visitSummary = '';
+  saveAuditToStorage();
+  const aggregated = aggregateVisitAchievements(currentAudit);
+  const liveInput = document.getElementById('report-visit-summary-input');
+  if (liveInput) {
+    liveInput.value = aggregated.join('\n');
+  }
+  renderVisitSummary();
+  showToast('تمت إعادة استخراج وتجميع ملخص الإنجازات تلقائياً من الأقسام الموثقة', 'info');
+}
+
+export function appendPointToVisitSummary() {
+  const liveInput = document.getElementById('report-visit-summary-input');
+  const currentVal = liveInput ? liveInput.value.trim() : (currentAudit.visitSummary || '');
+  const newPoint = 'إنجاز متابعة وضبط معايير العرض المرئي في الموقع واعتماد التنسيق.';
+  const updatedVal = currentVal ? `${currentVal}\n${newPoint}` : newPoint;
+  if (liveInput) {
+    liveInput.value = updatedVal;
+    liveInput.focus();
+    liveInput.scrollTop = liveInput.scrollHeight;
+  }
+  updateLiveVisitSummary(updatedVal);
+  showToast('تمت إضافة نقطة إنجاز جديدة، يمكنك تحريرها الآن مباشرة', 'success');
+}
+
 // ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity Controller) ====================
 let tempBrandingState = {
   companyName: '',
@@ -3140,6 +3219,10 @@ if (typeof window !== 'undefined') {
   window.autoGenerateVisitSummaryPrompt = autoGenerateVisitSummaryPrompt;
   window.clearVisitSummaryToDefault = clearVisitSummaryToDefault;
   window.saveVisitSummaryFromModal = saveVisitSummaryFromModal;
+  window.updateLiveVisitSummary = updateLiveVisitSummary;
+  window.resetVisitSummaryToAuto = resetVisitSummaryToAuto;
+  window.appendPointToVisitSummary = appendPointToVisitSummary;
+  window.setModalPanoramaOrientation = setModalPanoramaOrientation;
   window.printReport = printReport;
   window.exportAuditToPptx = exportAuditToPptx;
   window.exportPptxReport = exportPptxReport;
