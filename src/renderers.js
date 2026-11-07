@@ -188,11 +188,11 @@ export function cleanSummaryPointText(line) {
   if (!line || typeof line !== 'string') return '';
   let str = line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
 
-  // 1. تنظيف الأقواس المشوهة أو المزدوجة مثل (معالجة كاملة (100%) لتصبح (معالجة كاملة 100%)
+  // 1. تنظيف وإزالة عبارة "(معالجة كاملة 100%)" و "(معالجة كاملة)" وكافة لواحقها من الملخص
+  str = str.replace(/\s*\(\s*معالجة كاملة(\s*100%?)?\s*\)/g, '');
+  str = str.replace(/\s*معالجة كاملة\s*\(?100%?\)?/g, '');
   str = str.replace(/\(\s*([^\)]*?)\s*\(\s*([^)]*?)\s*\)\s*([^\)]*?)\)/g, '($1 $2 $3)');
   str = str.replace(/\(\s*([^()]*?)\s*\(\s*(\d+%?)\s*\)\s*([^()]*?)\)/g, '($1 $2 $3)');
-  str = str.replace(/\(\s*معالجة كاملة\s*\((\d+%?)\)\s*\)/g, '(معالجة كاملة $1)');
-  str = str.replace(/معالجة كاملة\s*\((\d+%?)\)/g, 'معالجة كاملة $1');
 
   // 2. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري"
   str = str.replace(/إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '');
@@ -200,9 +200,11 @@ export function cleanSummaryPointText(line) {
   str = str.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '');
   str = str.replace(/\s*واعتماد التنسيق\s*\.?$/g, '');
 
-  // 3. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين (مثل [القسم :]: أو [القسم]:)
-  str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*:\s*/, '$1: ');
+  // 3. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين والرموز (مثل [القسم :]: أو [القسم]: أو القسم :.)
+  str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*[:\s]*/, '$1: ');
   str = str.replace(/^\[\s*([^\]]+?)\s*\]\s*[:\s]*/, '$1: ');
+  str = str.replace(/^([^:]+?)\s*[:\.]+\s*:\s*/, '$1: ');
+  str = str.replace(/:\s*\./g, ':');
 
   // 4. إزالة الأقواس الدائرية حول وصف الإجراء العام في النهاية (مثل (الإجراء.))
   str = str.replace(/\(\s*([^\)]+?)\s*\)\s*\.?$/, '$1.');
@@ -230,7 +232,9 @@ export function formatSummaryPointHtml(point) {
   const cleaned = cleanSummaryPointText(point);
   const colonIdx = cleaned.indexOf(':');
   if (colonIdx > 0 && colonIdx < 60) {
-    const title = cleaned.substring(0, colonIdx).trim();
+    let title = cleaned.substring(0, colonIdx).trim();
+    // إزالة أي نقاط أو فواصل زائدة من نهاية العنوان قبل النقطتين
+    title = title.replace(/[:\.\s]+$/, '');
     const action = cleaned.substring(colonIdx + 1).trim();
     return `<strong class="font-black text-slate-950">${title}:</strong> <span class="font-medium text-slate-800">${action}</span>`;
   }
@@ -256,7 +260,7 @@ export function aggregateVisitAchievements(audit = null) {
 
   sections.forEach((sec, idx) => {
     let cleanTitle = sec.title ? sec.title.replace(/\s*\([^)]*\)/g, '').trim() : `القسم ${idx + 1}`;
-    cleanTitle = cleanTitle.replace(/^[\[\(\s]+|[\]\)\:\s]+$/g, '').trim();
+    cleanTitle = cleanTitle.replace(/^[\[\(\s]+|[\]\)\:\.\s]+$/g, '').trim();
 
     const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
     const tags = Array.isArray(sec.tags) ? sec.tags : [];
@@ -281,9 +285,12 @@ export function aggregateVisitAchievements(audit = null) {
       .trim();
 
     const statuses = getSectionStatuses(sec);
-    const resolvedSubs = getSectionSubOptions(sec, 'resolved');
+    const rawResolvedSubs = getSectionSubOptions(sec, 'resolved');
     const followupSubs = getSectionSubOptions(sec, 'store_followup');
     const mgmtSubs = getSectionSubOptions(sec, 'management_action');
+
+    // استبعاد الخيار الافتراضي (معالجة كاملة 100%) ليبقى "تم المعالجة ميدانياً" ناصعاً
+    const resolvedSubs = rawResolvedSubs.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'));
 
     // توحيد الحالات المتعددة لنفس القسم في نقطة واحدة مجمعة (One single point per section)
     const statusClauses = [];
@@ -351,7 +358,12 @@ export function getStatusBadgeHtml(secOrStatus, isPrint = false) {
 
 function renderSingleStatusBadge(statusKey, sec = null, isPrint = false) {
   const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
-  const subOptions = sec ? getSectionSubOptions(sec, statusKey) : [];
+  const rawSubOptions = sec ? getSectionSubOptions(sec, statusKey) : [];
+  
+  // تصفية المعالجة الكاملة الافتراضية 100% ليبقى فقط تم المعالجة ميدانياً
+  const subOptions = (statusKey === 'resolved')
+    ? rawSubOptions.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'))
+    : rawSubOptions;
   const hasSub = subOptions.length > 0;
 
   // صياغة النص المدمج مع الخيارات الفرعية الذكية
@@ -1627,7 +1639,7 @@ export function renderPrintSections(customSections = null) {
 
   sections.forEach((sec, idx) => {
     const item = document.createElement('div');
-    item.className = "print-card print-break-inside-avoid border border-slate-200 rounded-xl p-3 md:p-3.5 bg-white shadow-sm flex flex-col justify-between";
+    item.className = "print-card print-break-inside-avoid border border-slate-200 rounded-xl p-3 md:p-3.5 bg-white shadow-sm flex flex-col justify-center items-stretch gap-2.5";
     
     const tagsBadge = (sec.tags || []).map(t => `
       <span class="bg-white text-slate-800 border border-slate-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-xs">
@@ -1640,133 +1652,137 @@ export function renderPrintSections(customSections = null) {
     const panoStyle = getImageTransformStyle(sec.afterConfig || sec.beforeConfig);
 
     item.innerHTML = `
-      <!-- 1. ترويسة القسم المدمجة بدون إطارات رمادية: العنوان على اليمين وشارات الحالة والوسوم على اليسار -->
-      <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200 gap-2 shrink-0">
-        <!-- الطرف الأيمن: رقم القسم واسمه -->
-        <div class="flex items-center gap-2">
+      <!-- 1. ترويسة القسم المكونة من سطرين متناسقين -->
+      <div class="w-full shrink-0">
+        <!-- السطر الأول: رقم القسم واسمه المستقل -->
+        <div class="flex items-center gap-2 mb-1 w-full">
           <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 text-xs font-black flex items-center justify-center shrink-0 shadow-xs">${idx + 1}</span>
           <h4 class="font-black text-slate-900 text-sm md:text-base tracking-tight m-0">${sec.title}</h4>
         </div>
-        <!-- الطرف الأيسر: شارات الحالة الملونة والوسوم الكبسولية -->
-        <div class="flex items-center gap-1.5 flex-wrap justify-end">
-          ${getStatusBadgeHtml(sec, true)}
-          ${tagsBadge}
+        <!-- السطر الثاني: شريط مقسم يضم شارات الحالة على اليمين والوسوم على اليسار -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-1.5 border-b border-slate-200 w-full">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${getStatusBadgeHtml(sec, true)}
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${tagsBadge}
+          </div>
         </div>
       </div>
 
-      <!-- 2. ساحة الصور العريضة (تشغل ~70% من الصفحة مع object-contain وشارات عائمة داخل الصورة بدون صناديق رمادية) -->
+      <!-- 2. ساحة الصور العريضة الفائقة (تشغل كامل الارتفاع مع object-cover وشارات عائمة مدمجة في زوايا الصور) -->
       ${sec.layoutType === 'dual_panorama' ? `
         <!-- بانوراما مزدوجة: متجانبتان أفقياً أو مكدستان عمودياً مع شارة عائمة -->
         ${sec.panoramaOrientation === 'stacked_vertical' ? `
-          <div class="flex flex-col gap-1.5 flex-1 overflow-hidden my-1 justify-center relative w-full">
+          <div class="flex flex-col gap-2.5 flex-1 overflow-hidden my-1 justify-center relative w-full">
             ${sec.panoramaTitle ? `
-              <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none">
+              <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none backdrop-blur-md">
                 <div class="inline-flex items-center justify-center gap-1.5 px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/80 shadow-md text-[10px] font-black tracking-wide">
                   <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                   <span>${sec.panoramaTitle}</span>
                 </div>
               </div>
             ` : ''}
-            <div class="w-full flex-1 rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 58mm;">
-              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}; max-height: 58mm;" class="w-full h-full object-contain">
+            <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 64mm;">
+              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle};" class="w-full h-full object-cover rounded-xl block">
             </div>
-            <div class="w-full flex-1 rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 58mm;">
-              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}; max-height: 58mm;" class="w-full h-full object-contain">
+            <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 64mm;">
+              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle};" class="w-full h-full object-cover rounded-xl block">
             </div>
           </div>
         ` : `
-          <div class="grid grid-cols-2 gap-3 flex-1 overflow-hidden my-1 items-center relative w-full">
+          <div class="grid grid-cols-2 gap-3.5 flex-1 overflow-hidden my-1 items-center relative w-full">
             ${sec.panoramaTitle ? `
-              <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none">
+              <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none backdrop-blur-md">
                 <div class="inline-flex items-center justify-center gap-1.5 px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/80 shadow-md text-[10px] font-black tracking-wide">
                   <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                   <span>${sec.panoramaTitle}</span>
                 </div>
               </div>
             ` : ''}
-            <div class="w-full h-full rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 118mm;">
-              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}; max-height: 118mm;" class="w-full h-full object-contain">
+            <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 122mm;">
+              <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle};" class="w-full h-full object-cover rounded-xl block">
             </div>
-            <div class="w-full h-full rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 118mm;">
-              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}; max-height: 118mm;" class="w-full h-full object-contain">
+            <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 122mm;">
+              <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle};" class="w-full h-full object-cover rounded-xl block">
             </div>
           </div>
         `}
       ` : (sec.layoutType === 'single_panorama' ? `
         <!-- بانوراما كاملة للواجهات والمخازن مع شارة عائمة بالأعلى -->
         <div class="flex-1 overflow-hidden my-1 relative flex items-center justify-center w-full">
-          <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none">
+          <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none backdrop-blur-md">
             <div class="inline-flex items-center justify-center gap-1.5 px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/80 shadow-md text-[10px] font-black tracking-wide">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
               <span>${sec.panoramaTitle ? sec.panoramaTitle : 'نظرة بانورامية شاملة (Panorama View)'}</span>
             </div>
           </div>
-          <div class="w-full h-full rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 118mm;">
-            <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}; max-height: 118mm;" class="w-full h-full object-contain">
+          <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 122mm;">
+            <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle};" class="w-full h-full object-cover rounded-xl block">
           </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
         <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) مع شارات عائمة -->
-        <div class="flex flex-col gap-1.5 flex-1 overflow-hidden my-1 justify-center relative w-full">
+        <div class="flex flex-col gap-2.5 flex-1 overflow-hidden my-1 justify-center relative w-full">
           ${sec.panoramaTitle ? `
-            <div class="absolute top-2 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none">
+            <div class="absolute top-2.5 left-1/2 -translate-x-1/2 z-10 select-none pointer-events-none backdrop-blur-md">
               <div class="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-500/80 shadow-md text-[10px] font-black tracking-wide">
                 <span>${sec.panoramaTitle}</span>
               </div>
             </div>
           ` : ''}
-          <div class="w-full flex-1 rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 58mm;">
-            <div class="absolute top-1.5 right-2 z-10 select-none pointer-events-none">
+          <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 64mm;">
+            <div class="absolute top-2.5 right-2.5 z-10 select-none pointer-events-none backdrop-blur-md">
               <span class="px-2.5 py-0.5 rounded-full bg-[#881337]/90 text-white border border-[#ef4444] shadow-xs text-[9px] font-bold tracking-wide">Before</span>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}; max-height: 58mm;" class="w-full h-full object-contain">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle};" class="w-full h-full object-cover rounded-xl block">
           </div>
-          <div class="w-full flex-1 rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 58mm;">
-            <div class="absolute top-1.5 left-2 z-10 select-none pointer-events-none">
+          <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 64mm;">
+            <div class="absolute top-2.5 left-2.5 z-10 select-none pointer-events-none backdrop-blur-md">
               <span class="px-2.5 py-0.5 rounded-full bg-[#064e3b]/90 text-white border border-[#10b981] shadow-xs text-[9px] font-bold tracking-wide">After</span>
             </div>
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}; max-height: 58mm;" class="w-full h-full object-contain">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle};" class="w-full h-full object-cover rounded-xl block">
           </div>
         </div>
       ` : `
         <!-- مقارنة جانبية عريضة (Side-by-Side) مع شارات Before / After عائمة بالأعلى بدون صناديق رمادية -->
-        <div class="grid grid-cols-2 gap-3 flex-1 overflow-hidden my-1 items-center relative w-full">
+        <div class="grid grid-cols-2 gap-3.5 flex-1 overflow-hidden my-1 items-center relative w-full">
           <!-- اليمين: قبل التعديل -->
-          <div class="w-full h-full rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 118mm;">
-            <div class="absolute top-2 right-2.5 z-10 select-none pointer-events-none">
-              <div class="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-[#881337]/95 text-white border border-rose-400 shadow-md text-[10px] font-black tracking-wide" dir="ltr">
+          <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 122mm;">
+            <div class="absolute top-2.5 right-2.5 z-10 select-none pointer-events-none backdrop-blur-md">
+              <div class="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-[#881337]/90 text-white border border-rose-400 shadow-md text-[10px] font-black tracking-wide" dir="ltr">
                 <span>Before</span>
               </div>
             </div>
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}; max-height: 118mm;" class="w-full h-full object-contain">
+            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle};" class="w-full h-full object-cover rounded-xl block">
           </div>
 
           <!-- اليسار: بعد التنفيذ والتعديل -->
-          <div class="w-full h-full rounded-lg overflow-hidden relative flex items-center justify-center" style="max-height: 118mm;">
-            <div class="absolute top-2 left-2.5 z-10 select-none pointer-events-none">
-              <div class="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-[#064e3b]/95 text-white border border-emerald-400 shadow-md text-[10px] font-black tracking-wide" dir="ltr">
+          <div class="w-full rounded-xl overflow-hidden relative flex items-center justify-center border border-slate-900/10 shadow-sm" style="height: 122mm;">
+            <div class="absolute top-2.5 left-2.5 z-10 select-none pointer-events-none backdrop-blur-md">
+              <div class="inline-flex items-center justify-center px-3 py-0.5 rounded-full bg-[#064e3b]/90 text-white border border-emerald-400 shadow-md text-[10px] font-black tracking-wide" dir="ltr">
                 <span>After</span>
               </div>
             </div>
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}; max-height: 118mm;" class="w-full h-full object-contain">
+            <img src="${sec.afterImg}" alt="After" style="${afterStyle};" class="w-full h-full object-cover rounded-xl block">
           </div>
         </div>
       `))}
 
       <!-- 3. اللوحة السفلية المدمجة من عمودين (Right: 42% VM Standards + Action, Left: 58% Field Justifications) -->
-      <div class="grid grid-cols-12 gap-3 pt-1.5 border-t border-slate-200 mt-auto shrink-0 w-full" dir="rtl">
+      <div class="grid grid-cols-12 gap-3.5 pt-1.5 border-t border-slate-200 mt-auto shrink-0 w-full text-[11.5px] leading-snug" dir="rtl">
         <!-- العمود الأيمن (42% / 5 أعمدة): معايير الـ VM والتكليف الرسمي -->
         <div class="col-span-5 space-y-1.5">
           <!-- معايير الـ VM المعتمدة المطبقة -->
           ${sec.checklist && sec.checklist.length > 0 ? `
             <div>
-              <span class="text-[9.5px] font-bold text-slate-700 block mb-1 flex items-center gap-1">
+              <span class="text-[10px] font-bold text-slate-700 block mb-1 flex items-center gap-1">
                 <span class="text-amber-600 font-bold">✓</span>
                 <span>معايير الـ VM المطبقة (${sec.checklist.length}):</span>
               </span>
               <div class="flex flex-wrap gap-1">
                 ${sec.checklist.map(c => `
-                  <span class="bg-amber-50/80 text-amber-900 border border-amber-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium">
+                  <span class="bg-amber-50/80 text-amber-900 border border-amber-300/80 text-[9.5px] px-1.5 py-0.5 rounded font-medium">
                     ✓ ${c}
                   </span>
                 `).join('')}
@@ -1780,7 +1796,7 @@ export function renderPrintSections(customSections = null) {
               getSectionStatuses(sec).includes('management_action') 
                 ? 'bg-rose-50/90 border-rose-200 text-rose-900' 
                 : 'bg-amber-50/90 border-amber-200 text-amber-900'
-            } text-[10px]">
+            } text-[10.5px]">
               <div class="flex items-center justify-between pb-0.5 mb-1 border-b ${getSectionStatuses(sec).includes('management_action') ? 'border-rose-200' : 'border-amber-200'}">
                 <span class="font-bold">
                   ${getSectionStatuses(sec).includes('management_action') && getSectionStatuses(sec).includes('store_followup')
@@ -1788,9 +1804,9 @@ export function renderPrintSections(customSections = null) {
                     : (getSectionStatuses(sec).includes('management_action') ? '🚨 طلب صيانة وتدخل إداري' : '⚠️ مهمة متابعة للفرع')
                   }
                 </span>
-                <span class="text-[8.5px] px-1 rounded font-bold bg-white border border-slate-200">إجراء رسمي</span>
+                <span class="text-[9px] px-1 rounded font-bold bg-white border border-slate-200">إجراء رسمي</span>
               </div>
-              <div class="grid grid-cols-2 gap-1.5 text-[9.5px]">
+              <div class="grid grid-cols-2 gap-1.5 text-[10px]">
                 <div>المسؤول: <strong class="underline">${sec.actionAssignee || 'مدير المعرض'}</strong></div>
                 <div>التاريخ: <strong class="underline">${sec.actionDueDate || 'خلال أسبوع'}</strong></div>
               </div>
@@ -1800,14 +1816,14 @@ export function renderPrintSections(customSections = null) {
 
         <!-- العمود الأيسر (58% / 7 أعمدة): تفاصيل ومبررات التعديل الميداني -->
         <div class="col-span-7">
-          <div class="font-bold text-slate-800 pb-0.5 mb-1 border-b border-slate-200 flex items-center gap-1.5 text-[10px]">
-            <span class="w-3.5 h-3.5 rounded bg-slate-900 text-amber-400 flex items-center justify-center text-[8.5px] shrink-0 font-bold">📋</span>
+          <div class="font-bold text-slate-800 pb-0.5 mb-1 border-b border-slate-200 flex items-center gap-1.5 text-[11px]">
+            <span class="w-3.5 h-3.5 rounded bg-slate-900 text-amber-400 flex items-center justify-center text-[9px] shrink-0 font-bold">📋</span>
             <span>تفاصيل ومبررات التعديل الميداني:</span>
           </div>
           <div class="flex flex-col gap-1">
             ${getDynamicJustifications(sec).map(item => `
-              <div class="flex items-start gap-1.5 text-[10px] leading-snug">
-                <span class="w-3 h-3 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[7.5px] font-black shrink-0 mt-0.5">✔</span>
+              <div class="flex items-start gap-1.5 text-[10.5px] leading-snug">
+                <span class="w-3.5 h-3.5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[8px] font-black shrink-0 mt-0.5">✔</span>
                 <span class="font-medium text-slate-800">${item}</span>
               </div>
             `).join('')}

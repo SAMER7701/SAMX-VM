@@ -78,7 +78,7 @@
     /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي (A4 Landscape) */
     @page {
       size: A4 landscape;
-      margin: 8mm 12mm;
+      margin: 6mm 10mm;
     }
 
     @media print {
@@ -116,9 +116,9 @@
       }
       /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي موسط رأسياً ومقفل على صفحة أفقية واحدة */
       #print-page-1-container {
-        height: calc(210mm - 16mm) !important;
-        max-height: calc(210mm - 16mm) !important;
-        min-height: calc(210mm - 16mm) !important;
+        height: calc(210mm - 12mm) !important;
+        max-height: calc(210mm - 12mm) !important;
+        min-height: calc(210mm - 12mm) !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
@@ -185,8 +185,8 @@
         background-color: #f8fafc !important;
       }
 
-      /* بطاقة القسم الميداني المقفلة تماماً على ارتفاع صفحة أفقية واحدة (A4 Landscape) */
-      .print-card, .section-card {
+      /* بطاقة القسم الميداني المقفلة تماماً على ارتفاع صفحة أفقية واحدة وموسطة رأسياً (A4 Landscape) */
+      .print-card, .section-card, .print-page-section {
         border: 1.5px solid #cbd5e1 !important;
         border-radius: 12px !important;
         box-shadow: none !important;
@@ -197,14 +197,16 @@
         break-before: page !important;
         page-break-after: always !important;
         break-after: page !important;
-        height: calc(210mm - 16mm) !important;
-        max-height: calc(210mm - 16mm) !important;
-        min-height: calc(210mm - 16mm) !important;
+        height: calc(210mm - 12mm) !important;
+        max-height: calc(210mm - 12mm) !important;
+        min-height: calc(210mm - 12mm) !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
+        justify-content: center !important;
+        align-items: stretch !important;
+        gap: 10px !important;
         box-sizing: border-box !important;
-        padding: 8px 12px !important;
+        padding: 8px 14px !important;
         overflow: hidden !important;
         background: #ffffff !important;
       }

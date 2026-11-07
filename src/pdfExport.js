@@ -26,22 +26,25 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   const justificationsList = getDynamicJustifications(sec);
 
   // حساب الأبعاد المحسوبة للعرض الأفقي A4 Landscape (ارتفاع الصفحة الكلي 794px)
-  // الصور تشغل ~70% من المساحة المتاحة بدون قص (object-fit: contain) وبدون صناديق رمادية
+  // الصور تشغل ~70% من المساحة المتاحة مع object-fit: cover وإطارات أنيقة
   let imgHeight;
   let stackedImgHeight;
 
   if (hasSignatures) {
-    imgHeight = 310;
-    stackedImgHeight = 145;
+    imgHeight = 330;
+    stackedImgHeight = 160;
   } else {
-    imgHeight = 440;
-    stackedImgHeight = 210;
+    imgHeight = 460;
+    stackedImgHeight = 230;
   }
 
   // توليد شارات الحالة الملونة الموحدة متعددة التحديد مع الخيارات الفرعية الذكية
   const statuses = getSectionStatuses(sec);
   const statusBadges = statuses.map(st => {
-    const subOptions = getSectionSubOptions(sec, st);
+    const rawSubs = getSectionSubOptions(sec, st);
+    const subOptions = (st === 'resolved')
+      ? rawSubs.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'))
+      : rawSubs;
     const hasSub = subOptions.length > 0;
 
     if (st === 'resolved') {
@@ -81,20 +84,20 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     </span>
   `).join(' ');
 
-  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية مع منع القص نهائياً
+  // استخراج أسلوب عرض وتنسيق كل صورة مع ضبط object-fit: cover لملء الإطار بأعلى دقة
   const getPdfImgStyle = (cfg) => {
     const config = cfg || { aspectRatio: 'standard', scale: 100, align: 'center' };
     const scale = (typeof config.scale === 'number' ? config.scale : 100) / 100;
     const align = config.align || 'center';
     const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
-    return `width: 100%; height: 100%; object-fit: contain; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block; border-radius: 8px;`;
+    return `width: 100%; height: 100%; object-fit: cover; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block; border-radius: 12px;`;
   };
 
   const beforeStyle = getPdfImgStyle(sec.beforeConfig);
   const afterStyle = getPdfImgStyle(sec.afterConfig);
   const panoStyle = getPdfImgStyle(sec.afterConfig || sec.beforeConfig);
 
-  // ساحة الصور العريضة مع شارات عائمة فوق الصورة بدون صناديق رمادية
+  // ساحة الصور العريضة مع شارات عائمة مثبتة في زوايا الصور وإطارات فاخرة
   let imagesHtml = '';
 
   if (layout === 'dual_panorama') {
@@ -102,15 +105,15 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     
     if (isDualStacked) {
       imagesHtml = `
-        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
+          <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.90); color: #fde68a; border: 1.5px solid rgba(245, 158, 11, 0.8); font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none; backdrop-filter: blur(6px);">
             <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
             <span>${customTitle}</span>
           </div>
-          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
             <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
           </div>
-          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
             <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
           </div>
         </div>
@@ -118,14 +121,14 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     } else {
       imagesHtml = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; position: relative; margin: 4px 0; align-items: center;">
-          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+          <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.90); color: #fde68a; border: 1.5px solid rgba(245, 158, 11, 0.8); font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none; backdrop-filter: blur(6px);">
             <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
             <span>${customTitle}</span>
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
             <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
             <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
           </div>
         </div>
@@ -135,11 +138,11 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'بانوراما شاملة (Panorama View)';
     imagesHtml = `
       <div style="position: relative; width: 100%; margin: 4px 0; display: flex; align-items: center; justify-content: center;">
-        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+        <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.90); color: #fde68a; border: 1.5px solid rgba(245, 158, 11, 0.8); font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none; backdrop-filter: blur(6px);">
           <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
           <span>${customTitle}</span>
         </div>
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
           <img src="${sec.afterImg || sec.beforeImg}" alt="${customTitle}" style="${panoStyle}" />
         </div>
       </div>
@@ -147,23 +150,23 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   } else if (layout === 'stacked_panorama') {
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : null;
     const optionalTitleHtml = customTitle ? `
-      <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 14px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+      <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 14px; border-radius: 9999px; background: rgba(15, 23, 42, 0.90); color: #fde68a; border: 1.5px solid rgba(245, 158, 11, 0.8); font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none; backdrop-filter: blur(6px);">
         <span>${customTitle}</span>
       </div>
     ` : '';
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
         ${optionalTitleHtml}
         <!-- قبل -->
-        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; top: 8px; right: 10px; z-index: 5; padding: 2px 12px; border-radius: 9999px; background: rgba(136, 19, 55, 0.95); color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
+          <div style="position: absolute; top: 10px; right: 10px; z-index: 5; padding: 2.5px 12px; border-radius: 9999px; background: rgba(136, 19, 55, 0.90); color: #ffffff; border: 1px solid rgba(239, 68, 68, 0.8); font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr; backdrop-filter: blur(6px);">
             Before
           </div>
           <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
         <!-- بعد -->
-        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; top: 8px; left: 10px; z-index: 5; padding: 2px 12px; border-radius: 9999px; background: rgba(6, 78, 59, 0.95); color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
+          <div style="position: absolute; top: 10px; left: 10px; z-index: 5; padding: 2.5px 12px; border-radius: 9999px; background: rgba(6, 78, 59, 0.90); color: #ffffff; border: 1px solid rgba(16, 185, 129, 0.8); font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr; backdrop-filter: blur(6px);">
             After
           </div>
           <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
@@ -175,16 +178,16 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     imagesHtml = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; position: relative; margin: 4px 0; align-items: center;">
         <!-- اليمين: قبل التعديل مع شارة عائمة -->
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; top: 10px; right: 12px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(136, 19, 55, 0.95); color: #ffffff; border: 1.5px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
+          <div style="position: absolute; top: 10px; right: 10px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(136, 19, 55, 0.90); color: #ffffff; border: 1.5px solid rgba(244, 63, 94, 0.8); font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none; backdrop-filter: blur(6px);">
             Before
           </div>
           <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
 
         <!-- اليسار: بعد التنفيذ والتعديل مع شارة عائمة -->
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; top: 10px; left: 12px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(6, 78, 59, 0.95); color: #ffffff; border: 1.5px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 12px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);">
+          <div style="position: absolute; top: 10px; left: 10px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(6, 78, 59, 0.90); color: #ffffff; border: 1.5px solid rgba(16, 185, 129, 0.8); font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none; backdrop-filter: blur(6px);">
             After
           </div>
           <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
@@ -195,9 +198,10 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
   return `
     <div style="border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 10px 14px; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; break-inside: avoid;">
-      <!-- 1. ترويسة القسم المدمجة: العنوان على اليمين وشارات الحالة والوسوم على اليسار -->
-      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1.5px solid #e2e8f0; gap: 10px; flex-shrink: 0;">
-        <div style="display: flex; align-items: center; gap: 8px;">
+      <!-- 1. ترويسة القسم المكونة من سطرين متناسقين -->
+      <div style="width: 100%; flex-shrink: 0;">
+        <!-- السطر الأول: رقم القسم واسمه المستقل -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; width: 100%;">
           <span style="width: 24px; height: 24px; border-radius: 7px; background: #0f172a; color: #facc15; font-size: 11.5px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.12); border: 1px solid #1e293b;">
             ${globalIndex}
           </span>
@@ -205,30 +209,35 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
             ${sec.title}
           </h4>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-          ${statusBadgeHtml}
-          ${tagsHtml}
+        <!-- السطر الثاني: شريط مقسم يضم شارات الحالة على اليمين والوسوم على اليسار -->
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; width: 100%; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 6px; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            ${statusBadgeHtml}
+          </div>
+          <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+            ${tagsHtml}
+          </div>
         </div>
       </div>
 
-      <!-- 2. ساحة الصور العريضة (تشغل ~70% من الصفحة مع object-contain وشارات عائمة) -->
+      <!-- 2. ساحة الصور العريضة (تشغل ~70% من الصفحة مع object-cover وشارات عائمة) -->
       <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%;">
         ${imagesHtml}
       </div>
 
       <!-- 3. اللوحة السفلية المدمجة من عمودين (Right: 42% VM Standards + Action, Left: 58% Field Justifications) -->
-      <div style="display: grid; grid-template-columns: 42% 58%; gap: 14px; border-top: 1.5px solid #e2e8f0; padding-top: 6px; box-sizing: border-box; width: 100%; margin-top: auto; flex-shrink: 0;">
+      <div style="display: grid; grid-template-columns: 42% 58%; gap: 14px; border-top: 1.5px solid #e2e8f0; padding-top: 6px; box-sizing: border-box; width: 100%; margin-top: auto; flex-shrink: 0; line-height: 1.35; font-size: 11.5px;">
         <!-- العمود الأيمن (42%): معايير الـ VM المعتمدة المطبقة + تكليف المتابعة -->
         <div style="display: flex; flex-direction: column; gap: 4px;">
           ${sec.checklist && sec.checklist.length > 0 ? `
             <div>
-              <div style="font-weight: 800; color: #334155; font-size: 9.5px; margin-bottom: 2.5px; display: flex; align-items: center; gap: 4px;">
+              <div style="font-weight: 800; color: #334155; font-size: 10px; margin-bottom: 2.5px; display: flex; align-items: center; gap: 4px;">
                 <span style="color: #ca8a04; font-weight: 900;">✓</span>
                 <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
               </div>
               <div style="display: flex; flex-wrap: wrap; gap: 3.5px;">
                 ${sec.checklist.map(c => `
-                  <span style="display: inline-flex; align-items: center; gap: 3px; background: #fefce8; color: #713f12; border: 1px solid #fde047; padding: 1.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 700;">
+                  <span style="display: inline-flex; align-items: center; gap: 3px; background: #fefce8; color: #713f12; border: 1px solid #fde047; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
                     <span style="color: #ca8a04; font-weight: 900;">✓</span>
                     <span>${c}</span>
                   </span>
@@ -238,7 +247,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
           ` : ''}
 
           ${(getSectionStatuses(sec).includes('store_followup') || getSectionStatuses(sec).includes('management_action')) ? `
-            <div style="background: ${getSectionStatuses(sec).includes('management_action') ? '#fef2f2' : '#fffbeb'}; border: 1.5px solid ${getSectionStatuses(sec).includes('management_action') ? '#fca5a5' : '#fde68a'}; border-radius: 7px; padding: 4px 8px; font-size: 9px; color: ${getSectionStatuses(sec).includes('management_action') ? '#991b1b' : '#92400e'};">
+            <div style="background: ${getSectionStatuses(sec).includes('management_action') ? '#fef2f2' : '#fffbeb'}; border: 1.5px solid ${getSectionStatuses(sec).includes('management_action') ? '#fca5a5' : '#fde68a'}; border-radius: 7px; padding: 4px 8px; font-size: 10px; color: ${getSectionStatuses(sec).includes('management_action') ? '#991b1b' : '#92400e'};">
               <div style="font-weight: 800; margin-bottom: 2px;">
                 ${getSectionStatuses(sec).includes('management_action') && getSectionStatuses(sec).includes('store_followup')
                   ? '⚠️ تكليف متابعة موجه لإدارة المعرض وطلب صيانة/إدارة'
@@ -255,13 +264,13 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
         <!-- العمود الأيسر (58%): تفاصيل ومبررات التعديل الميداني -->
         <div>
-          <div style="display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 9.5px; color: #0f172a; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
+          <div style="display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 10px; color: #0f172a; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
             <span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 3px; background: #0f172a; color: #facc15; font-size: 8.5px; line-height: 1;">📋</span>
             <span>تفاصيل ومبررات التعديل الميداني:</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 3px;">
             ${justificationsList.map(item => `
-              <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 9.5px; color: #1e293b; line-height: 1.35; text-align: right; direction: rtl;">
+              <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 10px; color: #1e293b; line-height: 1.35; text-align: right; direction: rtl;">
                 <span style="display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 7.5px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px;">
                   ✔
                 </span>
@@ -532,7 +541,7 @@ export async function exportAuditToPdf() {
                     <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 4px;">أخصائي معتمد</span>
                   </div>
                   <div style="color: #475569; font-size: 8px; line-height: 1.35; margin-bottom: 5px;">
-                    أقر بأن كافة التعديلات الميدانية الموثقة أعلاه نُفذت وطُبقت بدقة وفق معايير العلامة التجارية.
+                    أقر بأن كافة التعديلات الميدانية الموثقة أعلاه نُفذت وطُبقت بدقة وفق معايير العلامة التجارية ودليل الـ VM.
                   </div>
                 </div>
                 <div>
