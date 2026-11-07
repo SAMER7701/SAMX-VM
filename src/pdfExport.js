@@ -24,44 +24,18 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   const secStatuses = getSectionStatuses(sec);
   const hasAction = Boolean(secStatuses.includes('store_followup') || secStatuses.includes('management_action'));
   const justificationsList = getDynamicJustifications(sec);
-  const justificationsCount = justificationsList.length;
 
-  // حساب الأبعاد الديناميكية لارتفاع الصور لملء الصفحة بانسجام تام ومنع أي فراغات سفلية غريبة
+  // حساب الأبعاد المحسوبة للعرض الأفقي A4 Landscape (ارتفاع الصفحة الكلي 794px)
+  // الصور تشغل ~70% من المساحة المتاحة بدون قص (object-fit: contain) وبدون صناديق رمادية
   let imgHeight;
   let stackedImgHeight;
 
   if (hasSignatures) {
-    if (layout === 'single_panorama') {
-      imgHeight = 310 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
-      imgHeight = Math.max(260, Math.min(330, imgHeight));
-    } else if (layout === 'stacked_panorama' || isDualStacked) {
-      stackedImgHeight = 135 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0);
-      stackedImgHeight = Math.max(115, Math.min(145, stackedImgHeight));
-    } else if (layout === 'dual_panorama') {
-      imgHeight = 270 - (checklistCount > 3 ? 25 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
-      imgHeight = Math.max(230, Math.min(290, imgHeight));
-    } else {
-      imgHeight = 285 - (checklistCount > 3 ? 25 : 0) - (hasAction ? 25 : 0) - (justificationsCount > 2 ? 20 : 0);
-      imgHeight = Math.max(245, Math.min(310, imgHeight));
-    }
+    imgHeight = 310;
+    stackedImgHeight = 145;
   } else {
-    if (layout === 'single_panorama') {
-      imgHeight = 440 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      if (hasSummary) imgHeight -= 60;
-      imgHeight = Math.max(300, Math.min(480, imgHeight));
-    } else if (layout === 'stacked_panorama' || isDualStacked) {
-      stackedImgHeight = 175 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
-      if (hasSummary) stackedImgHeight -= 25;
-      stackedImgHeight = Math.max(120, Math.min(180, stackedImgHeight));
-    } else if (layout === 'dual_panorama') {
-      imgHeight = 390 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      if (hasSummary) imgHeight -= 55;
-      imgHeight = Math.max(270, Math.min(430, imgHeight));
-    } else {
-      imgHeight = 415 - (checklistCount > 3 ? 35 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
-      if (hasSummary) imgHeight -= 60;
-      imgHeight = Math.max(290, Math.min(455, imgHeight));
-    }
+    imgHeight = 440;
+    stackedImgHeight = 210;
   }
 
   // توليد شارات الحالة الملونة الموحدة متعددة التحديد مع الخيارات الفرعية الذكية
@@ -73,7 +47,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     if (st === 'resolved') {
       const text = hasSub ? `تم المعالجة ميدانياً: ${subOptions.join('، ')}` : 'تم المعالجة ميدانياً';
       return `
-        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 10px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <span>${text}</span>
           <span style="font-size: 8.5px;">✅</span>
         </span>
@@ -81,7 +55,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     } else if (st === 'store_followup') {
       const text = hasSub ? `متابعة الفرع: ${subOptions.join('، ')}` : 'متابعة الفرع';
       return `
-        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 10px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <span>${text}</span>
           <span style="font-size: 8.5px;">⏳</span>
         </span>
@@ -89,7 +63,7 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     } else if (st === 'management_action') {
       const text = hasSub ? `تتطلب صيانة/إدارة: ${subOptions.join('، ')}` : 'طلب صيانة / إدارة';
       return `
-        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 2.5px 10px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
           <span>${text}</span>
           <span style="font-size: 8.5px;">⚠️</span>
         </span>
@@ -100,207 +74,201 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
 
   const statusBadgeHtml = statusBadges.join(' ');
 
-  // وسوم الأقسام ككبسولات موحدة متناسقة (Harmonized Category Tags)
+  // وسوم الأقسام ككبسولات موحدة متناسقة
   const tagsHtml = (sec.tags || []).map(t => `
-    <span style="display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 9px; border-radius: 9999px; font-size: 9px; font-weight: 700; line-height: 1.2; background: #f8fafc; color: #334155; border: 1.5px solid #cbd5e1; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+    <span style="display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 9999px; font-size: 9px; font-weight: 700; line-height: 1.2; background: #f8fafc; color: #334155; border: 1.5px solid #cbd5e1; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
       ${t}
     </span>
   `).join(' ');
 
-  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية المحفوظة مع منع القص نهائياً
+  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية مع منع القص نهائياً
   const getPdfImgStyle = (cfg) => {
     const config = cfg || { aspectRatio: 'standard', scale: 100, align: 'center' };
     const scale = (typeof config.scale === 'number' ? config.scale : 100) / 100;
     const align = config.align || 'center';
     const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
-    return `width: 100%; height: 100%; object-fit: contain; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block;`;
+    return `width: 100%; height: 100%; object-fit: contain; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block; border-radius: 8px;`;
   };
 
   const beforeStyle = getPdfImgStyle(sec.beforeConfig);
   const afterStyle = getPdfImgStyle(sec.afterConfig);
   const panoStyle = getPdfImgStyle(sec.afterConfig || sec.beforeConfig);
 
-  // صور التوثيق وفق نمط التخطيط مع الشارات الكبسولية الخارجية أعلى إطار الصور
+  // ساحة الصور العريضة مع شارات عائمة فوق الصورة بدون صناديق رمادية
   let imagesHtml = '';
 
   if (layout === 'dual_panorama') {
-    // وضع العرض البانورامي المزدوج: خياران (متجانبتان أفقياً أو فوق بعضهما عمودياً)
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'عرض بانورامي مزدوج (Dual Panorama View)';
     
     if (isDualStacked) {
-      // فوق بعضهما عمودياً مع شارة مخصصة وبدون وسوم قبل/بعد
       imagesHtml = `
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-          <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+            <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
             <span>${customTitle}</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-            <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-              <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
-            </div>
-            <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-              <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
-            </div>
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+            <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+          </div>
+          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+            <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
           </div>
         </div>
       `;
     } else {
-      // متجانبتان أفقياً مع شارة مخصصة وبدون وسوم قبل/بعد
       imagesHtml = `
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-          <div style="margin-bottom: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 18px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1.5px solid #f59e0b; font-size: 10px; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap; direction: rtl; user-select: none;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #fbbf24;"></span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; position: relative; margin: 4px 0; align-items: center;">
+          <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+            <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
             <span>${customTitle}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
-            <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-              <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
-            </div>
-            <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-              <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
-            </div>
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+            <img src="${sec.beforeImg}" alt="Panorama View 1" style="${beforeStyle}" />
+          </div>
+          <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+            <img src="${sec.afterImg}" alt="Panorama View 2" style="${afterStyle}" />
           </div>
         </div>
       `;
     }
   } else if (layout === 'single_panorama') {
-    // بانوراما كاملة للواجهات أو المستودعات - شارة خارجية علوية أعلى الإطار مع نص ديناميكي مخصص
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : 'بانوراما شاملة (Panorama View)';
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-bottom: 8px;">
-        <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: rtl; user-select: none;">
+      <div style="position: relative; width: 100%; margin: 4px 0; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
           <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
           <span>${customTitle}</span>
         </div>
-        <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
           <img src="${sec.afterImg || sec.beforeImg}" alt="${customTitle}" style="${panoStyle}" />
         </div>
       </div>
     `;
   } else if (layout === 'stacked_panorama') {
-    // بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) بعرض كامل وشارات خارجية علوية
     const customTitle = sec.panoramaTitle && sec.panoramaTitle.trim() ? sec.panoramaTitle.trim() : null;
     const optionalTitleHtml = customTitle ? `
-      <div style="margin-bottom: 6px; display: flex; justify-content: center; width: 100%;">
-        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2.5px 16px; border-radius: 9999px; background: #0f172a; color: #fde68a; border: 1px solid #f59e0b; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: rtl;">
-          <span style="display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: #fbbf24;"></span>
-          <span>${customTitle}</span>
-        </div>
+      <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 14px; border-radius: 9999px; background: rgba(15, 23, 42, 0.95); color: #fde68a; border: 1.5px solid #f59e0b; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: rtl; pointer-events: none;">
+        <span>${customTitle}</span>
       </div>
     ` : '';
     imagesHtml = `
-      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; position: relative; margin: 4px 0; justify-content: center;">
         ${optionalTitleHtml}
         <!-- قبل -->
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 8px; right: 10px; z-index: 5; padding: 2px 12px; border-radius: 9999px; background: rgba(136, 19, 55, 0.95); color: #ffffff; border: 1px solid #ef4444; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr;">
             Before
           </div>
-          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
-          </div>
+          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
         <!-- بعد -->
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; padding: 2px 14px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+        <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 8px; left: 10px; z-index: 5; padding: 2px 12px; border-radius: 9999px; background: rgba(6, 78, 59, 0.95); color: #ffffff; border: 1px solid #10b981; font-size: 9px; font-weight: 800; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; direction: ltr;">
             After
           </div>
-          <div style="width: 100%; height: ${stackedImgHeight}px; border-radius: 8px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
-          </div>
+          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
         </div>
       </div>
     `;
   } else {
-    // مقارنة جانبية Side-by-Side مع شارات كبسولية خارجية أعلى الإطار
+    // مقارنة جانبية عريضة Side-by-Side مع شارات Before / After عائمة بالأعلى بدون صناديق رمادية
     imagesHtml = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
-        <!-- اليمين: قبل التعديل -->
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #881337; color: #ffffff; border: 1px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; position: relative; margin: 4px 0; align-items: center;">
+        <!-- اليمين: قبل التعديل مع شارة عائمة -->
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 10px; right: 12px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(136, 19, 55, 0.95); color: #ffffff; border: 1.5px solid #ef4444; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none;">
             Before
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
-          </div>
+          <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" />
         </div>
 
-        <!-- اليسار: بعد التنفيذ والتعديل -->
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="margin-bottom: 5px; display: inline-flex; align-items: center; justify-content: center; padding: 2.5px 16px; border-radius: 9999px; background: #064e3b; color: #ffffff; border: 1px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.12); white-space: nowrap; direction: ltr; user-select: none;">
+        <!-- اليسار: بعد التنفيذ والتعديل مع شارة عائمة -->
+        <div style="width: 100%; height: ${imgHeight}px; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 10px; left: 12px; z-index: 5; padding: 3px 14px; border-radius: 9999px; background: rgba(6, 78, 59, 0.95); color: #ffffff; border: 1.5px solid #10b981; font-size: 9.5px; font-weight: 800; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.25); white-space: nowrap; direction: ltr; pointer-events: none;">
             After
           </div>
-          <div style="width: 100%; height: ${imgHeight}px; border-radius: 10px; overflow: hidden; border: 1.5px solid #cbd5e1; background: #f8fafc; position: relative;">
-            <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
-          </div>
+          <img src="${sec.afterImg}" alt="After" style="${afterStyle}" />
         </div>
       </div>
     `;
   }
 
   return `
-    <div style="border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 13px 16px; background: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; page-break-inside: avoid; break-inside: avoid;">
-      <!-- 1. ترويسة القسم: توسيط رقم واسم القسم أفقياً في منتصف السطر تماماً -->
-      <div style="display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; padding-bottom: 7px; margin-bottom: 7px; gap: 9px; border-bottom: 1.5px solid #e2e8f0;">
-        <span style="width: 26px; height: 26px; border-radius: 8px; background: #0f172a; color: #facc15; font-size: 12px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1.5px 3px rgba(0,0,0,0.12); border: 1px solid #1e293b;">
-          ${globalIndex}
-        </span>
-        <h4 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px; text-align: center;">
-          ${sec.title}
-        </h4>
+    <div style="border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 10px 14px; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.03); direction: rtl; box-sizing: border-box; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; break-inside: avoid;">
+      <!-- 1. ترويسة القسم المدمجة: العنوان على اليمين وشارات الحالة والوسوم على اليسار -->
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1.5px solid #e2e8f0; gap: 10px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="width: 24px; height: 24px; border-radius: 7px; background: #0f172a; color: #facc15; font-size: 11.5px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.12); border: 1px solid #1e293b;">
+            ${globalIndex}
+          </span>
+          <h4 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a; letter-spacing: -0.2px;">
+            ${sec.title}
+          </h4>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+          ${statusBadgeHtml}
+          ${tagsHtml}
+        </div>
       </div>
 
-      <!-- 2. شريط الإجراءات والوسوم المستقل (Dedicated Action Bar) أسفل العنوان وقبل الصور -->
-      <div style="width: 100%; box-sizing: border-box; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 5px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-        ${statusBadgeHtml}
-        ${tagsHtml}
+      <!-- 2. ساحة الصور العريضة (تشغل ~70% من الصفحة مع object-contain وشارات عائمة) -->
+      <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%;">
+        ${imagesHtml}
       </div>
 
-      <!-- صور التوثيق المحجمة ديناميكياً بانسجام تام -->
-      ${imagesHtml}
-
-      <!-- معايير الـ VM المطبقة إذا وُجدت -->
-      ${sec.checklist && sec.checklist.length > 0 ? `
-        <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: #854d0e; line-height: 1.4;">
-          <div style="font-weight: 800; color: #713f12; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
-            <span>✓</span>
-            <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-            ${sec.checklist.map(c => `
-              <span style="display: inline-flex; align-items: center; gap: 3px; background: #ffffff; color: #713f12; border: 1px solid #fde047; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 700;">
+      <!-- 3. اللوحة السفلية المدمجة من عمودين (Right: 42% VM Standards + Action, Left: 58% Field Justifications) -->
+      <div style="display: grid; grid-template-columns: 42% 58%; gap: 14px; border-top: 1.5px solid #e2e8f0; padding-top: 6px; box-sizing: border-box; width: 100%; margin-top: auto; flex-shrink: 0;">
+        <!-- العمود الأيمن (42%): معايير الـ VM المعتمدة المطبقة + تكليف المتابعة -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          ${sec.checklist && sec.checklist.length > 0 ? `
+            <div>
+              <div style="font-weight: 800; color: #334155; font-size: 9.5px; margin-bottom: 2.5px; display: flex; align-items: center; gap: 4px;">
                 <span style="color: #ca8a04; font-weight: 900;">✓</span>
-                <span>${c}</span>
-              </span>
+                <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 3.5px;">
+                ${sec.checklist.map(c => `
+                  <span style="display: inline-flex; align-items: center; gap: 3px; background: #fefce8; color: #713f12; border: 1px solid #fde047; padding: 1.5px 7px; border-radius: 5px; font-size: 8.5px; font-weight: 700;">
+                    <span style="color: #ca8a04; font-weight: 900;">✓</span>
+                    <span>${c}</span>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${(getSectionStatuses(sec).includes('store_followup') || getSectionStatuses(sec).includes('management_action')) ? `
+            <div style="background: ${getSectionStatuses(sec).includes('management_action') ? '#fef2f2' : '#fffbeb'}; border: 1.5px solid ${getSectionStatuses(sec).includes('management_action') ? '#fca5a5' : '#fde68a'}; border-radius: 7px; padding: 4px 8px; font-size: 9px; color: ${getSectionStatuses(sec).includes('management_action') ? '#991b1b' : '#92400e'};">
+              <div style="font-weight: 800; margin-bottom: 2px;">
+                ${getSectionStatuses(sec).includes('management_action') && getSectionStatuses(sec).includes('store_followup')
+                  ? '⚠️ تكليف متابعة موجه لإدارة المعرض وطلب صيانة/إدارة'
+                  : (getSectionStatuses(sec).includes('management_action') ? '🚨 طلب إجراء صيانة وتدخل إداري عاجل' : '⚠️ تكليف متابعة موجه لإدارة المعرض')
+                }
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span>المسؤول: <strong style="text-decoration: underline;">${sec.actionAssignee || 'مدير المعرض'}</strong></span>
+                <span>تاريخ الإنجاز: <strong style="text-decoration: underline;">${sec.actionDueDate || 'خلال أسبوع'}</strong></span>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- العمود الأيسر (58%): تفاصيل ومبررات التعديل الميداني -->
+        <div>
+          <div style="display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 9.5px; color: #0f172a; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 3px; background: #0f172a; color: #facc15; font-size: 8.5px; line-height: 1;">📋</span>
+            <span>تفاصيل ومبررات التعديل الميداني:</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            ${justificationsList.map(item => `
+              <div style="display: flex; align-items: flex-start; gap: 6px; font-size: 9.5px; color: #1e293b; line-height: 1.35; text-align: right; direction: rtl;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 7.5px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px;">
+                  ✔
+                </span>
+                <span style="flex: 1; font-weight: 600;">${item}</span>
+              </div>
             `).join('')}
           </div>
-        </div>
-      ` : ''}
-
-      <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
-      ${(getSectionStatuses(sec).includes('store_followup') || getSectionStatuses(sec).includes('management_action')) ? `
-        <div style="background: ${getSectionStatuses(sec).includes('management_action') ? '#fef2f2' : '#fffbeb'}; border: 1.5px solid ${getSectionStatuses(sec).includes('management_action') ? '#fca5a5' : '#fde68a'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: ${getSectionStatuses(sec).includes('management_action') ? '#991b1b' : '#92400e'}; display: flex; justify-content: space-between; align-items: center;">
-          <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
-          <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
-        </div>
-      ` : ''}
-
-      <!-- تفاصيل ومبررات التعديل الميداني كقائمة رأسية متسلسلة مخصصة وديناميكية -->
-      <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 8px 12px; margin-top: 5px; box-sizing: border-box; width: 100%;">
-        <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 10.5px; color: #0f172a; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 4px; background: #0f172a; color: #facc15; font-size: 9.5px; line-height: 1;">📋</span>
-          <span>تفاصيل ومبررات التعديل الميداني:</span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-          ${justificationsList.map(item => `
-            <div style="display: flex; align-items: flex-start; gap: 7px; font-size: 10px; color: #1e293b; line-height: 1.45; text-align: right; direction: rtl;">
-              <span style="display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 8.5px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.12);">
-                ✔
-              </span>
-              <span style="flex: 1; font-weight: 600;">${item}</span>
-            </div>
-          `).join('')}
         </div>
       </div>
     </div>
@@ -360,14 +328,14 @@ export async function exportAuditToPdf() {
     // 2. تقسيم الأقسام: صفحة مخصصة ومستقلة لملخص الزيارة التنفيذي (إن وجد) وصفحة مستقلة لكل قسم موثق
     const totalPages = hasVisitSummary ? (totalSections + 1) : totalSections;
 
-    // 3. إنشاء حاوية التقديم خارج الشاشة
+    // 3. إنشاء حاوية التقديم خارج الشاشة بنظام العرض الأفقي (1123px × 794px)
     renderRoot = document.createElement('div');
     renderRoot.id = 'single-pdf-render-root';
     renderRoot.style.cssText = `
       position: absolute;
       left: -9999px;
       top: 0;
-      width: 794px;
+      width: 1123px;
       background: #ffffff;
       color: #0f172a;
       direction: rtl;
@@ -375,15 +343,15 @@ export async function exportAuditToPdf() {
     `;
     document.body.appendChild(renderRoot);
 
-    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس (794px × 1123px) مع توسيط محكم (One Section Per Page)
+    // 4. بناء كل صفحة A4 كعنصر مستقل تماماً بمقاس أفقي كامل (1123px × 794px) مع توسيط محكم
     for (let p = 0; p < totalPages; p++) {
       const pageEl = document.createElement('div');
       pageEl.className = 'single-pdf-page';
       pageEl.style.cssText = `
-        width: 794px;
-        height: 1123px;
+        width: 1123px;
+        height: 794px;
         box-sizing: border-box;
-        padding: 24px 34px;
+        padding: 16px 24px;
         background: #ffffff;
         display: flex;
         flex-direction: column;
@@ -635,16 +603,16 @@ export async function exportAuditToPdf() {
       renderRoot.appendChild(pageEl);
     }
 
-    // 5. التقاط كل صفحة مستقلاً عبر html2canvas وتضمينها كصفحة A4 كاملة في jsPDF
+    // 5. التقاط كل صفحة مستقلاً عبر html2canvas وتضمينها كصفحة A4 أفقية (A4 Landscape) في jsPDF
     const renderedPages = renderRoot.querySelectorAll('.single-pdf-page');
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'landscape',
       unit: 'mm',
       format: 'a4'
     });
 
-    const pdfPageWidth = 210;
-    const pdfPageHeight = 297;
+    const pdfPageWidth = 297;
+    const pdfPageHeight = 210;
 
     for (let i = 0; i < renderedPages.length; i++) {
       const pageNode = renderedPages[i];
@@ -772,7 +740,7 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
       position: absolute;
       left: -9999px;
       top: 0;
-      width: 794px;
+      width: 1123px;
       background: #ffffff;
       color: #0f172a;
       direction: rtl;
@@ -786,10 +754,10 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     const coverPage = document.createElement('div');
     coverPage.className = 'bulk-pdf-page';
     coverPage.style.cssText = `
-      width: 794px;
-      height: 1123px;
+      width: 1123px;
+      height: 794px;
       box-sizing: border-box;
-      padding: 40px;
+      padding: 20px 30px;
       background: #ffffff;
       display: flex;
       flex-direction: column;
@@ -940,10 +908,10 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
         const sectionPage = document.createElement('div');
         sectionPage.className = 'bulk-pdf-page';
         sectionPage.style.cssText = `
-          width: 794px;
-          height: 1123px;
+          width: 1123px;
+          height: 794px;
           box-sizing: border-box;
-          padding: 30px 38px;
+          padding: 16px 24px;
           background: #ffffff;
           display: flex;
           flex-direction: column;
@@ -1006,10 +974,10 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     const finalPage = document.createElement('div');
     finalPage.className = 'bulk-pdf-page';
     finalPage.style.cssText = `
-      width: 794px;
-      height: 1123px;
+      width: 1123px;
+      height: 794px;
       box-sizing: border-box;
-      padding: 40px;
+      padding: 20px 32px;
       background: #ffffff;
       display: flex;
       flex-direction: column;
@@ -1091,13 +1059,13 @@ export async function exportBulkMonthlyAuditPdf(selectedAuditIds = null) {
     // التقاط كل صفحة مستقلاً عبر html2canvas
     const pages = renderRoot.querySelectorAll('.bulk-pdf-page');
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'landscape',
       unit: 'mm',
       format: 'a4'
     });
 
-    const pdfPageWidth = 210;
-    const pdfPageHeight = 297;
+    const pdfPageWidth = 297;
+    const pdfPageHeight = 210;
 
     for (let i = 0; i < pages.length; i++) {
       const pageEl = pages[i];

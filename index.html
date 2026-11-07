@@ -75,17 +75,17 @@
       background: #f59e0b;
     }
 
-    /* تحسينات الطباعة والتصدير كـ PDF */
+    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي (A4 Landscape) */
     @page {
-      size: A4 portrait;
-      margin: 0;
+      size: A4 landscape;
+      margin: 8mm 12mm;
     }
 
     @media print {
       body {
         background-color: #ffffff !important;
         color: #0f172a !important;
-        padding: 10mm !important;
+        padding: 0 !important;
         margin: 0 !important;
       }
       .no-print, header, nav, #toast-container, .modal-backdrop {
@@ -96,6 +96,8 @@
       }
       #view-preview {
         display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
       #view-audit, #view-settings {
         display: none !important;
@@ -106,18 +108,20 @@
         padding: 0 !important;
         margin: 0 !important;
         max-width: 100% !important;
+        width: 100% !important;
       }
       .print-break-inside-avoid {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-      /* الحاوية الموحدة للصفحة الأولى: دمج الترويسة والملخص التنفيذي في صفحة أولى متناسقة */
+      /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي موسط رأسياً ومقفل على صفحة أفقية واحدة */
       #print-page-1-container {
-        min-height: calc(100vh - 20mm) !important;
-        height: auto !important;
+        height: calc(210mm - 16mm) !important;
+        max-height: calc(210mm - 16mm) !important;
+        min-height: calc(210mm - 16mm) !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important;
+        justify-content: space-between !important;
         box-sizing: border-box !important;
         page-break-before: avoid !important;
         break-before: avoid !important;
@@ -125,8 +129,12 @@
         break-inside: avoid !important;
         page-break-after: always !important;
         break-after: page !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
       }
       #print-page-1-container.no-summary {
+        height: auto !important;
         min-height: auto !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
@@ -139,7 +147,7 @@
         margin-bottom: 0 !important;
       }
 
-      /* بطاقة ملخص الزيارة: توسيط رأسي تام في المساحة المتبقية من الصفحة الأولى مع ارتفاع تلقائي يتمدد حسب المحتوى */
+      /* بطاقة ملخص الزيارة: توسيط رأسي تام في المساحة المتبقية من الصفحة الأولى مع استغلال العرض الأفقي */
       #print-visit-summary-wrapper {
         margin-top: auto !important;
         margin-bottom: auto !important;
@@ -153,7 +161,7 @@
         break-inside: avoid !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
-        padding: 16px 20px !important;
+        padding: 12px 18px !important;
         border: 1.5px solid #cbd5e1 !important;
         border-top: 4px solid #0f172a !important;
         border-radius: 12px !important;
@@ -163,13 +171,13 @@
       #print-visit-summary-list {
         display: flex !important;
         flex-direction: column !important;
-        gap: 5px !important;
+        gap: 4px !important;
       }
       #print-visit-summary-list > div {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        padding: 6px 12px !important;
-        margin-bottom: 4px !important;
+        padding: 5px 12px !important;
+        margin-bottom: 2px !important;
         line-height: 1.35 !important;
         font-size: 11px !important;
         border: 1px solid #e2e8f0 !important;
@@ -177,22 +185,28 @@
         background-color: #f8fafc !important;
       }
 
+      /* بطاقة القسم الميداني المقفلة تماماً على ارتفاع صفحة أفقية واحدة (A4 Landscape) */
       .print-card, .section-card {
         border: 1.5px solid #cbd5e1 !important;
+        border-radius: 12px !important;
         box-shadow: none !important;
-        margin-bottom: 0 !important;
+        margin: 0 !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         page-break-before: always !important;
         break-before: page !important;
-        page-break-after: auto !important;
-        break-after: auto !important;
-        max-height: calc(100vh - 20mm) !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        height: calc(210mm - 16mm) !important;
+        max-height: calc(210mm - 16mm) !important;
+        min-height: calc(210mm - 16mm) !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: center !important;
+        justify-content: space-between !important;
         box-sizing: border-box !important;
-        padding-bottom: 12px !important;
+        padding: 8px 12px !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
       }
       .print-card:first-child, .section-card:first-child {
         page-break-before: always !important;
@@ -200,17 +214,20 @@
       }
       .print-card:last-child, .section-card:last-child {
         margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
+        padding-bottom: 8px !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
       }
       #print-sections-container {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
       }
       #print-sections-container > div:last-child {
         margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
+        padding-bottom: 8px !important;
       }
       #print-page-1-container.no-summary + #print-sections-container > .print-card:first-child {
         page-break-before: avoid !important;
@@ -786,8 +803,8 @@
         </div>
       </div>
 
-      <!-- ورقة التقرير التنفيذي المطبوع (A4 Print Container) -->
-      <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-10 rounded-2xl shadow-2xl border border-slate-200">
+      <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
+      <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
         
         <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
         <div id="print-page-1-container" class="print-page-1-wrapper flex flex-col">
