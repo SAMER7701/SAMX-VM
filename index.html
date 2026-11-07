@@ -78,7 +78,7 @@
     /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي (A4 Landscape) */
     @page {
       size: A4 landscape;
-      margin: 6mm 10mm;
+      margin: 8mm 10mm;
     }
 
     @media print {
@@ -114,11 +114,11 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-      /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي موسط رأسياً ومقفل على صفحة أفقية واحدة */
+      /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي مقفل على صفحة أفقية واحدة فقط */
       #print-page-1-container {
-        height: calc(210mm - 12mm) !important;
-        max-height: calc(210mm - 12mm) !important;
-        min-height: calc(210mm - 12mm) !important;
+        height: calc(210mm - 18mm) !important;
+        max-height: calc(210mm - 18mm) !important;
+        min-height: calc(210mm - 18mm) !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
@@ -129,7 +129,7 @@
         break-inside: avoid !important;
         page-break-after: always !important;
         break-after: page !important;
-        padding: 0 !important;
+        padding: 4mm 0 !important;
         margin: 0 !important;
         overflow: hidden !important;
       }
@@ -140,6 +140,7 @@
         break-after: avoid !important;
       }
 
+      /* ترويسة الصفحة الأولى الرسمية فقط - لا تتكرر في صفحات الأقسام الميدانية */
       #print-main-header {
         flex-shrink: 0 !important;
         page-break-after: avoid !important;
@@ -147,7 +148,7 @@
         margin-bottom: 0 !important;
       }
 
-      /* بطاقة ملخص الزيارة: توسيط رأسي تام في المساحة المتبقية من الصفحة الأولى مع استغلال العرض الأفقي */
+      /* بطاقة ملخص الزيارة: توسيط رأسي متوازن في المساحة المتبقية من الصفحة الأولى */
       #print-visit-summary-wrapper {
         margin-top: auto !important;
         margin-bottom: auto !important;
@@ -161,7 +162,7 @@
         break-inside: avoid !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
-        padding: 12px 18px !important;
+        padding: 10px 16px !important;
         border: 1.5px solid #cbd5e1 !important;
         border-top: 4px solid #0f172a !important;
         border-radius: 12px !important;
@@ -176,7 +177,7 @@
       #print-visit-summary-list > div {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        padding: 5px 12px !important;
+        padding: 4px 10px !important;
         margin-bottom: 2px !important;
         line-height: 1.35 !important;
         font-size: 11px !important;
@@ -185,10 +186,10 @@
         background-color: #f8fafc !important;
       }
 
-      /* بطاقة القسم الميداني المقفلة تماماً على ارتفاع صفحة أفقية واحدة وموسطة رأسياً (A4 Landscape) */
-      .print-card, .section-card, .print-page-section {
-        border: 1.5px solid #cbd5e1 !important;
-        border-radius: 12px !important;
+      /* بطاقة القسم الميداني المقفلة كصفحة أفقية مستقلة ومحكومة بالكامل */
+      .print-page-section, .print-card, .section-card {
+        border: none !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
         margin: 0 !important;
         page-break-inside: avoid !important;
@@ -197,28 +198,20 @@
         break-before: page !important;
         page-break-after: always !important;
         break-after: page !important;
-        height: calc(210mm - 12mm) !important;
-        max-height: calc(210mm - 12mm) !important;
-        min-height: calc(210mm - 12mm) !important;
+        height: calc(210mm - 18mm) !important;
+        max-height: calc(210mm - 18mm) !important;
+        min-height: calc(210mm - 18mm) !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: center !important;
-        align-items: stretch !important;
-        gap: 10px !important;
+        justify-content: space-between !important;
         box-sizing: border-box !important;
-        padding: 8px 14px !important;
+        padding: 4mm 0 !important;
         overflow: hidden !important;
         background: #ffffff !important;
       }
-      .print-card:first-child, .section-card:first-child {
+      .print-card:first-child, .section-card:first-child, .print-page-section:first-child {
         page-break-before: always !important;
         break-before: page !important;
-      }
-      .print-card:last-child, .section-card:last-child {
-        margin-bottom: 0 !important;
-        padding-bottom: 8px !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
       }
       #print-sections-container {
         margin-bottom: 0 !important;
@@ -227,20 +220,38 @@
         flex-direction: column !important;
         gap: 0 !important;
       }
-      #print-sections-container > div:last-child {
-        margin-bottom: 0 !important;
-        padding-bottom: 8px !important;
+
+      /* قواعد ضبط الصور الطبيعية بدون قص نهائياً وحسب نمط العرض */
+      .print-page-section img, .print-card img, .section-card img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        margin: 0 auto !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
       }
-      #print-page-1-container.no-summary + #print-sections-container > .print-card:first-child {
-        page-break-before: avoid !important;
-        break-before: avoid !important;
-        min-height: auto !important;
+      .print-img-side-by-side {
+        max-height: 105mm !important;
       }
+      .print-img-stacked {
+        max-height: 50mm !important;
+      }
+
+      /* تذييل الاعتمادات والتوقيعات الرسمية في صفحة مستقلة ختامية */
       #print-signatures-footer {
+        page-break-before: always !important;
+        break-before: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
+        height: calc(210mm - 18mm) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+        padding: 6mm 0 !important;
+        margin-top: 0 !important;
       }
     }
 
@@ -775,9 +786,9 @@
             <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
             <span>ملخص الزيارة ⭐</span>
           </button>
-          <button onclick="exportPdfReport()" id="btn-export-pdf" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="تصدير وتحميل ملف PDF رسمي عالي الدقة">
+          <button onclick="printReport()" id="btn-export-pdf" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="طباعة وتحميل تقرير PDF رسمي عالي الدقة بدون أي قص">
             <i data-lucide="file-down" class="w-4 h-4"></i>
-            <span>تحميل PDF</span>
+            <span>تحميل PDF (طباعة)</span>
           </button>
           <button onclick="printReport()" class="flex-1 sm:flex-none bg-slate-100 hover:bg-white text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
             <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
@@ -795,9 +806,9 @@
             <i data-lucide="presentation" class="w-3.5 h-3.5 text-amber-400"></i>
             <span>PowerPoint (16:9)</span>
           </button>
-          <button onclick="shareWhatsAppSummary()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
+          <button onclick="printReport()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95" title="طباعة / مشاركة تقرير الـ PDF الميداني">
             <i data-lucide="share-2" class="w-4 h-4"></i>
-            <span>مشاركة عبر واتساب</span>
+            <span>مشاركة عبر واتساب (PDF)</span>
           </button>
           <button onclick="switchTab('audit')" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-3 py-2 rounded-xl border border-corp-700 transition">
             <span>العودة للتعديل</span>

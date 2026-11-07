@@ -3337,8 +3337,10 @@ export function printReport() {
   }
   syncBrandingUI();
   renderPrintSections();
+  const cleanBranch = (currentAudit.branchName || 'تقرير_VM').replace(/[/\\?%*:|"<>]/g, '_');
+  const cleanDate = (currentAudit.auditDate || '').replace(/[/\\?%*:|"<>]/g, '_');
   const originalTitle = document.title;
-  document.title = '';
+  document.title = `SAMX-VM_${cleanBranch}_${cleanDate}`;
   window.print();
   setTimeout(() => {
     document.title = originalTitle;
@@ -3346,13 +3348,7 @@ export function printReport() {
 }
 
 export async function exportPdfReport() {
-  if (!modalState.isBypassingValidation) {
-    const passed = validateAuditQuality(() => {
-      exportPdfReport();
-    });
-    if (!passed) return;
-  }
-  await exportAuditToPdf();
+  printReport();
 }
 
 export async function exportPptxReport() {
@@ -3418,72 +3414,7 @@ export async function exportPptxA4Report() {
 }
 
 export async function shareWhatsAppSummary() {
-  let msg = `*تقرير العرض المرئي الأسبوعي (SAMX-VM Report)*\n`;
-  msg += `🏪 *المعرض:* ${currentAudit.branchName || 'معرض غير محدد'}\n`;
-  msg += `📅 *التاريخ:* ${currentAudit.auditDate || '-'} | *الأسبوع:* ${currentAudit.weekNumber || '1'}\n`;
-  msg += `👔 *أخصائي الـ VM:* ${currentAudit.auditorName || '-'}\n`;
-  msg += `--------------------------------------\n`;
-  msg += `📊 *إجمالي الأقسام الموثقة (${currentAudit.sections.length}):*\n`;
-
-  currentAudit.sections.forEach((sec, idx) => {
-    const statusMeta = STATUS_MAP[sec.status] || STATUS_MAP.resolved;
-    msg += `\n${idx + 1}. *${sec.title}* [${statusMeta.label}]\n`;
-    if (sec.checklist && sec.checklist.length > 0) {
-      msg += `   ✅ معايير الـ VM: ${sec.checklist.join('، ')}\n`;
-    }
-    if (sec.status !== 'resolved' && sec.actionAssignee) {
-      msg += `   👤 المكلف: ${sec.actionAssignee} | 📅 الإنجاز: ${sec.actionDueDate || 'أسبوع'}\n`;
-    }
-    if (sec.tags && sec.tags.length > 0) {
-      msg += `   🏷️ ${sec.tags.join('، ')}\n`;
-    }
-    if (sec.notes) {
-      msg += `   📝 ${sec.notes}\n`;
-    }
-  });
-
-  msg += `\n_تم إعداد وتوثيق التقرير ميدانياً عبر منصة SAMX-VM_`;
-
-  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '');
-  
-  // استخدام المشاركة الأصلية في الجوال إن كانت مدعومة
-  if (navigator.share && isMobile) {
-    try {
-      await navigator.share({
-        title: `تقرير SAMX-VM: ${currentAudit.branchName || 'العرض المرئي'}`,
-        text: msg
-      });
-      showToast('تمت مشاركة التقرير بنجاح عبر الجوال', 'success');
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') {
-        return; // المستخدم أغلق نافذة المشاركة بنفسه
-      }
-      console.warn('Native share failed, falling back to WhatsApp link:', err);
-    }
-  }
-
-  // التوجيه المباشر لتطبيق واتساب في الجوال أو واتساب ويب في أجهزة الكمبيوتر
-  const encoded = encodeURIComponent(msg);
-  const targetUrl = isMobile 
-    ? `whatsapp://send?text=${encoded}` 
-    : `https://api.whatsapp.com/send?text=${encoded}`;
-
-  try {
-    const link = document.createElement('a');
-    link.href = targetUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      link.remove();
-    }, 150);
-    showToast('جاري توجيه التقرير إلى تطبيق واتساب... 💬', 'info');
-  } catch (e) {
-    // في حال تعذر تشغيل الرابط البروتوكولي، استخدام واجهة ويب واتساب
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
-  }
+  printReport();
 }
 
 export function setupNetworkStatusListener() {
