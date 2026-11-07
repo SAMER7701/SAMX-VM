@@ -177,7 +177,7 @@
         background-color: #f8fafc !important;
       }
 
-      .print-card {
+      .print-card, .section-card {
         border: 1.5px solid #cbd5e1 !important;
         box-shadow: none !important;
         margin-bottom: 0 !important;
@@ -187,16 +187,30 @@
         break-before: page !important;
         page-break-after: auto !important;
         break-after: auto !important;
-        min-height: calc(100vh - 20mm) !important;
+        max-height: calc(100vh - 20mm) !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         box-sizing: border-box !important;
+        padding-bottom: 12px !important;
       }
-      .print-card:first-child {
+      .print-card:first-child, .section-card:first-child {
         page-break-before: always !important;
         break-before: page !important;
-        min-height: calc(100vh - 20mm) !important;
+      }
+      .print-card:last-child, .section-card:last-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      #print-sections-container {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+      }
+      #print-sections-container > div:last-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
       }
       #print-page-1-container.no-summary + #print-sections-container > .print-card:first-child {
         page-break-before: avoid !important;
@@ -206,6 +220,8 @@
       #print-signatures-footer {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
       }
     }
 

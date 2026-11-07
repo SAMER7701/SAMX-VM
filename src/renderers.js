@@ -188,25 +188,32 @@ export function cleanSummaryPointText(line) {
   if (!line || typeof line !== 'string') return '';
   let str = line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
 
-  // 1. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري"
+  // 1. تنظيف الأقواس المشوهة أو المزدوجة مثل (معالجة كاملة (100%) لتصبح (معالجة كاملة 100%)
+  str = str.replace(/\(\s*([^\)]*?)\s*\(\s*([^)]*?)\s*\)\s*([^\)]*?)\)/g, '($1 $2 $3)');
+  str = str.replace(/\(\s*([^()]*?)\s*\(\s*(\d+%?)\s*\)\s*([^()]*?)\)/g, '($1 $2 $3)');
+  str = str.replace(/\(\s*معالجة كاملة\s*\((\d+%?)\)\s*\)/g, '(معالجة كاملة $1)');
+  str = str.replace(/معالجة كاملة\s*\((\d+%?)\)/g, 'معالجة كاملة $1');
+
+  // 2. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري"
   str = str.replace(/إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '');
   str = str.replace(/التعديل الميداني الفوري\s*[:\-\s]*/g, '');
   str = str.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '');
   str = str.replace(/\s*واعتماد التنسيق\s*\.?$/g, '');
 
-  // 2. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين (مثل [القسم :]: أو [القسم]:)
+  // 3. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين (مثل [القسم :]: أو [القسم]:)
   str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*:\s*/, '$1: ');
   str = str.replace(/^\[\s*([^\]]+?)\s*\]\s*[:\s]*/, '$1: ');
 
-  // 3. إزالة الأقواس الدائرية حول وصف الإجراء (مثل (الإجراء.))
+  // 4. إزالة الأقواس الدائرية حول وصف الإجراء العام في النهاية (مثل (الإجراء.))
   str = str.replace(/\(\s*([^\)]+?)\s*\)\s*\.?$/, '$1.');
 
-  // 4. إزالة تكرار النقطتين أو النقاط الزائدة
+  // 5. إزالة تكرار النقطتين أو النقاط أو الفواصل الزائدة
   str = str.replace(/:\s*:\s*/g, ': ');
   str = str.replace(/\s*:\s*/g, ': ');
   str = str.replace(/\.{2,}/g, '.');
+  str = str.replace(/\s+/g, ' ');
 
-  // 5. ضبط النقطة الختامية
+  // 6. ضبط النقطة الختامية
   str = str.replace(/\s*\.\s*$/, '').trim();
   if (str) {
     str = str + '.';
@@ -232,7 +239,7 @@ export function formatSummaryPointHtml(point) {
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تستخرج أهم الإجراءات التشغيلية والتعديلات الميدانية وتصيغها كنقاط متسلسلة وواضحة بدون أي عبارات مكررة أو أقواس
+ * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة بدلاً من تكرار القسم
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -253,7 +260,6 @@ export function aggregateVisitAchievements(audit = null) {
 
     const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
     const tags = Array.isArray(sec.tags) ? sec.tags : [];
-    const status = sec.status || 'resolved';
 
     let actionSnippet = '';
     if (checklist.length > 0) {
@@ -279,18 +285,26 @@ export function aggregateVisitAchievements(audit = null) {
     const followupSubs = getSectionSubOptions(sec, 'store_followup');
     const mgmtSubs = getSectionSubOptions(sec, 'management_action');
 
-    // تجميع الإجراءات لكل حالة مفعلة
+    // توحيد الحالات المتعددة لنفس القسم في نقطة واحدة مجمعة (One single point per section)
+    const statusClauses = [];
+
     if (statuses.includes('resolved')) {
       const detail = resolvedSubs.length > 0 ? ` (${resolvedSubs.join('، ')})` : '';
-      points.push(`${cleanTitle}: تم المعالجة ميدانياً${detail} لإنجاز ${cleanAction}.`);
+      statusClauses.push(`تم المعالجة ميدانياً${detail} لإنجاز ${cleanAction}`);
     }
     if (statuses.includes('store_followup')) {
       const detail = followupSubs.length > 0 ? ` (${followupSubs.join('، ')})` : '';
-      points.push(`${cleanTitle}: تكليف ${sec.actionAssignee || 'مدير المعرض'} بمتابعة الفرع${detail} لـ ${cleanAction}.`);
+      statusClauses.push(`تكليف ${sec.actionAssignee || 'مدير المعرض'} بمتابعة الفرع${detail}`);
     }
     if (statuses.includes('management_action')) {
       const detail = mgmtSubs.length > 0 ? ` (${mgmtSubs.join('، ')})` : '';
-      points.push(`${cleanTitle}: توجيه طلب صيانة/إدارة إلى ${sec.actionAssignee || 'فريق الصيانة'}${detail} لمعالجة ${cleanAction}.`);
+      statusClauses.push(`توجيه طلب صيانة/إدارة إلى ${sec.actionAssignee || 'فريق الصيانة'}${detail}`);
+    }
+
+    if (statusClauses.length > 0) {
+      points.push(`${cleanTitle}: ${statusClauses.join(' • ')}.`);
+    } else {
+      points.push(`${cleanTitle}: تم المعالجة ميدانياً لإنجاز ${cleanAction}.`);
     }
   });
 
@@ -1649,21 +1663,21 @@ export function renderPrintSections(customSections = null) {
             </div>
           </div>
           ${sec.panoramaOrientation === 'stacked_vertical' ? `
-            <div class="space-y-2.5 mb-3">
-              <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+            <div class="space-y-2 mb-3">
+              <div class="w-full max-h-[180px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm flex items-center justify-center">
+                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}; max-height: 180px;" class="w-full h-auto max-h-[180px] object-contain">
               </div>
-              <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+              <div class="w-full max-h-[180px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm flex items-center justify-center">
+                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}; max-height: 180px;" class="w-full h-auto max-h-[180px] object-contain">
               </div>
             </div>
           ` : `
             <div class="grid grid-cols-2 gap-3">
-              <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}" class="w-full h-full object-cover">
+              <div class="w-full max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm flex items-center justify-center">
+                <img src="${sec.beforeImg}" alt="Panorama 1" style="${beforeStyle}; max-height: 260px;" class="w-full h-auto max-h-[260px] object-contain">
               </div>
-              <div class="w-full aspect-[16/9] max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm">
-                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}" class="w-full h-full object-cover">
+              <div class="w-full max-h-[260px] rounded-xl overflow-hidden relative border border-slate-300 bg-slate-100 shadow-sm flex items-center justify-center">
+                <img src="${sec.afterImg}" alt="Panorama 2" style="${afterStyle}; max-height: 260px;" class="w-full h-auto max-h-[260px] object-contain">
               </div>
             </div>
           `}
@@ -1677,13 +1691,13 @@ export function renderPrintSections(customSections = null) {
               <span>${sec.panoramaTitle ? sec.panoramaTitle : 'نظرة بانورامية شاملة (Panorama View)'}</span>
             </div>
           </div>
-          <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[360px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-            <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}" class="w-full h-full object-cover">
+          <div class="w-full max-h-[260px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+            <img src="${sec.afterImg || sec.beforeImg}" alt="Panorama View" style="${panoStyle}; max-height: 260px;" class="w-full h-auto max-h-[260px] object-contain">
           </div>
         </div>
       ` : (sec.layoutType === 'stacked_panorama' ? `
         <!-- بانوراما مكدسة رأسياً (قبل فوق وبعد تحت) مع شارات خارجية -->
-        <div class="space-y-2.5 mb-3">
+        <div class="space-y-2 mb-3">
           ${sec.panoramaTitle ? `
             <div class="flex justify-center w-full mb-1">
               <div class="inline-flex items-center justify-center px-4 py-1 rounded-full bg-slate-900 text-amber-300 border border-amber-500 shadow-sm text-[11px] font-black tracking-wide select-none" dir="rtl">
@@ -1697,8 +1711,8 @@ export function renderPrintSections(customSections = null) {
                 <span>Before</span>
               </div>
             </div>
-            <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            <div class="w-full max-h-[180px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}; max-height: 180px;" class="w-full h-auto max-h-[180px] object-contain">
             </div>
           </div>
           <div>
@@ -1707,8 +1721,8 @@ export function renderPrintSections(customSections = null) {
                 <span>After</span>
               </div>
             </div>
-            <div class="w-full aspect-[21/9] sm:aspect-[16/7] max-h-[220px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-              <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            <div class="w-full max-h-[180px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+              <img src="${sec.afterImg}" alt="After" style="${afterStyle}; max-height: 180px;" class="w-full h-auto max-h-[180px] object-contain">
             </div>
           </div>
         </div>
@@ -1722,8 +1736,8 @@ export function renderPrintSections(customSections = null) {
                 <span>Before</span>
               </div>
             </div>
-            <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}" class="w-full h-full object-cover">
+            <div class="w-full max-h-[260px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+              <img src="${sec.beforeImg}" alt="Before" style="${beforeStyle}; max-height: 260px;" class="w-full h-auto max-h-[260px] object-contain">
             </div>
           </div>
 
@@ -1734,8 +1748,8 @@ export function renderPrintSections(customSections = null) {
                 <span>After</span>
               </div>
             </div>
-            <div class="w-full aspect-[16/10] sm:aspect-[4/3] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm">
-              <img src="${sec.afterImg}" alt="After" style="${afterStyle}" class="w-full h-full object-cover">
+            <div class="w-full max-h-[260px] rounded-xl overflow-hidden relative border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+              <img src="${sec.afterImg}" alt="After" style="${afterStyle}; max-height: 260px;" class="w-full h-auto max-h-[260px] object-contain">
             </div>
           </div>
         </div>

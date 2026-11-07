@@ -50,9 +50,9 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
       if (hasSummary) imgHeight -= 60;
       imgHeight = Math.max(300, Math.min(480, imgHeight));
     } else if (layout === 'stacked_panorama' || isDualStacked) {
-      stackedImgHeight = 195 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
+      stackedImgHeight = 175 - (checklistCount > 3 ? 15 : 0) - (hasAction ? 15 : 0) - (justificationsCount > 2 ? 10 : 0);
       if (hasSummary) stackedImgHeight -= 25;
-      stackedImgHeight = Math.max(130, Math.min(220, stackedImgHeight));
+      stackedImgHeight = Math.max(120, Math.min(180, stackedImgHeight));
     } else if (layout === 'dual_panorama') {
       imgHeight = 390 - (checklistCount > 3 ? 30 : 0) - (hasAction ? 30 : 0) - (justificationsCount > 2 ? 25 : 0);
       if (hasSummary) imgHeight -= 55;
@@ -107,13 +107,13 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     </span>
   `).join(' ');
 
-  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية المحفوظة
+  // استخراج أسلوب عرض وتنسيق كل صورة وفقاً للإعدادات اليدوية المحفوظة مع منع القص نهائياً
   const getPdfImgStyle = (cfg) => {
     const config = cfg || { aspectRatio: 'standard', scale: 100, align: 'center' };
     const scale = (typeof config.scale === 'number' ? config.scale : 100) / 100;
     const align = config.align || 'center';
     const pos = (align === 'top') ? 'top center' : (align === 'bottom' ? 'bottom center' : 'center center');
-    return `width: 100%; height: 100%; object-fit: cover; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block;`;
+    return `width: 100%; height: 100%; object-fit: contain; object-position: ${pos}; transform: scale(${scale}); transform-origin: ${pos}; display: block;`;
   };
 
   const beforeStyle = getPdfImgStyle(sec.beforeConfig);
