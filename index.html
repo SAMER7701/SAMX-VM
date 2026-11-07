@@ -1513,22 +1513,34 @@
 
         </div>
 
-        <!-- 3. حالة الإجراء والتنفيذ (Action Item Status) -->
-        <div class="space-y-1.5">
-          <label class="block text-xs font-bold text-slate-200">حالة الإجراء والتنفيذ الميداني:</label>
+        <!-- 3. حالة الإجراء والتنفيذ (Action Item Status) بنظام التحديد المتعدد والأشرطة الفرعية الذكية -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <span>حالة الإجراء والتنفيذ الميداني:</span>
+              <span class="text-[10px] text-gold-400 font-normal">(يمكن تحديد أكثر من حالة وتخصيص تفاصيلها)</span>
+            </label>
+          </div>
+          
+          <!-- أزرار الحالات الرئيسية (Multi-Select Toggles) -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="modal-status-selector">
-            <button type="button" onclick="setModalStatus('resolved')" id="status-opt-resolved" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/80 text-emerald-400 border-emerald-500 ring-1 ring-emerald-500">
-              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+            <button type="button" onclick="toggleModalStatus('resolved')" id="status-opt-resolved" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/80 text-emerald-400 border-emerald-500 ring-1 ring-emerald-500 shadow cursor-pointer select-none">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5 shrink-0"></i>
               <span>تم المعالجة ميدانياً ✅</span>
             </button>
-            <button type="button" onclick="setModalStatus('store_followup')" id="status-opt-store_followup" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200">
-              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+            <button type="button" onclick="toggleModalStatus('store_followup')" id="status-opt-store_followup" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200 cursor-pointer select-none">
+              <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0"></i>
               <span>تتطلب متابعة الفرع ⏳</span>
             </button>
-            <button type="button" onclick="setModalStatus('management_action')" id="status-opt-management_action" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200">
-              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+            <button type="button" onclick="toggleModalStatus('management_action')" id="status-opt-management_action" class="status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200 cursor-pointer select-none">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i>
               <span>تتطلب صيانة / إدارة ⚠️</span>
             </button>
+          </div>
+
+          <!-- حاوية أشرطة الخيارات الفرعية الذكية الديناميكية (Dynamic Sub-Bars Container) -->
+          <div id="status-sub-bars-container" class="space-y-2 mt-2">
+            <!-- يتم توليد الأشرطة الفرعية ديناميكياً عبر renderStatusSubBars() -->
           </div>
         </div>
 

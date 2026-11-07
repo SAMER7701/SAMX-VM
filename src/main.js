@@ -49,7 +49,14 @@ import {
   addAuditsToArchive,
   deleteArchivedAudit,
   getArchivedAuditById,
-  resetArchivedAuditsToDefault
+  resetArchivedAuditsToDefault,
+  DEFAULT_STATUS_SUB_OPTIONS,
+  getStatusSubOptions,
+  addStatusSubOption,
+  deleteStatusSubOption,
+  resetStatusSubOptions,
+  getSectionStatuses,
+  getSectionSubOptions
 } from './store.js';
 
 import {
@@ -996,7 +1003,20 @@ export function resetModalFields() {
   modalState.tempImgAfter = null;
   modalState.activeModalTags = [];
   modalState.activeModalChecklist = [];
-  setModalStatus('resolved');
+  modalState.selectedModalStatuses = ['resolved'];
+  modalState.selectedModalSubOptions = {
+    resolved: ['معالجة كاملة 100%'],
+    store_followup: [],
+    management_action: []
+  };
+  modalState.inlineAddSubOptionOpen = {
+    resolved: false,
+    store_followup: false,
+    management_action: false
+  };
+  syncModalStatusButtonsUI();
+  renderStatusSubBars();
+  syncFollowupContainerUI();
   setModalLayoutType('comparison');
   setModalPanoramaOrientation('side_by_side');
   
@@ -1555,39 +1575,347 @@ export function setQuickDueDate(daysAhead) {
   }
 }
 
+export function toggleModalStatus(statusKey) {
+  if (!Array.isArray(modalState.selectedModalStatuses)) {
+    modalState.selectedModalStatuses = modalState.selectedModalStatus ? [modalState.selectedModalStatus] : ['resolved'];
+  }
+  if (!modalState.selectedModalSubOptions || typeof modalState.selectedModalSubOptions !== 'object') {
+    modalState.selectedModalSubOptions = { resolved: [], store_followup: [], management_action: [] };
+  }
+
+  const idx = modalState.selectedModalStatuses.indexOf(statusKey);
+  if (idx !== -1) {
+    // منع إلغاء التحديد إذا كانت هذه هي الحالة الوحيدة النشطة
+    if (modalState.selectedModalStatuses.length > 1) {
+      modalState.selectedModalStatuses.splice(idx, 1);
+    } else {
+      showToast('يجب الإبقاء على حالة إجراء واحدة على الأقل نشطة', 'info');
+      return;
+    }
+  } else {
+    modalState.selectedModalStatuses.push(statusKey);
+    // تفعيل الخيار الافتراضي لـ resolved إذا تم تفعيلها أول مرة
+    if (statusKey === 'resolved' && (!modalState.selectedModalSubOptions.resolved || modalState.selectedModalSubOptions.resolved.length === 0)) {
+      modalState.selectedModalSubOptions.resolved = ['معالجة كاملة 100%'];
+    }
+  }
+
+  modalState.selectedModalStatus = modalState.selectedModalStatuses[0] || 'resolved';
+
+  syncModalStatusButtonsUI();
+  renderStatusSubBars();
+  syncFollowupContainerUI();
+
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+// التوافقية العكسية لدالة setModalStatus
 export function setModalStatus(statusKey) {
+  if (!Array.isArray(modalState.selectedModalStatuses)) {
+    modalState.selectedModalStatuses = [];
+  }
+  if (!modalState.selectedModalStatuses.includes(statusKey)) {
+    modalState.selectedModalStatuses.push(statusKey);
+  }
   modalState.selectedModalStatus = statusKey;
+
+  if (statusKey === 'resolved' && (!modalState.selectedModalSubOptions?.resolved || modalState.selectedModalSubOptions.resolved.length === 0)) {
+    if (!modalState.selectedModalSubOptions) modalState.selectedModalSubOptions = { resolved: [], store_followup: [], management_action: [] };
+    modalState.selectedModalSubOptions.resolved = ['معالجة كاملة 100%'];
+  }
+
+  syncModalStatusButtonsUI();
+  renderStatusSubBars();
+  syncFollowupContainerUI();
+
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+// مزامنة أنماط أزرار الحالات الرئيسية الثلاثة (تحديد متعدد)
+export function syncModalStatusButtonsUI() {
+  const activeStatuses = Array.isArray(modalState.selectedModalStatuses) ? modalState.selectedModalStatuses : ['resolved'];
   const opts = ['resolved', 'store_followup', 'management_action'];
+
   opts.forEach(k => {
     const btn = document.getElementById(`status-opt-${k}`);
     if (!btn) return;
-    if (k === statusKey) {
+    const isActive = activeStatuses.includes(k);
+
+    if (isActive) {
       if (k === 'resolved') {
-        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/90 text-emerald-300 border-emerald-500 ring-1 ring-emerald-500 shadow";
+        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-emerald-950/90 text-emerald-300 border-emerald-500 ring-1 ring-emerald-500 shadow cursor-pointer select-none";
       } else if (k === 'store_followup') {
-        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-amber-950/90 text-amber-300 border-amber-500 ring-1 ring-amber-500 shadow";
+        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-amber-950/90 text-amber-300 border-amber-500 ring-1 ring-amber-500 shadow cursor-pointer select-none";
       } else {
-        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-rose-950/90 text-rose-300 border-rose-500 ring-1 ring-rose-500 shadow";
+        btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-rose-950/90 text-rose-300 border-rose-500 ring-1 ring-rose-500 shadow cursor-pointer select-none";
       }
     } else {
-      btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200";
+      btn.className = "status-option px-3 py-2 rounded-xl text-xs font-bold border transition text-center flex items-center justify-center gap-1.5 bg-corp-950 text-slate-400 border-corp-700 hover:text-slate-200 cursor-pointer select-none";
     }
   });
+}
 
+// مزامنة إظهار حقول المتابعة والتكليف عند تفعيل أي من حالتي المتابعة أو الإدارة
+export function syncFollowupContainerUI() {
+  const activeStatuses = Array.isArray(modalState.selectedModalStatuses) ? modalState.selectedModalStatuses : ['resolved'];
+  const hasFollowup = activeStatuses.includes('store_followup');
+  const hasManagement = activeStatuses.includes('management_action');
   const followupWrapper = document.getElementById('action-followup-container');
   const labelEl = document.getElementById('followup-action-label');
-  if (followupWrapper) {
-    if (statusKey === 'store_followup' || statusKey === 'management_action') {
-      followupWrapper.classList.remove('hidden');
-      if (labelEl) {
-        labelEl.innerHTML = statusKey === 'store_followup'
-          ? '<i data-lucide="calendar-clock" class="w-4 h-4 text-amber-400"></i><span>بيانات تكليف متابعة الفرع:</span>'
-          : '<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i><span>بيانات تكليف الصيانة / الإدارة:</span>';
+
+  if (!followupWrapper) return;
+
+  if (hasFollowup || hasManagement) {
+    followupWrapper.classList.remove('hidden');
+    if (labelEl) {
+      if (hasFollowup && hasManagement) {
+        labelEl.innerHTML = '<i data-lucide="calendar-clock" class="w-4 h-4 text-amber-400"></i><span>بيانات تكليف متابعة الفرع والصيانة / الإدارة:</span>';
+      } else if (hasFollowup) {
+        labelEl.innerHTML = '<i data-lucide="calendar-clock" class="w-4 h-4 text-amber-400"></i><span>بيانات تكليف متابعة الفرع:</span>';
+      } else {
+        labelEl.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i><span>بيانات تكليف الصيانة / الإدارة:</span>';
+      }
+    }
+  } else {
+    followupWrapper.classList.add('hidden');
+  }
+
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+// تبديل اختيار شريحة خيار فرعي ذكي
+export function toggleStatusSubOption(statusKey, optionText) {
+  if (!modalState.selectedModalSubOptions) {
+    modalState.selectedModalSubOptions = { resolved: [], store_followup: [], management_action: [] };
+  }
+  if (!Array.isArray(modalState.selectedModalSubOptions[statusKey])) {
+    modalState.selectedModalSubOptions[statusKey] = [];
+  }
+
+  const list = modalState.selectedModalSubOptions[statusKey];
+  const idx = list.indexOf(optionText);
+  if (idx !== -1) {
+    list.splice(idx, 1);
+  } else {
+    list.push(optionText);
+  }
+
+  renderStatusSubBars();
+}
+
+// فتح/إغلاق صندوق إضافة خيار فرعي مخصص
+export function toggleInlineAddSubOption(statusKey, forceState = null) {
+  if (!modalState.inlineAddSubOptionOpen) {
+    modalState.inlineAddSubOptionOpen = { resolved: false, store_followup: false, management_action: false };
+  }
+  const current = !!modalState.inlineAddSubOptionOpen[statusKey];
+  const next = forceState !== null ? forceState : !current;
+  modalState.inlineAddSubOptionOpen[statusKey] = next;
+
+  const box = document.getElementById(`inline-add-suboption-box-${statusKey}`);
+  const input = document.getElementById(`inline-suboption-input-${statusKey}`);
+  if (box) {
+    if (next) {
+      box.classList.remove('hidden');
+      if (input) {
+        input.value = '';
+        input.focus();
       }
     } else {
-      followupWrapper.classList.add('hidden');
+      box.classList.add('hidden');
+      if (input) input.value = '';
     }
   }
+}
+
+// حفظ خيار فرعي مخصص جديد
+export function submitAddSubOption(statusKey) {
+  const input = document.getElementById(`inline-suboption-input-${statusKey}`);
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('يرجى كتابة نص الخيار أولاً', 'error');
+    return;
+  }
+
+  const res = addStatusSubOption(statusKey, val);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر إضافة الخيار', 'error');
+    return;
+  }
+
+  // تفعيله وتحديده تلقائياً
+  if (!modalState.selectedModalSubOptions) {
+    modalState.selectedModalSubOptions = { resolved: [], store_followup: [], management_action: [] };
+  }
+  if (!Array.isArray(modalState.selectedModalSubOptions[statusKey])) {
+    modalState.selectedModalSubOptions[statusKey] = [];
+  }
+  if (!modalState.selectedModalSubOptions[statusKey].includes(val)) {
+    modalState.selectedModalSubOptions[statusKey].push(val);
+  }
+
+  toggleInlineAddSubOption(statusKey, false);
+  renderStatusSubBars();
+  showToast(`✨ تمت إضافة وتحديد الخيار "${val}" بنجاح`, 'success');
+}
+
+// حذف خيار فرعي مخصص
+export function confirmDeleteSubOption(statusKey, optionText, e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  if (!confirm(`هل أنت متأكد من حذف الخيار "${optionText}"؟`)) {
+    return;
+  }
+
+  const res = deleteStatusSubOption(statusKey, optionText);
+  if (!res.success) {
+    showToast(res.reason || 'تعذر حذف الخيار', 'error');
+    return;
+  }
+
+  renderStatusSubBars();
+  showToast(`🗑️ تم حذف الخيار "${optionText}"`, 'info');
+}
+
+// استعادة الخيارات الافتراضية لقائمة محددة
+export function confirmResetSubOptions(statusKey) {
+  const titles = {
+    resolved: 'معالجة ميدانياً',
+    store_followup: 'متابعة الفرع',
+    management_action: 'صيانة / إدارة'
+  };
+  if (!confirm(`هل أنت متأكد من استعادة الخيارات الفرعية الافتراضية لقسم [${titles[statusKey] || statusKey}]؟`)) {
+    return;
+  }
+
+  resetStatusSubOptions(statusKey);
+  renderStatusSubBars();
+  showToast('🔄 تم استعادة الخيارات الافتراضية بنجاح', 'success');
+}
+
+// رسم أشرطة الخيارات الفرعية الذكية لكل حالة رئيسية مفعلة
+export function renderStatusSubBars() {
+  const container = document.getElementById('status-sub-bars-container');
+  if (!container) return;
+
+  const activeStatuses = Array.isArray(modalState.selectedModalStatuses) ? modalState.selectedModalStatuses : ['resolved'];
+  const allSubOptions = getStatusSubOptions();
+
+  if (activeStatuses.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const statusConfigs = {
+    resolved: {
+      key: 'resolved',
+      label: 'تفاصيل المعالجة الميدانية',
+      icon: 'check-circle-2',
+      borderClass: 'border-emerald-500/40 bg-emerald-950/40',
+      headerTextClass: 'text-emerald-400',
+      chipActiveClass: 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-sm',
+      chipInactiveClass: 'bg-corp-900 text-emerald-300 border-emerald-800/60 hover:border-emerald-500/60',
+      addBtnClass: 'border-emerald-500/40 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10',
+      tagColor: 'emerald'
+    },
+    store_followup: {
+      key: 'store_followup',
+      label: 'تفاصيل ومطلوبات متابعة المعرض',
+      icon: 'clock',
+      borderClass: 'border-amber-500/40 bg-amber-950/40',
+      headerTextClass: 'text-amber-400',
+      chipActiveClass: 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow-sm',
+      chipInactiveClass: 'bg-corp-900 text-amber-300 border-amber-800/60 hover:border-amber-500/60',
+      addBtnClass: 'border-amber-500/40 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10',
+      tagColor: 'amber'
+    },
+    management_action: {
+      key: 'management_action',
+      label: 'تفاصيل ومطلوبات الصيانة / الإدارة',
+      icon: 'alert-triangle',
+      borderClass: 'border-rose-500/40 bg-rose-950/40',
+      headerTextClass: 'text-rose-400',
+      chipActiveClass: 'bg-rose-500 text-slate-950 font-bold border-rose-400 shadow-sm',
+      chipInactiveClass: 'bg-corp-900 text-rose-300 border-rose-800/60 hover:border-rose-500/60',
+      addBtnClass: 'border-rose-500/40 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10',
+      tagColor: 'rose'
+    }
+  };
+
+  let html = '';
+
+  activeStatuses.forEach(statusKey => {
+    const cfg = statusConfigs[statusKey];
+    if (!cfg) return;
+
+    const availableOptions = allSubOptions[statusKey] || [];
+    const selectedList = modalState.selectedModalSubOptions?.[statusKey] || [];
+    const isBoxOpen = !!modalState.inlineAddSubOptionOpen?.[statusKey];
+
+    html += `
+      <div class="rounded-xl border ${cfg.borderClass} p-2.5 space-y-2 transition-all duration-200">
+        <!-- ترويسة الشريط الفرعي -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 text-[11px] font-bold ${cfg.headerTextClass}">
+            <i data-lucide="${cfg.icon}" class="w-3.5 h-3.5"></i>
+            <span>${cfg.label}:</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="toggleInlineAddSubOption('${statusKey}')" class="text-[10px] ${cfg.headerTextClass} hover:underline font-bold flex items-center gap-0.5" title="إضافة خيار جديد">
+              <span>+ إضافة خيار</span>
+            </button>
+            <span class="text-slate-600 text-[10px]">|</span>
+            <button type="button" onclick="confirmResetSubOptions('${statusKey}')" class="text-[10px] text-slate-500 hover:text-slate-300 transition" title="استعادة الخيارات الافتراضية">استعادة</button>
+          </div>
+        </div>
+
+        <!-- صندوق إضافة خيار مخصص مضمن (Inline Add Sub-option) -->
+        <div id="inline-add-suboption-box-${statusKey}" class="${isBoxOpen ? '' : 'hidden'} p-2 rounded-lg bg-corp-950 border ${cfg.borderClass} space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold ${cfg.headerTextClass}">إضافة خيار مخصص جديد:</span>
+            <button type="button" onclick="toggleInlineAddSubOption('${statusKey}', false)" class="text-xs text-slate-400 hover:text-white px-1">✕</button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input type="text" id="inline-suboption-input-${statusKey}" placeholder="اكتب نص الخيار..." class="flex-1 bg-corp-900 border border-corp-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-gold-500" onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAddSubOption('${statusKey}');}">
+            <button type="button" onclick="submitAddSubOption('${statusKey}')" class="px-2.5 py-1 bg-gold-500 hover:bg-gold-400 text-slate-950 text-xs font-bold rounded-lg shrink-0 transition">إضافة وتحديد</button>
+          </div>
+        </div>
+
+        <!-- شرائح الخيارات الفرعية الذكية (Sub-Chips) -->
+        <div class="flex flex-wrap gap-1.5" id="sub-chips-${statusKey}">
+          ${availableOptions.map(opt => {
+            const isSelected = selectedList.includes(opt);
+            const escapedOpt = opt.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return `
+              <div class="group inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border transition cursor-pointer select-none ${
+                isSelected ? cfg.chipActiveClass : cfg.chipInactiveClass
+              }">
+                <span onclick="toggleStatusSubOption('${statusKey}', '${escapedOpt}')" class="flex-1">
+                  ${opt}
+                </span>
+                <button type="button" onclick="confirmDeleteSubOption('${statusKey}', '${escapedOpt}', event)" title="حذف الخيار" class="w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold opacity-60 hover:opacity-100 hover:bg-rose-500 hover:text-white transition ${
+                  isSelected ? 'text-slate-900' : 'text-slate-400'
+                }">
+                  ×
+                </button>
+              </div>
+            `;
+          }).join('')}
+          <button type="button" onclick="toggleInlineAddSubOption('${statusKey}', true)" class="text-[11px] px-2 py-1 rounded-lg border border-dashed ${cfg.addBtnClass} font-bold inline-flex items-center gap-1 transition">
+            <span>+ خيار جديد</span>
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+
   if (window.lucide && typeof lucide.createIcons === 'function') {
     try { lucide.createIcons(); } catch(e){}
   }
@@ -1802,7 +2130,16 @@ export function saveSectionEntry() {
     return;
   }
 
-  const isFollowup = (modalState.selectedModalStatus === 'store_followup' || modalState.selectedModalStatus === 'management_action');
+  const activeStatuses = Array.isArray(modalState.selectedModalStatuses) && modalState.selectedModalStatuses.length > 0
+    ? [...modalState.selectedModalStatuses]
+    : [modalState.selectedModalStatus || 'resolved'];
+  const activeSubOptions = {
+    resolved: [...(modalState.selectedModalSubOptions?.resolved || [])],
+    store_followup: [...(modalState.selectedModalSubOptions?.store_followup || [])],
+    management_action: [...(modalState.selectedModalSubOptions?.management_action || [])]
+  };
+
+  const isFollowup = activeStatuses.includes('store_followup') || activeStatuses.includes('management_action');
   const assigneeInput = document.getElementById('modal-action-assignee');
   const duedateInput = document.getElementById('modal-action-duedate');
   const actionAssignee = isFollowup ? ((assigneeInput ? assigneeInput.value.trim() : '') || 'مدير المعرض') : '';
@@ -1829,7 +2166,9 @@ export function saveSectionEntry() {
         layoutType: layoutType,
         panoramaTitle: panoramaTitle,
         panoramaOrientation: panoramaOrientation,
-        status: modalState.selectedModalStatus || 'resolved',
+        status: activeStatuses[0] || 'resolved',
+        statuses: activeStatuses,
+        statusSubOptions: activeSubOptions,
         actionAssignee: actionAssignee,
         actionDueDate: actionDueDate,
         checklist: [...modalState.activeModalChecklist],
@@ -1849,7 +2188,9 @@ export function saveSectionEntry() {
       layoutType: layoutType,
       panoramaTitle: panoramaTitle,
       panoramaOrientation: panoramaOrientation,
-      status: modalState.selectedModalStatus || 'resolved',
+      status: activeStatuses[0] || 'resolved',
+      statuses: activeStatuses,
+      statusSubOptions: activeSubOptions,
       actionAssignee: actionAssignee,
       actionDueDate: actionDueDate,
       checklist: [...modalState.activeModalChecklist],
@@ -1905,7 +2246,19 @@ export function editSectionEntry(id) {
     }
   }
 
-  setModalStatus(sec.status || 'resolved');
+  // استعادة الحالات والخيارات الفرعية
+  const restoredStatuses = getSectionStatuses(sec);
+  modalState.selectedModalStatuses = [...restoredStatuses];
+  modalState.selectedModalStatus = restoredStatuses[0] || 'resolved';
+  modalState.selectedModalSubOptions = {
+    resolved: sec.statusSubOptions?.resolved ? [...sec.statusSubOptions.resolved] : (restoredStatuses.includes('resolved') ? ['معالجة كاملة 100%'] : []),
+    store_followup: sec.statusSubOptions?.store_followup ? [...sec.statusSubOptions.store_followup] : [],
+    management_action: sec.statusSubOptions?.management_action ? [...sec.statusSubOptions.management_action] : []
+  };
+
+  syncModalStatusButtonsUI();
+  renderStatusSubBars();
+  syncFollowupContainerUI();
 
   const assigneeInput = document.getElementById('modal-action-assignee');
   const duedateInput = document.getElementById('modal-action-duedate');
@@ -3244,6 +3597,16 @@ if (typeof window !== 'undefined') {
   window.closeInlineAddStandard = closeInlineAddStandard;
   window.submitAddStandard = submitAddStandard;
   window.openEditStandardModal = openEditStandardModal;
+  window.toggleModalStatus = toggleModalStatus;
+  window.setModalStatus = setModalStatus;
+  window.toggleStatusSubOption = toggleStatusSubOption;
+  window.toggleInlineAddSubOption = toggleInlineAddSubOption;
+  window.submitAddSubOption = submitAddSubOption;
+  window.confirmDeleteSubOption = confirmDeleteSubOption;
+  window.confirmResetSubOptions = confirmResetSubOptions;
+  window.renderStatusSubBars = renderStatusSubBars;
+  window.syncModalStatusButtonsUI = syncModalStatusButtonsUI;
+  window.syncFollowupContainerUI = syncFollowupContainerUI;
   window.confirmDeleteStandard = confirmDeleteStandard;
   window.confirmResetStandards = confirmResetStandards;
   window.toggleInlineAddTag = toggleInlineAddTag;

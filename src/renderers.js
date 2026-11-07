@@ -20,7 +20,9 @@ import {
   saveAuditToStorage,
   getArchivedAudits,
   getArchivedAuditById,
-  deleteArchivedAudit
+  deleteArchivedAudit,
+  getSectionStatuses,
+  getSectionSubOptions
 } from './store.js';
 
 /**
@@ -272,12 +274,23 @@ export function aggregateVisitAchievements(audit = null) {
       .replace(/[:\.\s]+$/g, '')
       .trim();
 
-    if (status === 'resolved' || !status) {
-      points.push(`${cleanTitle}: ${cleanAction}.`);
-    } else if (status === 'store_followup') {
-      points.push(`${cleanTitle}: تكليف ${sec.actionAssignee || 'مدير المعرض'} بالمتابعة الميدانية لإنجاز ${cleanAction}.`);
-    } else if (status === 'management_action') {
-      points.push(`${cleanTitle}: توجيه طلب صيانة إلى ${sec.actionAssignee || 'فريق الصيانة'} لمعالجة ${cleanAction}.`);
+    const statuses = getSectionStatuses(sec);
+    const resolvedSubs = getSectionSubOptions(sec, 'resolved');
+    const followupSubs = getSectionSubOptions(sec, 'store_followup');
+    const mgmtSubs = getSectionSubOptions(sec, 'management_action');
+
+    // تجميع الإجراءات لكل حالة مفعلة
+    if (statuses.includes('resolved')) {
+      const detail = resolvedSubs.length > 0 ? ` (${resolvedSubs.join('، ')})` : '';
+      points.push(`${cleanTitle}: تم المعالجة ميدانياً${detail} لإنجاز ${cleanAction}.`);
+    }
+    if (statuses.includes('store_followup')) {
+      const detail = followupSubs.length > 0 ? ` (${followupSubs.join('، ')})` : '';
+      points.push(`${cleanTitle}: تكليف ${sec.actionAssignee || 'مدير المعرض'} بمتابعة الفرع${detail} لـ ${cleanAction}.`);
+    }
+    if (statuses.includes('management_action')) {
+      const detail = mgmtSubs.length > 0 ? ` (${mgmtSubs.join('، ')})` : '';
+      points.push(`${cleanTitle}: توجيه طلب صيانة/إدارة إلى ${sec.actionAssignee || 'فريق الصيانة'}${detail} لمعالجة ${cleanAction}.`);
     }
   });
 
@@ -309,12 +322,39 @@ export function getEffectiveVisitSummary(audit = null) {
   return aggregateVisitAchievements(activeAudit);
 }
 
-// توليد شارة الحالة الملونة الموحدة على شكل كبسولة أنيقة
-export function getStatusBadgeHtml(statusKey, isPrint = false) {
+// توليد شارات الحالة الملونة الموحدة مع الخيارات الفرعية الذكية
+export function getStatusBadgeHtml(secOrStatus, isPrint = false) {
+  // إذا تم تمرير كائن قسم sec
+  if (secOrStatus && typeof secOrStatus === 'object') {
+    const sec = secOrStatus;
+    const statuses = getSectionStatuses(sec);
+    return statuses.map(st => renderSingleStatusBadge(st, sec, isPrint)).join(' ');
+  }
+
+  // إذا تم تمرير مفتاح حالة مفرد string
+  return renderSingleStatusBadge(secOrStatus || 'resolved', null, isPrint);
+}
+
+function renderSingleStatusBadge(statusKey, sec = null, isPrint = false) {
   const cfg = STATUS_MAP[statusKey] || STATUS_MAP.resolved;
+  const subOptions = sec ? getSectionSubOptions(sec, statusKey) : [];
+  const hasSub = subOptions.length > 0;
+
+  // صياغة النص المدمج مع الخيارات الفرعية الذكية
+  let displayText = '';
+  if (statusKey === 'resolved') {
+    displayText = hasSub ? `تم المعالجة ميدانياً: ${subOptions.join('، ')}` : (isPrint ? 'تم المعالجة ميدانياً ✅' : 'تم المعالجة ميدانياً ✅');
+  } else if (statusKey === 'store_followup') {
+    displayText = hasSub ? `متابعة الفرع: ${subOptions.join('، ')}` : (isPrint ? 'متابعة الفرع ⏳' : 'متابعة الفرع ⏳');
+  } else if (statusKey === 'management_action') {
+    displayText = hasSub ? `تتطلب صيانة/إدارة: ${subOptions.join('، ')}` : (isPrint ? 'طلب صيانة / إدارة ⚠️' : 'طلب صيانة / إدارة ⚠️');
+  } else {
+    displayText = isPrint ? cfg.label : cfg.shortLabel;
+  }
+
   const css = isPrint ? cfg.printBadgeClass : cfg.badgeClass;
   return `<span class="${css} text-[10px] md:text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 shrink-0 shadow-sm font-bold select-none" dir="rtl">
-    <span>${isPrint ? cfg.label : cfg.shortLabel}</span>
+    <span>${displayText}</span>
   </span>`;
 }
 
@@ -1268,7 +1308,7 @@ export function renderAuditCards(customSections = null) {
       </span>
     `).join('');
 
-    const statusBadgeHtml = getStatusBadgeHtml(sec.status || 'resolved');
+    const statusBadgeHtml = getStatusBadgeHtml(sec);
     const hasBoth = sec.beforeImg && sec.afterImg && !sec.beforeImg.includes('placehold.co') && !sec.afterImg.includes('placehold.co');
     const isSlider = hasBoth && modalState.cardViewModes[sec.id] === 'slider';
     const beforeStyle = getImageTransformStyle(sec.beforeConfig);
@@ -1594,7 +1634,7 @@ export function renderPrintSections(customSections = null) {
 
       <!-- 2. شريط الإجراءات والوسوم السريعة المستقل (Dedicated Action Bar) أسفل العنوان وقبل الصور -->
       <div class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-3.5 flex items-center justify-center flex-wrap gap-2 shadow-xs">
-        ${getStatusBadgeHtml(sec.status || 'resolved', true)}
+        ${getStatusBadgeHtml(sec, true)}
         ${tagsBadge}
       </div>
 
@@ -1716,17 +1756,20 @@ export function renderPrintSections(customSections = null) {
       ` : ''}
 
       <!-- صندوق متابعة وتكليف الإجراء في تقرير الطباعة الرسمي -->
-      ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
+      ${(getSectionStatuses(sec).includes('store_followup') || getSectionStatuses(sec).includes('management_action')) ? `
         <div class="mb-2 p-2.5 rounded-lg border ${
-          sec.status === 'store_followup' 
-            ? 'bg-amber-50 border-amber-300 text-amber-900' 
-            : 'bg-rose-50 border-rose-300 text-rose-900'
+          getSectionStatuses(sec).includes('management_action') 
+            ? 'bg-rose-50 border-rose-300 text-rose-900' 
+            : 'bg-amber-50 border-amber-300 text-amber-900'
         } text-xs">
           <div class="flex items-center justify-between pb-1 mb-1.5 border-b border-slate-200">
             <span class="font-bold flex items-center gap-1 text-[11px]">
-              <span>${sec.status === 'store_followup' ? '⚠️ تكليف متابعة موجه لإدارة المعرض' : '🚨 طلب إجراء صيانة وتدخل إداري عاجل'}</span>
+              <span>${getSectionStatuses(sec).includes('management_action') && getSectionStatuses(sec).includes('store_followup')
+                ? '⚠️ تكليف متابعة موجه لإدارة المعرض وطلب صيانة/إدارة'
+                : (getSectionStatuses(sec).includes('management_action') ? '🚨 طلب إجراء صيانة وتدخل إداري عاجل' : '⚠️ تكليف متابعة موجه لإدارة المعرض')
+              }</span>
             </span>
-            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-white border ${sec.status === 'store_followup' ? 'border-amber-300' : 'border-rose-300'}">إجراء رسمي</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-white border ${getSectionStatuses(sec).includes('management_action') ? 'border-rose-300' : 'border-amber-300'}">إجراء رسمي</span>
           </div>
           <div class="grid grid-cols-2 gap-2 text-[11px]">
             <div>المسؤول عن التنفيذ: <strong class="underline">${sec.actionAssignee || 'مدير المعرض'}</strong></div>

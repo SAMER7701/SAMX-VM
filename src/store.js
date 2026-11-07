@@ -18,8 +18,29 @@ export const STORAGE_KEY_TAGS = 'samx_quick_tags_v1';
 export const STORAGE_KEY_ASSIGNEES = 'samx_quick_assignees_v1';
 export const STORAGE_KEY_BRANDING = 'samx_branding_v1';
 export const STORAGE_KEY_AUDIT_ARCHIVE = 'samx_audit_history_v1';
+export const STORAGE_KEY_STATUS_SUB_OPTIONS = 'samx_status_sub_options_v1';
 export const LEGACY_BRANCHES_KEY = 'samx_branches';
 export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
+
+// خيارات الحالات الفرعية الذكية الافتراضية لكل حالة رئيسية
+export const DEFAULT_STATUS_SUB_OPTIONS = {
+  resolved: [
+    'معالجة كاملة 100%',
+    'معالجة جزئية - جاري الاستكمال'
+  ],
+  store_followup: [
+    'استكمال النواقص والمقاسات',
+    'الالتزام بالمعايير اليومية',
+    'كي وتجهيز القطع',
+    'تعديل التسعير/POSM'
+  ],
+  management_action: [
+    'صيانة الإضاءة والكهرباء',
+    'صيانة الديكور والأرفف',
+    'توريد مستلزمات عرض/مانيكان',
+    'توجيه إدارة المشتريات/التوزيع'
+  ]
+};
 
 // الهوية البصرية وشعار الشركة الافتراضي
 export const DEFAULT_BRANDING = {
@@ -206,6 +227,17 @@ export const modalState = {
   activeModalTags: [],
   activeModalChecklist: [],
   selectedModalStatus: 'resolved',
+  selectedModalStatuses: ['resolved'], // نظام التحديد المتعدد للحالات الرئيسية
+  selectedModalSubOptions: {
+    resolved: ['معالجة كاملة 100%'],
+    store_followup: [],
+    management_action: []
+  },
+  inlineAddSubOptionOpen: {
+    resolved: false,
+    store_followup: false,
+    management_action: false
+  },
   isSpeechRecording: false,
   pendingValidationProceedCallback: null,
   isBypassingValidation: false,
@@ -794,6 +826,120 @@ export function resetQuickAssignees() {
   return { success: true, list };
 }
 
+// ==================== إدارة خيارات الحالات الفرعية الذكية (Status Sub-Options CRUD) ====================
+
+export function getStatusSubOptions() {
+  if (typeof localStorage === 'undefined') {
+    return JSON.parse(JSON.stringify(DEFAULT_STATUS_SUB_OPTIONS));
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_STATUS_SUB_OPTIONS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          resolved: Array.isArray(parsed.resolved) ? parsed.resolved : [...DEFAULT_STATUS_SUB_OPTIONS.resolved],
+          store_followup: Array.isArray(parsed.store_followup) ? parsed.store_followup : [...DEFAULT_STATUS_SUB_OPTIONS.store_followup],
+          management_action: Array.isArray(parsed.management_action) ? parsed.management_action : [...DEFAULT_STATUS_SUB_OPTIONS.management_action]
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('getStatusSubOptions: failed parsing storage, fallback to defaults', e);
+  }
+  const defaults = JSON.parse(JSON.stringify(DEFAULT_STATUS_SUB_OPTIONS));
+  try {
+    localStorage.setItem(STORAGE_KEY_STATUS_SUB_OPTIONS, JSON.stringify(defaults));
+  } catch (_) {}
+  return defaults;
+}
+
+export function saveStatusSubOptionsToStorage(optionsMap) {
+  if (!optionsMap || typeof optionsMap !== 'object') return false;
+  try {
+    localStorage.setItem(STORAGE_KEY_STATUS_SUB_OPTIONS, JSON.stringify(optionsMap));
+    return true;
+  } catch (e) {
+    console.error('saveStatusSubOptionsToStorage error:', e);
+    return false;
+  }
+}
+
+export function addStatusSubOption(statusKey, optionText) {
+  const clean = (optionText || '').trim();
+  if (!clean) return { success: false, reason: 'يرجى كتابة نص الخيار الفرعي' };
+  if (!DEFAULT_STATUS_SUB_OPTIONS[statusKey]) {
+    return { success: false, reason: 'مفتاح الحالة الرئيسية غير صحيح' };
+  }
+
+  const allOptions = getStatusSubOptions();
+  const list = allOptions[statusKey] || [];
+  if (list.some(item => item.trim().toLowerCase() === clean.toLowerCase())) {
+    return { success: false, reason: 'هذا الخيار مسجل مسبقاً في هذه القائمة' };
+  }
+
+  list.push(clean);
+  allOptions[statusKey] = list;
+  saveStatusSubOptionsToStorage(allOptions);
+  return { success: true, item: clean, list, allOptions };
+}
+
+export function deleteStatusSubOption(statusKey, optionText) {
+  const clean = (optionText || '').trim();
+  if (!clean) return { success: false, reason: 'نص الخيار غير صحيح' };
+  if (!DEFAULT_STATUS_SUB_OPTIONS[statusKey]) {
+    return { success: false, reason: 'مفتاح الحالة غير صحيح' };
+  }
+
+  const allOptions = getStatusSubOptions();
+  const list = (allOptions[statusKey] || []).filter(item => item.trim() !== clean);
+  allOptions[statusKey] = list;
+  saveStatusSubOptionsToStorage(allOptions);
+
+  // تحديث الخيارات المحددة في المودال إن وُجدت
+  if (modalState.selectedModalSubOptions && Array.isArray(modalState.selectedModalSubOptions[statusKey])) {
+    modalState.selectedModalSubOptions[statusKey] = modalState.selectedModalSubOptions[statusKey].filter(item => item.trim() !== clean);
+  }
+
+  return { success: true, item: clean, list, allOptions };
+}
+
+export function resetStatusSubOptions(statusKey = null) {
+  const allOptions = getStatusSubOptions();
+  if (statusKey && DEFAULT_STATUS_SUB_OPTIONS[statusKey]) {
+    allOptions[statusKey] = [...DEFAULT_STATUS_SUB_OPTIONS[statusKey]];
+  } else {
+    Object.assign(allOptions, JSON.parse(JSON.stringify(DEFAULT_STATUS_SUB_OPTIONS)));
+  }
+  saveStatusSubOptionsToStorage(allOptions);
+  return { success: true, allOptions };
+}
+
+/**
+ * دالة مساعدة لاستخراج الحالات المحددة للقسم مع التوافقية العكسية
+ */
+export function getSectionStatuses(sec) {
+  if (!sec) return ['resolved'];
+  if (Array.isArray(sec.statuses) && sec.statuses.length > 0) {
+    return sec.statuses;
+  }
+  if (sec.status) {
+    return [sec.status];
+  }
+  return ['resolved'];
+}
+
+/**
+ * دالة مساعدة لاستخراج الخيارات الفرعية للحالة للقسم مع التوافقية العكسية
+ */
+export function getSectionSubOptions(sec, statusKey) {
+  if (!sec) return [];
+  if (sec.statusSubOptions && Array.isArray(sec.statusSubOptions[statusKey])) {
+    return sec.statusSubOptions[statusKey];
+  }
+  return [];
+}
+
 // حفظ التقرير في التخزين المحلي
 export function saveAuditToStorage() {
   try {
@@ -1348,6 +1494,14 @@ if (typeof window !== 'undefined') {
   window.updateQuickAssignee = updateQuickAssignee;
   window.deleteQuickAssignee = deleteQuickAssignee;
   window.resetQuickAssignees = resetQuickAssignees;
+  window.DEFAULT_STATUS_SUB_OPTIONS = DEFAULT_STATUS_SUB_OPTIONS;
+  window.getStatusSubOptions = getStatusSubOptions;
+  window.saveStatusSubOptionsToStorage = saveStatusSubOptionsToStorage;
+  window.addStatusSubOption = addStatusSubOption;
+  window.deleteStatusSubOption = deleteStatusSubOption;
+  window.resetStatusSubOptions = resetStatusSubOptions;
+  window.getSectionStatuses = getSectionStatuses;
+  window.getSectionSubOptions = getSectionSubOptions;
   window.createSampleAuditImage = createSampleAuditImage;
   window.generateSeedAuditArchive = generateSeedAuditArchive;
   window.getArchivedAudits = getArchivedAudits;

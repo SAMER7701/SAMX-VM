@@ -8,7 +8,7 @@
 
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { currentAudit, getBrandingSettings } from './store.js';
+import { currentAudit, getBrandingSettings, getSectionStatuses, getSectionSubOptions } from './store.js';
 import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText, getEffectiveVisitSummary, formatSummaryPointHtml, cleanSummaryPointText } from './renderers.js';
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 export { parseJustificationNotes } from './renderers.js';
@@ -21,7 +21,8 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
   const layout = sec.layoutType || 'comparison';
   const isDualStacked = (layout === 'dual_panorama' && sec.panoramaOrientation === 'stacked_vertical');
   const checklistCount = (sec.checklist && sec.checklist.length) || 0;
-  const hasAction = Boolean(sec.status === 'store_followup' || sec.status === 'management_action');
+  const secStatuses = getSectionStatuses(sec);
+  const hasAction = Boolean(secStatuses.includes('store_followup') || secStatuses.includes('management_action'));
   const justificationsList = getDynamicJustifications(sec);
   const justificationsCount = justificationsList.length;
 
@@ -63,28 +64,41 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
     }
   }
 
-  // شارة الحالة ككبسولة موحدة متناسقة (Harmonized Status Pill)
-  let statusBadgeHtml = `
-    <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-      <span>تم المعالجة ميدانياً</span>
-      <span style="font-size: 8.5px;">✅</span>
-    </span>
-  `;
-  if (sec.status === 'store_followup') {
-    statusBadgeHtml = `
-      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-        <span>متابعة المعرض</span>
-        <span style="font-size: 8.5px;">⏳</span>
-      </span>
-    `;
-  } else if (sec.status === 'management_action') {
-    statusBadgeHtml = `
-      <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-        <span>طلب صيانة / إدارة</span>
-        <span style="font-size: 8.5px;">⚠️</span>
-      </span>
-    `;
-  }
+  // توليد شارات الحالة الملونة الموحدة متعددة التحديد مع الخيارات الفرعية الذكية
+  const statuses = getSectionStatuses(sec);
+  const statusBadges = statuses.map(st => {
+    const subOptions = getSectionSubOptions(sec, st);
+    const hasSub = subOptions.length > 0;
+
+    if (st === 'resolved') {
+      const text = hasSub ? `تم المعالجة ميدانياً: ${subOptions.join('، ')}` : 'تم المعالجة ميدانياً';
+      return `
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <span>${text}</span>
+          <span style="font-size: 8.5px;">✅</span>
+        </span>
+      `;
+    } else if (st === 'store_followup') {
+      const text = hasSub ? `متابعة الفرع: ${subOptions.join('، ')}` : 'متابعة الفرع';
+      return `
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <span>${text}</span>
+          <span style="font-size: 8.5px;">⏳</span>
+        </span>
+      `;
+    } else if (st === 'management_action') {
+      const text = hasSub ? `تتطلب صيانة/إدارة: ${subOptions.join('، ')}` : 'طلب صيانة / إدارة';
+      return `
+        <span style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 11px; border-radius: 9999px; font-size: 9.5px; font-weight: 800; line-height: 1.2; background: #fef2f2; color: #b91c1c; border: 1.5px solid #fca5a5; white-space: nowrap; direction: rtl; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <span>${text}</span>
+          <span style="font-size: 8.5px;">⚠️</span>
+        </span>
+      `;
+    }
+    return '';
+  }).filter(Boolean);
+
+  const statusBadgeHtml = statusBadges.join(' ');
 
   // وسوم الأقسام ككبسولات موحدة متناسقة (Harmonized Category Tags)
   const tagsHtml = (sec.tags || []).map(t => `
@@ -265,8 +279,8 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
       ` : ''}
 
       <!-- صندوق تكليف ومتابعة الإجراء إذا وُجد -->
-      ${(sec.status === 'store_followup' || sec.status === 'management_action') ? `
-        <div style="background: ${sec.status === 'store_followup' ? '#fffbeb' : '#fef2f2'}; border: 1.5px solid ${sec.status === 'store_followup' ? '#fde68a' : '#fca5a5'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: ${sec.status === 'store_followup' ? '#92400e' : '#991b1b'}; display: flex; justify-content: space-between; align-items: center;">
+      ${(getSectionStatuses(sec).includes('store_followup') || getSectionStatuses(sec).includes('management_action')) ? `
+        <div style="background: ${getSectionStatuses(sec).includes('management_action') ? '#fef2f2' : '#fffbeb'}; border: 1.5px solid ${getSectionStatuses(sec).includes('management_action') ? '#fca5a5' : '#fde68a'}; border-radius: 8px; padding: 6px 10px; margin-bottom: 7px; font-size: 9.5px; color: ${getSectionStatuses(sec).includes('management_action') ? '#991b1b' : '#92400e'}; display: flex; justify-content: space-between; align-items: center;">
           <span>⚠️ <strong>المكلف بالإجراء:</strong> ${sec.actionAssignee || 'مدير المعرض'}</span>
           <span>📅 <strong>تاريخ الإنجاز:</strong> ${sec.actionDueDate || 'خلال أسبوع'}</span>
         </div>
