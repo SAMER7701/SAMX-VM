@@ -601,9 +601,27 @@ export function handleSpecialistSelectChange(val) {
 }
 
 export function toggleMetaCollapse() {
+  const body = document.getElementById('meta-card-body');
   const grid = document.getElementById('meta-inputs-grid');
+  const kpis = document.getElementById('meta-kpis-container');
+  const header = document.getElementById('meta-card-header');
   const icon = document.getElementById('meta-collapse-icon');
-  if (grid) grid.classList.toggle('hidden');
+
+  if (body) {
+    body.classList.toggle('hidden');
+    const isCollapsed = body.classList.contains('hidden');
+    if (header) {
+      if (isCollapsed) {
+        header.classList.remove('mb-4', 'pb-3', 'border-b');
+      } else {
+        header.classList.add('mb-4', 'pb-3', 'border-b');
+      }
+    }
+  } else {
+    if (grid) grid.classList.toggle('hidden');
+    if (kpis) kpis.classList.toggle('hidden');
+  }
+
   if (icon) icon.classList.toggle('rotate-180');
 }
 
