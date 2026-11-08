@@ -539,7 +539,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.4</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.5</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -614,7 +614,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.4</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.5</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -920,6 +920,10 @@
               <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
               <span>إظهار مؤشر الجاهزية (%)</span>
             </label>
+            <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي ومحلل الجاهزية اللغوي والتنفيذي">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+              <span>🔍 تدقيق ذكي وتحليل الجاهزية</span>
+            </button>
           </div>
           <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
             <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -2281,6 +2285,131 @@
     </div>
   </div>
 
+  <!-- ==================== نافذة المدقق الذكي ومحلل الجاهزية (SMART AI AUDITOR MODAL) ==================== -->
+  <div id="smart-auditor-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);" onclick="if(event.target === this) closeSmartAuditorModal();" class="p-2 sm:p-4">
+    <div class="bg-corp-900 border border-corp-700 w-full max-w-2xl rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]" onclick="event.stopPropagation();">
+      
+      <!-- الرأس -->
+      <div class="p-4 bg-corp-950 border-b border-corp-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shadow-inner">
+            <i data-lucide="sparkles" class="w-5 h-5 text-amber-300"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-sm md:text-base text-white flex items-center gap-2">
+              <span>المدقق الذكي ومحلل الجاهزية البصرية</span>
+              <span class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">AI Auditor</span>
+            </h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">تدقيق لغوي تنفيذي، رصد نقاط القوة والمعلقات، وضبط دقيق لمؤشر الجاهزية</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSmartAuditorModal()" class="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-corp-850 transition" title="إغلاق النافذة">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- محتوى التحليل والتدقيق -->
+      <div class="p-4 md:p-6 space-y-5 overflow-y-auto flex-1">
+        
+        <!-- بطاقة مؤشر الجاهزية المقترح مع سلايدر الضبط الدقيق -->
+        <div class="bg-corp-950/90 border border-corp-800 rounded-2xl p-4 shadow-inner space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-200">📊 مؤشر الجاهزية المحسوب ذكياً:</span>
+              <span id="ai-auditor-score-badge" class="font-black text-xs px-2.5 py-1 rounded-lg border bg-emerald-100 text-emerald-800 border-emerald-300">—</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              <span id="ai-auditor-stats-summary">0 أقسام تم فحصها</span>
+            </div>
+          </div>
+
+          <!-- شريط الضبط اليدوي الدقيق للمؤشر -->
+          <div class="space-y-1.5 pt-2 border-t border-corp-800/80">
+            <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+              <span>ضبط المؤشر المقترح يدوياً:</span>
+              <span class="font-black text-amber-400 text-sm" id="ai-auditor-score-slider-val">90%</span>
+            </div>
+            <input type="range" id="ai-auditor-score-slider" min="0" max="100" value="90" oninput="onAuditorScoreSliderChange(this.value)" class="w-full accent-amber-500 cursor-pointer">
+            <div class="flex justify-between text-[10px] text-slate-500">
+              <span>0% (حرج)</span>
+              <span>75% (جيد)</span>
+              <span>100% (جاهزية تامة)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. نتائج التدقيق اللغوي والميداني (AI Findings) -->
+        <div class="space-y-2">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-slate-200">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>نتائج التدقيق والتحليل الميداني:</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- نقاط القوة والمكتملات -->
+            <div class="bg-emerald-950/20 border border-emerald-500/20 rounded-xl p-3 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400">
+                <span class="flex items-center gap-1">
+                  <span>✓</span>
+                  <span>نقاط القوة والمعايير المكتملة</span>
+                </span>
+                <span id="ai-auditor-strengths-count" class="bg-emerald-900/60 text-emerald-300 px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+              </div>
+              <div id="ai-auditor-strengths-list" class="space-y-1 max-h-36 overflow-y-auto text-[11px] text-slate-300">
+                <!-- يُحقن ديناميكياً -->
+              </div>
+            </div>
+
+            <!-- البنود المعلقة وتكليفات المتابعة -->
+            <div class="bg-amber-950/20 border border-amber-500/20 rounded-xl p-3 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] font-bold text-amber-400">
+                <span class="flex items-center gap-1">
+                  <span>⏳</span>
+                  <span>البنود المعلقة والملاحظات الحرجة</span>
+                </span>
+                <span id="ai-auditor-pending-count" class="bg-amber-900/60 text-amber-300 px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+              </div>
+              <div id="ai-auditor-pending-list" class="space-y-1 max-h-36 overflow-y-auto text-[11px] text-slate-300">
+                <!-- يُحقن ديناميكياً -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. الصياغة التنفيذية المقترحة للملخص (Professional Rewrite) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="edit-3" class="w-4 h-4 text-sky-400"></i>
+              <span>صياغة تنفيذية راقية ومصححة لملخص الزيارة:</span>
+            </span>
+            <span class="text-[10px] text-slate-400 bg-corp-950 px-2 py-0.5 rounded-full border border-corp-800">صياغة احترافية محسنة</span>
+          </div>
+
+          <textarea id="ai-auditor-summary-rewrite" rows="5" placeholder="جاري تجهيز الصياغة التنفيذية..." class="w-full bg-corp-950 border border-corp-700 rounded-xl p-3 text-xs md:text-sm text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none leading-relaxed transition font-medium placeholder:text-slate-500"></textarea>
+          <p class="text-[10.5px] text-slate-400 flex items-center gap-1">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>يمكنك تعديل الصياغة مباشرة قبل الاعتماد. عند التطبيق، سيتم تحديث ملخص الزيارة والتقرير التنفيذي فوراً.</span>
+          </p>
+        </div>
+
+      </div>
+
+      <!-- أزرار الحفظ والإغلاق -->
+      <div class="p-4 bg-corp-950 border-t border-corp-800 flex items-center justify-between gap-2.5">
+        <button type="button" onclick="closeSmartAuditorModal()" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-4 py-2.5 rounded-xl border border-corp-700 transition cursor-pointer">
+          <span>إلغاء</span>
+        </button>
+
+        <button type="button" onclick="applySmartAuditorResults()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 flex items-center gap-2 cursor-pointer">
+          <i data-lucide="check-check" class="w-4 h-4"></i>
+          <span>✨ تطبيق التعديلات واعتماد المؤشر</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==================== نافذة إدارة وتخصيص أقسام المعرض ومعايير الـ VM (SECTIONS & STANDARDS MODAL) ==================== -->
   <div id="section-manager-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);" onclick="if(event.target === this) closeSectionManagerModal();" class="p-2 sm:p-4">
     <div class="bg-corp-900 border border-corp-700 w-full max-w-3xl rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]" onclick="event.stopPropagation();">
@@ -2650,7 +2779,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.4</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.5</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

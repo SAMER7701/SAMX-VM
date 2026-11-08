@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.6.4
+ * Version: 1.6.5
  * Architecture: IndexedDB-First + Memory Cache + R2 Cloud Sync
  */
 
-export const APP_VERSION = '1.6.4';
+export const APP_VERSION = '1.6.5';
 
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 import {
@@ -288,11 +288,29 @@ export function calculateCurrentWeek() {
   return weekNum;
 }
 
-// احتساب مؤشر الجاهزية البصرية للمعرض (Store Readiness Score)
+// احتساب مؤشر الجاهزية البصرية للمعرض (Store Readiness Score) مع دعم التعديل والاعتماد الذكي
 export function calculateReadinessScore(audit) {
   const sections = (audit && Array.isArray(audit.sections)) ? audit.sections : [];
   if (sections.length === 0) {
     return { percent: 0, label: '—', text: '—', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' };
+  }
+
+  // إذا تم اعتماد مؤشر مدقق مخصص ومحفوظ داخل الجولة
+  if (audit && typeof audit.readinessScore === 'number' && !isNaN(audit.readinessScore)) {
+    const customPercent = Math.max(0, Math.min(100, Math.round(audit.readinessScore)));
+    let label = 'ممتاز ومطابق للمعايير';
+    let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    if (customPercent >= 88) {
+      label = 'ممتاز ومطابق للمعايير';
+      badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    } else if (customPercent >= 75) {
+      label = 'جيد مع بنود متابعة';
+      badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+    } else {
+      label = 'يحتاج إجراءات تصحيحية';
+      badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+    }
+    return { percent: customPercent, label, text: `${customPercent}% • ${label}`, badgeClass, isAudited: true };
   }
 
   let totalScore = 0;

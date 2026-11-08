@@ -1,8 +1,10 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.4
+ * Version: 1.6.5
  * Architecture: ES Modules Coordinator
  */
+
+import { analyzeTourWithAI, proofreadText } from './smartAuditor.js';
 
 import {
   APP_VERSION,
@@ -3522,6 +3524,138 @@ export function appendPointToVisitSummary() {
   showToast('تمت إضافة نقطة إنجاز جديدة، يمكنك تحريرها الآن', 'success');
 }
 
+// ==================== تحكم المدقق الذكي ومحلل الجاهزية (Smart AI Auditor Controller) ====================
+let tempAuditorAnalysis = null;
+let tempAuditorScore = 90;
+
+export function openSmartAuditorModal() {
+  try {
+    tempAuditorAnalysis = analyzeTourWithAI(currentAudit);
+    
+    // إعداد المؤشر
+    tempAuditorScore = tempAuditorAnalysis.score || 90;
+    const slider = document.getElementById('ai-auditor-score-slider');
+    const sliderVal = document.getElementById('ai-auditor-score-slider-val');
+    const badge = document.getElementById('ai-auditor-score-badge');
+    const statsSummary = document.getElementById('ai-auditor-stats-summary');
+
+    if (slider) slider.value = tempAuditorScore;
+    if (sliderVal) sliderVal.innerText = `${tempAuditorScore}%`;
+    if (badge) {
+      badge.innerText = tempAuditorAnalysis.text || `${tempAuditorScore}%`;
+      badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${tempAuditorAnalysis.badgeClass}`;
+    }
+    if (statsSummary) {
+      statsSummary.innerText = `${tempAuditorAnalysis.stats.totalSections} أقسام تم فحصها (${tempAuditorAnalysis.stats.fullyResolved} مكتمل، ${tempAuditorAnalysis.stats.beforeAfterCount} مقارنة قبل/بعد)`;
+    }
+
+    // إعداد قائمة نقاط القوة
+    const strengthsList = document.getElementById('ai-auditor-strengths-list');
+    const strengthsCount = document.getElementById('ai-auditor-strengths-count');
+    if (strengthsCount) strengthsCount.innerText = tempAuditorAnalysis.strengths.length;
+    if (strengthsList) {
+      if (tempAuditorAnalysis.strengths.length === 0) {
+        strengthsList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد نقاط قوة مكتملة مرصودة بعد</div>`;
+      } else {
+        strengthsList.innerHTML = tempAuditorAnalysis.strengths.map(s => `
+          <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-emerald-500/20">
+            <span class="text-emerald-400 font-bold shrink-0">✓</span>
+            <div>
+              <strong class="text-emerald-300 block text-[10.5px]">${s.section}</strong>
+              <span class="text-slate-300 text-[10px] leading-relaxed">${s.text}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // إعداد قائمة البنود المعلقة
+    const pendingList = document.getElementById('ai-auditor-pending-list');
+    const pendingCount = document.getElementById('ai-auditor-pending-count');
+    if (pendingCount) pendingCount.innerText = tempAuditorAnalysis.pendingItems.length;
+    if (pendingList) {
+      if (tempAuditorAnalysis.pendingItems.length === 0) {
+        pendingList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد بنود معلقة حرجة مرصودة</div>`;
+      } else {
+        pendingList.innerHTML = tempAuditorAnalysis.pendingItems.map(p => `
+          <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-amber-500/20">
+            <span class="text-amber-400 font-bold shrink-0">⏳</span>
+            <div>
+              <strong class="text-amber-300 block text-[10.5px]">${p.section}</strong>
+              <span class="text-slate-300 text-[10px] leading-relaxed">${p.text}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // إعداد الصياغة التنفيذية المقترحة
+    const summaryRewrite = document.getElementById('ai-auditor-summary-rewrite');
+    if (summaryRewrite) {
+      summaryRewrite.value = tempAuditorAnalysis.polishedSummary || (currentAudit.visitSummary || '');
+    }
+
+    showModal('smart-auditor-modal');
+  } catch (err) {
+    console.error('openSmartAuditorModal error:', err);
+    showToast('حدث خطأ أثناء تشغيل المدقق الذكي', 'error');
+  }
+}
+
+export function closeSmartAuditorModal() {
+  hideModal('smart-auditor-modal');
+}
+
+export function onAuditorScoreSliderChange(val) {
+  tempAuditorScore = parseInt(val, 10) || 0;
+  const sliderVal = document.getElementById('ai-auditor-score-slider-val');
+  if (sliderVal) sliderVal.innerText = `${tempAuditorScore}%`;
+
+  const badge = document.getElementById('ai-auditor-score-badge');
+  if (badge) {
+    let label = 'ممتاز ومطابق للمعايير';
+    let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    if (tempAuditorScore >= 88) {
+      label = 'ممتاز ومطابق للمعايير';
+      badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    } else if (tempAuditorScore >= 75) {
+      label = 'جيد مع بنود متابعة';
+      badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+    } else {
+      label = 'يحتاج إجراءات تصحيحية';
+      badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+    }
+    badge.innerText = `${tempAuditorScore}% • ${label}`;
+    badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${badgeClass}`;
+  }
+}
+
+export function applySmartAuditorResults() {
+  try {
+    // 1. تطبيق مؤشر الجاهزية المعتمد
+    currentAudit.readinessScore = tempAuditorScore;
+
+    // 2. تطبيق الصياغة التنفيذية المصححة
+    const summaryRewrite = document.getElementById('ai-auditor-summary-rewrite');
+    if (summaryRewrite && summaryRewrite.value.trim()) {
+      currentAudit.visitSummary = summaryRewrite.value.trim();
+    }
+
+    // 3. الحفظ في IndexedDB والمزامنة السحابية
+    saveAuditToStorage();
+
+    // 4. تحديث عروض التقرير فورياً
+    renderVisitSummary();
+    syncQuickDisplays();
+
+    closeSmartAuditorModal();
+    showToast(`✅ تم اعتماد تدقيق الجولة وضبط مؤشر الجاهزية على (${tempAuditorScore}%) بنجاح!`, 'success');
+  } catch (err) {
+    console.error('applySmartAuditorResults error:', err);
+    showToast('فشل تطبيق نتائج التدقيق', 'error');
+  }
+}
+
 // ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity Controller) ====================
 let tempBrandingState = {
   companyName: '',
@@ -4226,6 +4360,10 @@ if (typeof window !== 'undefined') {
   window.openUserSettingsModal = openUserSettingsModal;
   window.closeUserSettingsModal = closeUserSettingsModal;
   window.toggleReadinessScore = toggleReadinessScore;
+  window.openSmartAuditorModal = openSmartAuditorModal;
+  window.closeSmartAuditorModal = closeSmartAuditorModal;
+  window.onAuditorScoreSliderChange = onAuditorScoreSliderChange;
+  window.applySmartAuditorResults = applySmartAuditorResults;
   window.bootApp = bootApp;
 }
 
