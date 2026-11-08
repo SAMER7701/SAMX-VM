@@ -1132,191 +1132,47 @@ export function createSampleAuditImage(title, subtitle, bgColor = '#1e293b', acc
 }
 
 /**
- * تجهيز بيانات أولية غنية لدورة تدقيق شهرية كاملة (Full Month's Audit Cycle)
- * تتضمن 4 أسابيع من الجولات الميدانية بمعارض تجزئة واقعية
+ * قائمة الجولات الميدانية الافتراضية للأرشيف (تبدأ فارغة تماماً [])
  */
 export function generateSeedAuditArchive() {
-  const imgW41Before = createSampleAuditImage('واجهة المعرض الرئيسية', 'الوضع السابق: المانيكان غير مثبت وتشتت الإضاءة', '#3f1d24', '#f43f5e');
-  const imgW41After = createSampleAuditImage('واجهة المعرض الرئيسية', 'بعد التعديل: تثبيت المانيكان وتوجيه إضاءة 45° مع قصة ألوان متناسقة', '#064e3b', '#10b981');
-  
-  const imgW41WhiteBefore = createSampleAuditImage('قسم الثياب البيضاء', 'الوضع السابق: تفاوت مسافات المعاليق وتجاعيد في الأكمام', '#3f1d24', '#f43f5e');
-  const imgW41WhiteAfter = createSampleAuditImage('قسم الثياب البيضاء', 'بعد التعديل: توحيد اتجاه المعاليق وكوي بالبخار وترتيب المقاسات تصاعدياً', '#064e3b', '#10b981');
-
-  const imgW42ColorBefore = createSampleAuditImage('قسم الثياب الملونة والشبابية', 'الوضع السابق: تداخل تدفق الألوان وعدم وضوح بطاقات الأسعار', '#3f1d24', '#f43f5e');
-  const imgW42ColorAfter = createSampleAuditImage('قسم الثياب الملونة والشبابية', 'بعد التعديل: تطبيق قاعدة تدفق الألوان وإبراز ألوان الموسم', '#064e3b', '#10b981');
-
-  const imgW42TablesBefore = createSampleAuditImage('طاولات العرض المركزية', 'الوضع السابق: اختلاف مقاسات الطي وعدم تماثل ارتفاعات الأكوام', '#3f1d24', '#f43f5e');
-  const imgW42TablesAfter = createSampleAuditImage('طاولات العرض المركزية', 'بعد التعديل: استخدام لوح الطي المعتمد وتثبيت حامل بطاقة السعر', '#064e3b', '#10b981');
-
-  const imgW43FootBefore = createSampleAuditImage('قسم الأحذية والإكسسوارات', 'الوضع السابق: اتجاهات غير موحدة للأحذية وتراكم الغبار على الرف', '#3f1d24', '#f43f5e');
-  const imgW43FootAfter = createSampleAuditImage('قسم الأحذية والإكسسوارات', 'بعد التعديل: توجيه الحذاء الأيمن للخارج وتلميع الواجهات والستاندات', '#064e3b', '#10b981');
-
-  const imgW44Pano = createSampleAuditImage('بانوراما شاملة لصالة العرض', 'توثيق خط الرؤية البصري من المدخل حتى طاولات الوسط', '#0f172a', '#f59e0b');
-
-  return [
-    {
-      id: 'audit_cycle_w41_olaya',
-      branchName: 'فرع العليا العام - الرياض',
-      auditorName: 'أحمد المهندس',
-      weekNumber: 41,
-      auditDate: '2026-10-07',
-      monthKey: '2026-10',
-      monthName: 'أكتوبر 2026',
-      savedAt: '2026-10-07T14:30:00.000Z',
-      sections: [
-        {
-          id: 'sec_w41_1',
-          title: 'الواجهة الرئيسية والمانيكانات (Window Display)',
-          layoutType: 'comparison',
-          status: 'resolved',
-          beforeImg: imgW41Before,
-          afterImg: imgW41After,
-          tags: ['تبديل طقم المانيكان', 'توجيه وزوايا الإضاءة', 'تناسق الألوان (Color Story)'],
-          checklist: ['سلامة ونظافة المانيكان وضبط التثبيت والوقفة', 'تطبيق قصة الألوان المعتمدة للواجهة (Color Story)', 'توجيه زوايا الإضاءة والسبوت لايت (45 درجة)'],
-          notes: 'تم تثبيت قاعدة المانيكان وتبديل الطقم ليتماشى مع التشكيلة الموسمية وتوجيه الإضاءة المركزة بزاوية 45 درجة.'
-        },
-        {
-          id: 'sec_w41_2',
-          title: 'قسم الثياب البيضاء (White Thobes)',
-          layoutType: 'comparison',
-          status: 'store_followup',
-          beforeImg: imgW41WhiteBefore,
-          afterImg: imgW41WhiteAfter,
-          tags: ['ترتيب تسلسل المقاسات', 'ضبط مسافات المعاليق (Hanger Spacing)'],
-          checklist: ['تسلسل وترتيب المقاسات تصاعدياً (Size Sequence)', 'توحيد اتجاه ونوعية المعاليق (Hanger Consistency)', 'كوي وتجهيز الثياب وخلوها من التجاعيد'],
-          actionAssignee: 'مدير المعرض',
-          actionDueDate: 'خلال 48 ساعة',
-          notes: 'تم توحيد المعاليق الخشبية وكوي الثياب بالبخار، ويلزم مدير المعرض متابعة استكمال المقاسات الناقصة (مقاس 54 و56) من المستودع.'
-        }
-      ]
-    },
-    {
-      id: 'audit_cycle_w42_nakheel',
-      branchName: 'فرع النخيل مول - الرياض',
-      auditorName: 'أحمد المهندس',
-      weekNumber: 42,
-      auditDate: '2026-10-14',
-      monthKey: '2026-10',
-      monthName: 'أكتوبر 2026',
-      savedAt: '2026-10-14T15:15:00.000Z',
-      sections: [
-        {
-          id: 'sec_w42_1',
-          title: 'قسم الثياب الملونة والشبابية (Colored & Youth Thobes)',
-          layoutType: 'comparison',
-          status: 'resolved',
-          beforeImg: imgW42ColorBefore,
-          afterImg: imgW42ColorAfter,
-          tags: ['تناسق الألوان (Color Story)', 'ترتيب تسلسل المقاسات'],
-          checklist: ['تناسق تدفق الألوان والتدرج البصري (Color Flow)', 'ضبط مسافات المعاليق (قاعدة مسافة الإصبع)', 'إبراز القطع الحديثة والألوان الموسمية في الصدارة'],
-          notes: 'تمت إعادة ترتيب تدفق الألوان من الفاتح إلى الداكن وتوزيع تشكيلة الشباب وتثبيت لواصق الأسعار بدقة.'
-        },
-        {
-          id: 'sec_w42_2',
-          title: 'طاولات العرض المركزية والجدوال (Folded Tables)',
-          layoutType: 'comparison',
-          status: 'resolved',
-          beforeImg: imgW42TablesBefore,
-          afterImg: imgW42TablesAfter,
-          tags: ['إعادة طي وترتيب الطاولات', 'لوحات الأسعار والعروض (POSM)'],
-          checklist: ['تطبيق معيار مقاس الطي المعتمد (Folding Board)', 'تدرج الألوان الأفقي والعمودي على الطاولة', 'تماثل ارتفاعات أكوام الملابس وتناسقها البصري'],
-          notes: 'تم استخدام كرت الطي المعياري لتوحيد مقاس القطع وتثبيت بطاقات الأسعار الشفافة في مقدمة كل كومة.'
-        }
-      ]
-    },
-    {
-      id: 'audit_cycle_w43_tahlia',
-      branchName: 'فرع التحلية - جدة',
-      auditorName: 'سلطان الغامدي',
-      weekNumber: 43,
-      auditDate: '2026-10-21',
-      monthKey: '2026-10',
-      monthName: 'أكتوبر 2026',
-      savedAt: '2026-10-21T11:45:00.000Z',
-      sections: [
-        {
-          id: 'sec_w43_1',
-          title: 'قسم الأحذية والإكسسوارات (Footwear & Accessories)',
-          layoutType: 'comparison',
-          status: 'resolved',
-          beforeImg: imgW43FootBefore,
-          afterImg: imgW43FootAfter,
-          tags: ['توجيه وزوايا الإضاءة', 'تعبئة النواقص والرفوف'],
-          checklist: ['توجيه الحذاء الأيمن للخارج وبزاوية العرض المعتمدة', 'نظافة أرفف العرض والوسائد وقواعد الأحذية الجلدية', 'ترتيب تسلسل الموديلات والألوان الرسمية والكاجوال'],
-          notes: 'تم توجيه الأحذية بزاوية 45 درجة للخارج وتلميع الزجاج وتوزيع المقاسات الشائعة لتسهيل تجربة العميل.'
-        },
-        {
-          id: 'sec_w43_2',
-          title: 'قسم العطور والنظارات (Perfumes & Sunglasses)',
-          layoutType: 'comparison',
-          status: 'management_action',
-          beforeImg: imgW41WhiteBefore,
-          afterImg: imgW41WhiteAfter,
-          tags: ['توجيه وزوايا الإضاءة'],
-          checklist: ['توفير وتجديد عبوات التجربة (Testers) وأشرطة الشم', 'اكتمال الإضاءة الداخلية للفترينات الجدارية'],
-          actionAssignee: 'فريق الصيانة',
-          actionDueDate: 'عاجل خلال 3 أيام',
-          notes: 'وحدات الإضاءة LED في الفترينة الجدارية اليسرى معطلة وبحاجة إلى صيانة كهربائية عاجلة.'
-        }
-      ]
-    },
-    {
-      id: 'audit_cycle_w44_redsea',
-      branchName: 'فرع رد سي مول - جدة',
-      auditorName: 'سلطان الغامدي',
-      weekNumber: 44,
-      auditDate: '2026-10-28',
-      monthKey: '2026-10',
-      monthName: 'أكتوبر 2026',
-      savedAt: '2026-10-28T16:20:00.000Z',
-      sections: [
-        {
-          id: 'sec_w44_1',
-          title: 'الواجهة البانورامية ومدخل الصالة (Main Entrance & Vista)',
-          layoutType: 'single_panorama',
-          status: 'resolved',
-          beforeImg: imgW44Pano,
-          afterImg: imgW44Pano,
-          tags: ['تناسق الألوان (Color Story)', 'لوحات الأسعار والعروض (POSM)'],
-          checklist: ['خلو الممرات الرئيسية من العوائق', 'وضوح خط الرؤية البصري (Focal Point)', 'اكتمال إضاءة السقف والسبوت لايت'],
-          notes: 'تم فتح خط الرؤية البصري من البوابة الرئيسية مباشرة إلى منصة العرض المركزية مما ضاعف جاذبية المعرض.'
-        },
-        {
-          id: 'sec_w44_2',
-          title: 'قسم الملابس الداخلية والولادي (Underwear & Kids)',
-          layoutType: 'comparison',
-          status: 'resolved',
-          beforeImg: imgW41Before,
-          afterImg: imgW41After,
-          tags: ['ترتيب تسلسل المقاسات', 'تعبئة النواقص والرفوف'],
-          checklist: ['ترتيب مقاسات العلب المغلفة وتوحيد واجهة العرض', 'إبراز تشكيلة الأطفال وترتيب المقاسات حسب الأعمار'],
-          notes: 'تمت إعادة تنظيم استاندات القطنيات وتوحيد واجهات العلب الكرتونية وإبراز المقاسات الأكثر طلباً.'
-        }
-      ]
-    }
-  ];
+  return [];
 }
 
 /**
  * جلب قائمة تقارير الجولات الميدانية المؤرشفة من التخزين المحلي
+ * تبدأ فارغة تماماً ([]) وتقتصر حصراً على الجولات الحقيقية المحفوظة يدوياً بواسطة المستخدم
  */
 export function getArchivedAudits() {
-  if (typeof localStorage === 'undefined') return generateSeedAuditArchive();
+  if (typeof localStorage === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_AUDIT_ARCHIVE);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        // تنقية وتطهير الأرشيف من أي جولات تجريبية وهمية سابقة
+        const realAudits = parsed.filter(a => {
+          if (!a || typeof a !== 'object') return false;
+          if (typeof a.id === 'string' && a.id.startsWith('audit_cycle_w4')) return false;
+          if (a.branchName === 'فرع رد سي مول - جدة' || 
+              a.branchName === 'فرع التحلية - جدة' || 
+              a.branchName === 'فرع النخيل مول - الرياض' ||
+              a.auditorName === 'سلطان الغامدي') {
+            return false;
+          }
+          return true;
+        });
+        if (realAudits.length !== parsed.length) {
+          localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(realAudits));
+        }
+        return realAudits;
       }
     }
-    // تهيئة أولية بالأرشيف النموذجي للدورة الشهرية
-    const seed = generateSeedAuditArchive();
-    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(seed));
-    return seed;
+    // تهيئة أولية بقائمة فارغة تماماً
+    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify([]));
+    return [];
   } catch (e) {
-    console.warn('getArchivedAudits error, fallback to seed:', e);
-    return generateSeedAuditArchive();
+    console.warn('getArchivedAudits error:', e);
+    return [];
   }
 }
 
@@ -1431,12 +1287,11 @@ export function deleteArchivedAudit(auditId) {
 }
 
 /**
- * استعادة الأرشيف الافتراضي النموذجي
+ * تفريغ أرشيف الجولات بالكامل
  */
 export function resetArchivedAuditsToDefault() {
-  const seed = generateSeedAuditArchive();
-  saveArchivedAudits(seed);
-  return { success: true, list: seed };
+  saveArchivedAudits([]);
+  return { success: true, list: [] };
 }
 
 /**

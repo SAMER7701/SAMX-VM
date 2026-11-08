@@ -2024,6 +2024,29 @@ export function renderBulkExportUI() {
   // فرز تنازلي حسب التاريخ للأحدث أولاً
   filtered.sort((a, b) => new Date(b.auditDate || 0) - new Date(a.auditDate || 0));
 
+  if (allAudits.length === 0) {
+    listContainer.innerHTML = `
+      <div class="py-12 px-4 text-center border-2 border-dashed border-corp-800 rounded-2xl bg-corp-950/60">
+        <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 mx-auto flex items-center justify-center mb-3">
+          <i data-lucide="archive" class="w-6 h-6"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white mb-1">الأرشيف فارغ حالياً</h4>
+        <p class="text-xs text-slate-400 max-w-md mx-auto mb-4 leading-relaxed">
+          لا توجد جولات تدقيق محفوظة في الأرشيف حتى الآن. يمكنك حفظ مسودة الجولة الحالية بعد توثيقها أو استيراد ملفات JSON سابقة.
+        </p>
+        <button type="button" onclick="archiveCurrentAuditToStorage()" class="inline-flex items-center gap-2 bg-gradient-to-r from-gold-500 to-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow active:scale-95 transition cursor-pointer">
+          <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+          <span>حفظ مسودة الجولة الحالية في الأرشيف 💾</span>
+        </button>
+      </div>
+    `;
+    updateBulkExportSelectionCounter();
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons(); } catch(e){}
+    }
+    return;
+  }
+
   if (filtered.length === 0) {
     listContainer.innerHTML = `
       <div class="py-12 px-4 text-center border-2 border-dashed border-corp-800 rounded-2xl bg-corp-950/60">
@@ -2031,13 +2054,9 @@ export function renderBulkExportUI() {
           <i data-lucide="folder-search" class="w-6 h-6"></i>
         </div>
         <h4 class="text-sm font-bold text-white mb-1">لا توجد جولات تدقيق مطابقة للبحث أو الفترة المحددة</h4>
-        <p class="text-xs text-slate-400 max-w-md mx-auto mb-4">
-          يمكنك حفظ الجولة الحالية في الأرشيف أو رفع ملفات JSON سابقة لتضمينها في التقرير الشهري الشامل.
+        <p class="text-xs text-slate-400 max-w-md mx-auto mb-4 leading-relaxed">
+          يمكنك تعديل كلمات البحث أو اختيار شهر آخر من القائمة المنسدلة أعلاه.
         </p>
-        <button type="button" onclick="archiveCurrentAuditToStorage()" class="inline-flex items-center gap-2 bg-gradient-to-r from-gold-500 to-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow active:scale-95 transition">
-          <i data-lucide="archive" class="w-4 h-4"></i>
-          <span>حفظ مسودة الجولة الحالية في الأرشيف 💾</span>
-        </button>
       </div>
     `;
     updateBulkExportSelectionCounter();

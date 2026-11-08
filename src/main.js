@@ -2996,10 +2996,10 @@ export function downloadSingleArchivedAuditJson(id) {
 }
 
 export function confirmResetArchivedAudits() {
-  if (!confirm('هل ترغب في استعادة الجولات التدقيقية النموذجية الأسبوعية لدورة الشهر الكاملة؟')) return;
+  if (!confirm('هل ترغب في تفريغ أرشيف الجولات المحفوظة بالكامل؟')) return;
   resetArchivedAuditsToDefault();
   renderBulkExportUI();
-  showToast('تمت استعادة جولات الدورة الشهرية النموذجية بنجاح', 'success');
+  showToast('تم تفريغ أرشيف الجولات بنجاح', 'info');
 }
 
 export function toggleReportFooter(show = null) {
