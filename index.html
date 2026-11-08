@@ -82,11 +82,11 @@
     }
 
     @media print {
-      body {
+      html, body {
         background-color: #ffffff !important;
         color: #0f172a !important;
-        padding: 0 !important;
         margin: 0 !important;
+        padding: 0 !important;
       }
       /* Prevent ghost blank page at the very start of print */
       body > *:first-child,
@@ -97,6 +97,15 @@
         break-before: avoid !important;
         margin-top: 0 !important;
         padding-top: 0 !important;
+      }
+      /* Prevent ghost blank page at the end of print */
+      .print-page-section:last-of-type,
+      .executive-cover-page:last-child,
+      body > *:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
       }
       .no-print, header, nav, #toast-container, .modal-backdrop {
         display: none !important;
@@ -250,11 +259,13 @@
       }
 
       /* تذييل الاعتمادات والتوقيعات الرسمية في صفحة مستقلة ختامية */
-      #print-signatures-footer {
+      #print-signatures-footer, .official-signatures-section {
         page-break-before: always !important;
         break-before: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
         height: calc(210mm - 18mm) !important;
         display: flex !important;
         flex-direction: column !important;
@@ -262,6 +273,27 @@
         box-sizing: border-box !important;
         padding: 6mm 0 !important;
         margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
+      /* عندما يكون قسم التوقيعات مخفياً في الطباعة والمعاينة */
+      #print-signatures-footer.hidden,
+      #print-signatures-footer.no-print,
+      .official-signatures-section.hidden,
+      .official-signatures-section.no-print,
+      #print-signatures-footer[style*="display: none"],
+      .official-signatures-section[style*="display: none"] {
+        display: none !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
       }
     }
 
@@ -785,7 +817,7 @@
 
         <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
-            <input type="checkbox" id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+            <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
             <span>إدراج التوقيعات الرسمية</span>
           </label>
           <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
@@ -920,7 +952,7 @@
         </div>
 
         <!-- تذييل التقرير والتوقيعات والاعتمادات الرسمية المحسنة -->
-        <div id="print-signatures-footer" class="print-break-inside-avoid mt-8 pt-6 border-t-2 border-slate-300">
+        <div id="print-signatures-footer" class="print-break-inside-avoid official-signatures-section mt-8 pt-6 border-t-2 border-slate-300">
           <div class="flex items-center justify-between pb-2 mb-4 border-b border-slate-200">
             <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
               <span class="w-5 h-5 rounded bg-slate-900 text-amber-400 flex items-center justify-center text-xs">✍️</span>

@@ -287,6 +287,7 @@ export async function bootApp() {
     refreshBranchesUI();
     refreshSpecialistsUI();
     refreshMainSelects();
+    toggleReportFooter();
   } catch (e) {
     console.warn('Boot UI refresh error:', e);
   }
@@ -2740,6 +2741,7 @@ export function switchTab(tabId) {
 
   if (tabId === 'preview') {
     renderPrintSections();
+    toggleReportFooter();
   } else if (tabId === 'settings') {
     renderBulkExportUI();
   }
@@ -2978,15 +2980,23 @@ export function confirmResetArchivedAudits() {
   showToast('تمت استعادة جولات الدورة الشهرية النموذجية بنجاح', 'success');
 }
 
-export function toggleReportFooter(show) {
-  const footer = document.getElementById('print-signatures-footer');
-  if (footer) {
-    if (show) {
-      footer.classList.remove('hidden', 'no-print');
-      footer.style.display = 'grid';
+export function toggleReportFooter(show = null) {
+  const toggleCb = document.getElementById('toggleSignatures') || document.getElementById('toggle-print-footer');
+  const showSignatures = (typeof show === 'boolean') 
+    ? show 
+    : (toggleCb?.checked ?? true);
+
+  if (toggleCb && typeof show === 'boolean' && toggleCb.checked !== show) {
+    toggleCb.checked = show;
+  }
+
+  const signatureSection = document.querySelector('.official-signatures-section') || document.getElementById('print-signatures-footer');
+  if (signatureSection) {
+    signatureSection.style.display = showSignatures ? 'block' : 'none';
+    if (showSignatures) {
+      signatureSection.classList.remove('hidden', 'no-print');
     } else {
-      footer.classList.add('hidden', 'no-print');
-      footer.style.display = 'none';
+      signatureSection.classList.add('hidden', 'no-print');
     }
   }
 }
@@ -3319,6 +3329,7 @@ export function printReport() {
   }
   syncBrandingUI();
   renderPrintSections();
+  toggleReportFooter();
   const cleanBranch = (currentAudit.branchName || 'تقرير_VM').replace(/[/\\?%*:|"<>]/g, '_');
   const cleanDate = (currentAudit.auditDate || '').replace(/[/\\?%*:|"<>]/g, '_');
   const originalTitle = document.title;
