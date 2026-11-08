@@ -1,12 +1,26 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.6.0
- * Architecture: Modular Local-First ES Module
+ * Version: 1.6.1
+ * Architecture: IndexedDB-First + Memory Cache + R2 Cloud Sync
  */
 
-export const APP_VERSION = '1.6.0';
+export const APP_VERSION = '1.6.1';
 
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
+import {
+  openDatabase,
+  saveActiveTourIDB,
+  loadActiveTourIDB,
+  clearActiveTourIDB,
+  saveArchivedTourIDB,
+  saveAllArchivedToursIDB,
+  getAllArchivedToursIDB,
+  getArchivedTourByIdIDB,
+  deleteArchivedTourIDB,
+  clearArchivedToursIDB,
+  migrateLocalStorageToIndexedDB,
+  getStorageQuotaInfo
+} from './idb.js';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
@@ -946,56 +960,95 @@ export function getSectionSubOptions(sec, statusKey) {
   return [];
 }
 
-// حفظ التقرير في التخزين المحلي
+// مؤقت تأخير حفظ IndexedDB لتجميع التعديلات المتتالية (Debounce)
+let idbSaveTimer = null;
+
+function applyLoadedAuditData(parsed) {
+  if (parsed && typeof parsed === 'object') {
+    currentAudit.id = parsed.id || currentAudit.id;
+    currentAudit.branchName = parsed.branchName || currentAudit.branchName;
+    currentAudit.auditorName = parsed.auditorName || currentAudit.auditorName;
+    currentAudit.weekNumber = parsed.weekNumber || currentAudit.weekNumber;
+    currentAudit.auditDate = parsed.auditDate || currentAudit.auditDate;
+    currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+    currentAudit.visitSummary = parsed.visitSummary !== undefined ? parsed.visitSummary : '';
+  } else {
+    currentAudit.sections = [];
+    currentAudit.visitSummary = '';
+  }
+}
+
+// حفظ التقرير والجولة النشطة في IndexedDB الآمن مع منع مشاكل QuotaExceededError نهائياً
 export function saveAuditToStorage() {
   try {
-    const json = JSON.stringify(currentAudit);
-    localStorage.setItem(APP_STORAGE_KEY, json);
-    localStorage.setItem(STORAGE_KEY_CURRENT_TOUR, json);
+    // 1. الحفظ الفعلي للصور والبيانات الكاملة في IndexedDB (مساحة غير محدودة)
+    if (typeof window !== 'undefined') {
+      if (idbSaveTimer) clearTimeout(idbSaveTimer);
+      idbSaveTimer = setTimeout(() => {
+        saveActiveTourIDB(currentAudit).catch(err => {
+          console.warn('[SAMX Storage] IDB active tour save error:', err);
+        });
+      }, 60);
+    }
+
+    // 2. تحديث مؤشر الحفظ في شريط التطبيق العلوي
     const ind = document.getElementById('save-status-indicator');
     if (ind) {
-      ind.innerText = 'محفوظ محلياً ' + new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      ind.innerText = 'محفوظ محلياً (IndexedDB) ' + new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
     }
+
+    // 3. تخزين ملخص تعريفي خفيف جداً فقط في localStorage (بدون الصور نهائياً < 2KB)
+    try {
+      const lightweightStub = {
+        id: currentAudit.id,
+        branchName: currentAudit.branchName,
+        auditorName: currentAudit.auditorName,
+        weekNumber: currentAudit.weekNumber,
+        auditDate: currentAudit.auditDate,
+        sectionsCount: Array.isArray(currentAudit.sections) ? currentAudit.sections.length : 0,
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('samx_vm_active_stub', JSON.stringify(lightweightStub));
+    } catch (_) {}
+
     return true;
   } catch (err) {
-    console.warn('LocalStorage limit reached', err);
-    if (typeof window.showToast === 'function') {
-      window.showToast('تنبيه: مساحة التخزين المحلي على جهازك ممتلئة بالصور', 'error');
-    }
+    console.warn('[SAMX Storage] saveAuditToStorage error:', err);
     return false;
   }
 }
 
-// استرجاع التقرير من التخزين المحلي
-export function loadAuditFromStorage() {
+// استرجاع التقرير من محرك التخزين الفائق IndexedDB مع دعم الهجرة التلقائية
+export async function loadAuditFromStorage() {
   try {
-    let saved = localStorage.getItem(APP_STORAGE_KEY);
-    if (!saved) {
-      saved = localStorage.getItem(STORAGE_KEY_CURRENT_TOUR);
+    // 1. محاولة القراءة المباشرة من IndexedDB (المصدر الأساسي الكامل)
+    const idbData = await loadActiveTourIDB();
+    if (idbData && typeof idbData === 'object' && Array.isArray(idbData.sections)) {
+      applyLoadedAuditData(idbData);
+      return currentAudit;
     }
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object') {
-        currentAudit.id = parsed.id || currentAudit.id;
-        currentAudit.branchName = parsed.branchName || currentAudit.branchName;
-        currentAudit.auditorName = parsed.auditorName || currentAudit.auditorName;
-        currentAudit.weekNumber = parsed.weekNumber || currentAudit.weekNumber;
-        currentAudit.auditDate = parsed.auditDate || currentAudit.auditDate;
-        currentAudit.sections = Array.isArray(parsed.sections) ? parsed.sections : [];
-        currentAudit.visitSummary = parsed.visitSummary !== undefined ? parsed.visitSummary : '';
-      } else {
-        currentAudit.sections = [];
-        currentAudit.visitSummary = '';
+
+    // 2. فحص الهجرة من التخزين المحلي القديم إن وجد (قبل حذفه)
+    if (typeof localStorage !== 'undefined') {
+      let saved = localStorage.getItem(APP_STORAGE_KEY) || localStorage.getItem(STORAGE_KEY_CURRENT_TOUR);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          applyLoadedAuditData(parsed);
+          // حفظ فوري في IndexedDB وتفريغ المفاتيح الثقيلة من localStorage لمنع امتلاء الذاكرة
+          await saveActiveTourIDB(currentAudit);
+          try {
+            localStorage.removeItem(APP_STORAGE_KEY);
+            localStorage.removeItem(STORAGE_KEY_CURRENT_TOUR);
+          } catch (_) {}
+          return currentAudit;
+        }
       }
-    } else {
-      currentAudit.sections = [];
-      currentAudit.visitSummary = '';
-      saveAuditToStorage();
     }
   } catch (e) {
-    currentAudit.sections = [];
-    currentAudit.visitSummary = '';
+    console.warn('loadAuditFromStorage error:', e);
   }
+
   if (!Array.isArray(currentAudit.sections)) {
     currentAudit.sections = [];
   }
@@ -1153,61 +1206,87 @@ export function generateSeedAuditArchive() {
  * جلب قائمة تقارير الجولات الميدانية المؤرشفة من التخزين المحلي
  * تبدأ فارغة تماماً ([]) وتقتصر حصراً على الجولات الحقيقية المحفوظة يدوياً بواسطة المستخدم
  */
-export function getArchivedAudits() {
-  if (typeof localStorage === 'undefined') return [];
+// مخزن الذاكرة الحية فائق السرعة لأرشيف الجولات (In-Memory High-Speed Cache)
+let cachedArchivedAudits = [];
+let isArchiveLoadedFromIDB = false;
+
+/**
+ * تهيئة محرك التخزين الفائق IndexedDB وهجرة بيانات localStorage بأمان تام
+ */
+export async function initStorageEngine() {
   try {
-    let raw = localStorage.getItem(STORAGE_KEY_AUDIT_ARCHIVE);
-    if (!raw) {
-      raw = localStorage.getItem(STORAGE_KEY_SAVED_TOURS);
+    await openDatabase();
+
+    // 1. تشغيل الهجرة الآمنة ونقل البيانات من localStorage إلى IndexedDB مع تفريغ المفاتيح الثقيلة
+    await migrateLocalStorageToIndexedDB();
+
+    // 2. تحميل الأرشيف الكامل من IndexedDB إلى الذاكرة المؤقتة الحية
+    const idbList = await getAllArchivedToursIDB();
+    if (Array.isArray(idbList) && idbList.length > 0) {
+      cachedArchivedAudits = idbList.map(a => ({
+        ...a,
+        ownerUsername: a.ownerUsername || 'sam',
+        specialistName: a.specialistName || a.auditorName || 'سمير سلطان'
+      }));
+    } else {
+      cachedArchivedAudits = [];
     }
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        // تنقية وتطهير الأرشيف من أي جولات تجريبية وهمية سابقة وضمان عائديتها للأخصائي أو الإدارة
-        const realAudits = parsed.filter(a => {
-          if (!a || typeof a !== 'object') return false;
-          if (typeof a.id === 'string' && a.id.startsWith('audit_cycle_w4')) return false;
-          if (a.branchName === 'فرع رد سي مول - جدة' || 
-              a.branchName === 'فرع التحلية - جدة' || 
-              a.branchName === 'فرع النخيل مول - الرياض' ||
-              a.auditorName === 'سلطان الغامدي') {
-            return false;
-          }
-          return true;
-        }).map(a => ({
-          ...a,
-          ownerUsername: a.ownerUsername || 'sam',
-          specialistName: a.specialistName || a.auditorName || 'سمير سلطان'
-        }));
-        localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(realAudits));
-        localStorage.setItem(STORAGE_KEY_SAVED_TOURS, JSON.stringify(realAudits));
-        return realAudits;
-      }
-    }
-    // تهيئة أولية بقائمة فارغة تماماً
-    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEY_SAVED_TOURS, JSON.stringify([]));
-    return [];
-  } catch (e) {
-    console.warn('getArchivedAudits error:', e);
-    return [];
+    isArchiveLoadedFromIDB = true;
+
+    // 3. تحميل الجولة النشطة بكامل صورها من IndexedDB
+    await loadAuditFromStorage();
+    return true;
+  } catch (err) {
+    console.warn('[SAMX Storage] initStorageEngine error:', err);
+    return false;
   }
 }
 
 /**
- * حفظ قائمة تقارير الجولات في التخزين المحلي (تزامن كامل مع savedTours)
+ * جلب قائمة تقارير الجولات الميدانية المؤرشفة بسرعة 0ms من مخزن الذاكرة المؤقتة
+ * المدعوم بقاعدة بيانات IndexedDB الخالية من قيود مساحة الـ 5MB
+ */
+export function getArchivedAudits() {
+  if (cachedArchivedAudits.length > 0 || isArchiveLoadedFromIDB) {
+    return cachedArchivedAudits;
+  }
+
+  // محاولة قراءة متزامنة احتياطية من التخزين المحلي فقط في حال لم تنتهِ بعد تهيئة IndexedDB
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_AUDIT_ARCHIVE) || localStorage.getItem(STORAGE_KEY_SAVED_TOURS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          cachedArchivedAudits = parsed.filter(a => {
+            if (!a || typeof a !== 'object') return false;
+            if (typeof a.id === 'string' && a.id.startsWith('audit_cycle_w4')) return false;
+            return true;
+          }).map(a => ({
+            ...a,
+            ownerUsername: a.ownerUsername || 'sam',
+            specialistName: a.specialistName || a.auditorName || 'سمير سلطان'
+          }));
+        }
+      }
+    } catch (_) {}
+  }
+  return cachedArchivedAudits;
+}
+
+/**
+ * حفظ قائمة تقارير الجولات في محرك IndexedDB والذاكرة الحية (بدون إغراق localStorage)
  */
 export function saveArchivedAudits(audits) {
   if (!Array.isArray(audits)) return false;
-  try {
-    const json = JSON.stringify(audits);
-    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, json);
-    localStorage.setItem(STORAGE_KEY_SAVED_TOURS, json);
-    return true;
-  } catch (e) {
-    console.error('saveArchivedAudits error:', e);
-    return false;
-  }
+  cachedArchivedAudits = audits;
+
+  // حفظ غير متزامن فائق السرعة في IndexedDB
+  saveAllArchivedToursIDB(audits).catch(err => {
+    console.warn('[SAMX Storage] saveArchivedAudits IDB error:', err);
+  });
+
+  return true;
 }
 
 /**
@@ -1223,6 +1302,7 @@ function getCurrentSessionUser() {
 
 /**
  * حفظ مسودة التدقيق الحالية النشطة كنسخة مستقلة في الأرشيف وسجل الجولات
+ * مع رفع تلقائي مباشر لسحابة Cloudflare D1 و R2 (STORAGE_BUCKET)
  */
 export function archiveCurrentAudit() {
   if (!currentAudit) {
@@ -1270,6 +1350,19 @@ export function archiveCurrentAudit() {
   }
 
   saveArchivedAudits(list);
+
+  // 1. حفظ فوري في جدول الأرشيف في IndexedDB
+  saveArchivedTourIDB(auditCopy).catch(e => console.warn('saveArchivedTourIDB error:', e));
+
+  // 2. ترحيل وتفريغ سحابي مباشر إلى Cloudflare D1 و R2 (STORAGE_BUCKET) في الخلفية
+  try {
+    import('./api.js').then(api => {
+      if (api && typeof api.saveTourCloud === 'function') {
+        api.saveTourCloud(auditCopy).catch(err => console.warn('[SAMX Cloud Sync] Auto tour offload error:', err));
+      }
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true, item: auditCopy, list };
 }
 
@@ -1278,7 +1371,7 @@ export function archiveCurrentAudit() {
  * لضمان عدم ضياع التقرير الحالي للمستخدم وظهوره مباشرة في سجل الجولات
  */
 export function autoMigrateActiveTourToArchive() {
-  if (typeof localStorage === 'undefined') return;
+  if (typeof localStorage === 'undefined' && typeof window === 'undefined') return;
   try {
     const list = getArchivedAudits();
     
@@ -1328,6 +1421,7 @@ export function autoMigrateActiveTourToArchive() {
         list.unshift(activeEntry);
       }
       saveArchivedAudits(list);
+      saveArchivedTourIDB(activeEntry).catch(() => {});
     }
   } catch (err) {
     console.warn('autoMigrateActiveTourToArchive error:', err);
@@ -1370,6 +1464,7 @@ export function addAuditsToArchive(auditsToAdd) {
       } else {
         list.push(normalized);
       }
+      saveArchivedTourIDB(normalized).catch(() => {});
       addedCount++;
     }
   });
@@ -1382,16 +1477,29 @@ export function addAuditsToArchive(auditsToAdd) {
  * حذف تقرير تدقيق من الأرشيف
  */
 export function deleteArchivedAudit(auditId) {
-  const list = getArchivedAudits().filter(a => a.id !== auditId);
-  saveArchivedAudits(list);
-  return { success: true, list };
+  cachedArchivedAudits = getArchivedAudits().filter(a => a.id !== auditId);
+  saveArchivedAudits(cachedArchivedAudits);
+  deleteArchivedTourIDB(auditId).catch(e => console.warn('deleteArchivedTourIDB error:', e));
+
+  // حذف اختياري من سحابة D1/R2
+  try {
+    import('./api.js').then(api => {
+      if (api && typeof api.deleteTourCloud === 'function') {
+        api.deleteTourCloud(auditId).catch(() => {});
+      }
+    }).catch(() => {});
+  } catch (_) {}
+
+  return { success: true, list: cachedArchivedAudits };
 }
 
 /**
  * تفريغ أرشيف الجولات بالكامل
  */
 export function resetArchivedAuditsToDefault() {
+  cachedArchivedAudits = [];
   saveArchivedAudits([]);
+  clearArchivedToursIDB().catch(e => console.warn('clearArchivedToursIDB error:', e));
   return { success: true, list: [] };
 }
 
@@ -1468,6 +1576,8 @@ if (typeof window !== 'undefined') {
   window.deleteArchivedAudit = deleteArchivedAudit;
   window.resetArchivedAuditsToDefault = resetArchivedAuditsToDefault;
   window.getArchivedAuditById = getArchivedAuditById;
+  window.initStorageEngine = initStorageEngine;
+  window.getStorageQuotaInfo = getStorageQuotaInfo;
   window.STORAGE_KEY_SAVED_TOURS = STORAGE_KEY_SAVED_TOURS;
   window.STORAGE_KEY_CURRENT_TOUR = STORAGE_KEY_CURRENT_TOUR;
 }

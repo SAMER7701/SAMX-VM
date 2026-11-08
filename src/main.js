@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.0
+ * Version: 1.6.1
  * Architecture: ES Modules Coordinator
  */
 
@@ -36,6 +36,7 @@ import {
   deleteBranchItem,
   addSpecialistItem,
   deleteSpecialistItem,
+  initStorageEngine,
   saveAuditToStorage,
   loadAuditFromStorage,
   calculateCurrentWeek,
@@ -60,6 +61,8 @@ import {
   getSectionSubOptions,
   STORAGE_KEY_USERS_REGISTRY
 } from './store.js';
+
+import { optimizeImage } from './imageOptimizer.js';
 
 import {
   getActiveAuthSession,
@@ -425,6 +428,13 @@ export function lockOrLogoutSession() {
 // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية
 export async function bootApp() {
   try { initSplashScreen(); } catch(e) {}
+
+  // 0. تهيئة محرك التخزين الفائق IndexedDB وهجرة وتنظيف مساحة التخزين المحلي فوراً
+  try {
+    await initStorageEngine();
+  } catch (idbErr) {
+    console.warn('Boot IndexedDB init error:', idbErr);
+  }
 
   // 1. المزامنة السحابية الفورية لجلب الفروع والأخصائيين من سحابة D1 أولاً قبل تهيئة الحقول
   try {
@@ -2198,69 +2208,50 @@ export function resetImageConfig(type) {
   syncImageControlsUI(type);
 }
 
-// ضغط الصور الميدانية الذكي عبر Canvas
-export function processImageFile(event, type) {
-  const file = event.target.files[0];
+// ضغط الصور الميدانية الذكي عبر Canvas الفائق (1400px WebP / JPEG 0.78)
+export async function processImageFile(event, type) {
+  const file = event?.target?.files?.[0];
   if (!file) return;
 
-  showToast('جاري تحسين وضغط الصورة...', 'info');
+  showToast('جاري تحسين وضغط الصورة الذكي...', 'info');
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      const maxDimension = 1280;
+  try {
+    const result = await optimizeImage(file, 1400, 0.78);
+    const compressedDataUrl = result.dataUrl;
 
-      if (width > height && width > maxDimension) {
-        height = Math.round((height * maxDimension) / width);
-        width = maxDimension;
-      } else if (height > maxDimension) {
-        width = Math.round((width * maxDimension) / height);
-        height = maxDimension;
-      }
+    if (type === 'before') {
+      modalState.tempImgBefore = compressedDataUrl;
+      const imgEl = document.getElementById('img-elem-before');
+      if (imgEl) imgEl.src = compressedDataUrl;
+      const box = document.getElementById('box-preview-before');
+      if (box) box.classList.remove('hidden');
+      const ph = document.getElementById('placeholder-before');
+      if (ph) ph.classList.add('hidden');
+      const ctrl = document.getElementById('image-controls-before');
+      if (ctrl) ctrl.classList.remove('hidden');
+      applyImageConfigToPreview('before');
+    } else {
+      modalState.tempImgAfter = compressedDataUrl;
+      const imgEl = document.getElementById('img-elem-after');
+      if (imgEl) imgEl.src = compressedDataUrl;
+      const box = document.getElementById('box-preview-after');
+      if (box) box.classList.remove('hidden');
+      const ph = document.getElementById('placeholder-after');
+      if (ph) ph.classList.add('hidden');
+      const ctrl = document.getElementById('image-controls-after');
+      if (ctrl) ctrl.classList.remove('hidden');
+      applyImageConfigToPreview('after');
+    }
 
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-
-      if (type === 'before') {
-        modalState.tempImgBefore = compressedDataUrl;
-        const imgEl = document.getElementById('img-elem-before');
-        if (imgEl) imgEl.src = compressedDataUrl;
-        const box = document.getElementById('box-preview-before');
-        if (box) box.classList.remove('hidden');
-        const ph = document.getElementById('placeholder-before');
-        if (ph) ph.classList.add('hidden');
-        const ctrl = document.getElementById('image-controls-before');
-        if (ctrl) ctrl.classList.remove('hidden');
-        applyImageConfigToPreview('before');
-      } else {
-        modalState.tempImgAfter = compressedDataUrl;
-        const imgEl = document.getElementById('img-elem-after');
-        if (imgEl) imgEl.src = compressedDataUrl;
-        const box = document.getElementById('box-preview-after');
-        if (box) box.classList.remove('hidden');
-        const ph = document.getElementById('placeholder-after');
-        if (ph) ph.classList.add('hidden');
-        const ctrl = document.getElementById('image-controls-after');
-        if (ctrl) ctrl.classList.remove('hidden');
-        applyImageConfigToPreview('after');
-      }
-
-      showToast('تمت إضافة الصورة بنجاح', 'success');
-      if (window.lucide && typeof lucide.createIcons === 'function') {
-        try { lucide.createIcons(); } catch(e){}
-      }
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+    const kbSize = Math.round(result.compressedSize / 1024);
+    showToast(`تمت إضافة الصورة بنجاح (${kbSize} كيلوبايت - جودة طباعة فائقة 1400px)`, 'success');
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  } catch (err) {
+    console.error('processImageFile error:', err);
+    showToast('تعذر معالجة الصورة المحددة', 'error');
+  }
 }
 
 export function clearModalImage(type) {

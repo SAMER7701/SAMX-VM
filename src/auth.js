@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Authentication & Biometric Security Engine (Phase 2)
- * Version: 1.6.0
+ * Version: 1.6.1
  * Features:
  * - Immutable Super Admin (sam / 7701)
  * - Session Management (sessionStorage) & Role-Based Access Control (RBAC)

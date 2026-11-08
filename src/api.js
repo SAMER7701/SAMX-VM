@@ -1,7 +1,7 @@
 /**
  * SAMX-VM Cloudflare API Client & Sync Layer
  * Architecture: 100% Cloud-First Direct Synchronization (Cloudflare D1 & R2)
- * Version: 1.6.0
+ * Version: 1.6.1
  */
 
 import {
@@ -12,6 +12,7 @@ import {
   getArchivedAudits,
   saveArchivedAudits,
 } from './store.js';
+import { saveActiveTourIDB } from './idb.js';
 
 // الرابط الرسمي للخادم السحابي وقاعدة بيانات D1
 export const CLOUDFLARE_WORKER_ORIGIN = 'https://samx-vm.sameer-sultan1.workers.dev';
@@ -477,14 +478,14 @@ export async function saveAuditCloud(auditData) {
     }
   }
 
-  // في حال فشل الاتصال يتم الحفظ في التخزين المحلي
+  // في حال فشل الاتصال يتم الحفظ في محرك التخزين الفائق IndexedDB
   try {
-    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(payload));
+    saveActiveTourIDB(payload);
   } catch (e) {
-    console.warn('LocalStorage save error:', e);
+    console.warn('[SAMX API] IDB save fallback error:', e);
   }
 
-  return { success: true, source: 'local_storage', audit: payload };
+  return { success: true, source: 'indexed_db', audit: payload };
 }
 
 /**
