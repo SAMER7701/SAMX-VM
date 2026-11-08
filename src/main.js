@@ -3549,19 +3549,20 @@ export function openSmartAuditorModal() {
       statsSummary.innerText = `${tempAuditorAnalysis.stats.totalSections} أقسام تم فحصها (${tempAuditorAnalysis.stats.fullyResolved} مكتمل، ${tempAuditorAnalysis.stats.beforeAfterCount} مقارنة قبل/بعد)`;
     }
 
-    // إعداد قائمة نقاط القوة
+    // إعداد قائمة نقاط القوة والإنجازات الميدانية
     const strengthsList = document.getElementById('ai-auditor-strengths-list');
     const strengthsCount = document.getElementById('ai-auditor-strengths-count');
-    if (strengthsCount) strengthsCount.innerText = tempAuditorAnalysis.strengths.length;
+    const positiveItems = tempAuditorAnalysis.positiveFindings || [];
+    if (strengthsCount) strengthsCount.innerText = positiveItems.length;
     if (strengthsList) {
-      if (tempAuditorAnalysis.strengths.length === 0) {
-        strengthsList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد نقاط قوة مكتملة مرصودة بعد</div>`;
+      if (positiveItems.length === 0) {
+        strengthsList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد بنود إنجاز مكتملة مرصودة</div>`;
       } else {
-        strengthsList.innerHTML = tempAuditorAnalysis.strengths.map(s => `
+        strengthsList.innerHTML = positiveItems.map(s => `
           <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-emerald-500/20">
             <span class="text-emerald-400 font-bold shrink-0">✓</span>
             <div>
-              <strong class="text-emerald-300 block text-[10.5px]">${s.section}</strong>
+              <strong class="text-emerald-300 block text-[10.5px]">${s.source}</strong>
               <span class="text-slate-300 text-[10px] leading-relaxed">${s.text}</span>
             </div>
           </div>
@@ -3569,36 +3570,31 @@ export function openSmartAuditorModal() {
       }
     }
 
-    // إعداد قائمة البنود المعلقة
+    // إعداد قائمة البنود المعلقة والملاحظات التشغيلية الحرجة
     const pendingList = document.getElementById('ai-auditor-pending-list');
     const pendingCount = document.getElementById('ai-auditor-pending-count');
-    if (pendingCount) pendingCount.innerText = tempAuditorAnalysis.pendingItems.length;
+    const negativeItems = tempAuditorAnalysis.negativeFindings || [];
+    if (pendingCount) pendingCount.innerText = negativeItems.length;
     if (pendingList) {
-      if (tempAuditorAnalysis.pendingItems.length === 0) {
-        pendingList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد بنود معلقة حرجة مرصودة</div>`;
+      if (negativeItems.length === 0) {
+        pendingList.innerHTML = `<div class="text-slate-400 py-1 text-center">لا توجد ملاحظات أو قصور تشغيلي مرصود</div>`;
       } else {
-        pendingList.innerHTML = tempAuditorAnalysis.pendingItems.map(p => `
-          <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-amber-500/20">
-            <span class="text-amber-400 font-bold shrink-0">⏳</span>
+        pendingList.innerHTML = negativeItems.map(p => `
+          <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-rose-500/30">
+            <span class="text-rose-400 font-bold shrink-0">⚠️</span>
             <div>
-              <strong class="text-amber-300 block text-[10.5px]">${p.section}</strong>
-              <span class="text-slate-300 text-[10px] leading-relaxed">${p.text}</span>
+              <strong class="text-rose-300 block text-[10.5px]">${p.source}</strong>
+              <span class="text-slate-200 text-[10px] leading-relaxed">${p.text}</span>
             </div>
           </div>
         `).join('');
       }
     }
 
-    // إعداد الصياغة التنفيذية المقترحة
-    const summaryRewrite = document.getElementById('ai-auditor-summary-rewrite');
-    if (summaryRewrite) {
-      summaryRewrite.value = tempAuditorAnalysis.polishedSummary || (currentAudit.visitSummary || '');
-    }
-
     showModal('smart-auditor-modal');
   } catch (err) {
     console.error('openSmartAuditorModal error:', err);
-    showToast('حدث خطأ أثناء تشغيل المدقق الذكي', 'error');
+    showToast('حدث خطأ أثناء تشغيل المدقق الذكي لمؤشر الجاهزية', 'error');
   }
 }
 
@@ -3632,27 +3628,20 @@ export function onAuditorScoreSliderChange(val) {
 
 export function applySmartAuditorResults() {
   try {
-    // 1. تطبيق مؤشر الجاهزية المعتمد
+    // 1. تطبيق مؤشر الجاهزية المعتمد في كائن الجولة
     currentAudit.readinessScore = tempAuditorScore;
 
-    // 2. تطبيق الصياغة التنفيذية المصححة
-    const summaryRewrite = document.getElementById('ai-auditor-summary-rewrite');
-    if (summaryRewrite && summaryRewrite.value.trim()) {
-      currentAudit.visitSummary = summaryRewrite.value.trim();
-    }
-
-    // 3. الحفظ في IndexedDB والمزامنة السحابية
+    // 2. الحفظ في IndexedDB والمزامنة السحابية
     saveAuditToStorage();
 
-    // 4. تحديث عروض التقرير فورياً
-    renderVisitSummary();
+    // 3. تحديث شارة مؤشر الجاهزية فورياً في ترويسة التقرير
     syncQuickDisplays();
 
     closeSmartAuditorModal();
-    showToast(`✅ تم اعتماد تدقيق الجولة وضبط مؤشر الجاهزية على (${tempAuditorScore}%) بنجاح!`, 'success');
+    showToast(`✅ تم اعتماد وتطبيق مؤشر الجاهزية الذكي (${tempAuditorScore}%) بنجاح!`, 'success');
   } catch (err) {
     console.error('applySmartAuditorResults error:', err);
-    showToast('فشل تطبيق نتائج التدقيق', 'error');
+    showToast('فشل تطبيق مؤشر الجاهزية', 'error');
   }
 }
 

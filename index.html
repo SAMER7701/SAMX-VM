@@ -920,9 +920,9 @@
               <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
               <span>إظهار مؤشر الجاهزية (%)</span>
             </label>
-            <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي ومحلل الجاهزية اللغوي والتنفيذي">
+            <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
               <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
-              <span>🔍 تدقيق ذكي وتحليل الجاهزية</span>
+              <span>🔍 تدقيق الذكي لمؤشر الجاهزية</span>
             </button>
           </div>
           <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
@@ -992,27 +992,44 @@
               </div>
             </div>
 
-            <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (معاينة مطبوعة نقية 100% WYSIWYG قابلة للنقر للتخصيص) -->
-            <div id="print-visit-summary-wrapper" onclick="openVisitSummaryModal()" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all cursor-pointer group hover:border-slate-400 hover:shadow-md" title="انقر لتخصيص أو تعديل ملخص الزيارة">
-              <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
-                <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
-                  <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
-                  <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
-                  <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
-                  <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
-                </div>
-                <div class="no-print flex items-center gap-1.5 text-xs text-slate-400 group-hover:text-amber-600 transition font-medium">
-                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                  <span>تعديل الملخص</span>
-                </div>
+          <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
+          <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
+              <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
+                <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
+                <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
+                <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
+                <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
               </div>
-
-              <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية النظيفة -->
-              <div id="print-visit-summary-list" class="space-y-2">
-                <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
+              <div class="no-print flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
+                  <span>تجميع تلقائي</span>
+                </button>
+                <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إضافة سطر نقطة جديدة">
+                  <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>إضافة نقطة +</span>
+                </button>
+                <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="فتح نافذة التعديل والمعاينة الكاملة">
+                  <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-700"></i>
+                  <span>نافذة التخصيص</span>
+                </button>
               </div>
             </div>
-          </div>
+
+            <!-- حاوية التحرير المباشر التفاعلي للملخص (Interactive In-Place Editor) - تظهر للشاشة وتختفي عند الطباعة -->
+            <div class="no-print space-y-2 mb-3">
+              <div class="relative">
+                <textarea id="report-visit-summary-input" rows="5" oninput="updateLiveVisitSummary(this.value)" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-slate-50 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 rounded-xl p-3 text-xs md:text-sm text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none leading-relaxed transition font-medium placeholder:text-slate-400 resize-y shadow-inner"></textarea>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                <span class="flex items-center gap-1">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>تحرير مباشر لحظي: يتم حفظ كل تعديل واعتماده فوراً للتصدير كـ PDF و PowerPoint.</span>
+                </span>
+                <span class="text-slate-400">سطر جديد = نقطة إنجاز مستقلة</span>
+              </div>
+            </div>
 
             <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية -->
             <div id="print-visit-summary-list" class="space-y-2">
@@ -2403,7 +2420,7 @@
 
         <button type="button" onclick="applySmartAuditorResults()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 flex items-center gap-2 cursor-pointer">
           <i data-lucide="check-check" class="w-4 h-4"></i>
-          <span>✨ تطبيق التعديلات واعتماد المؤشر</span>
+          <span>✨ اعتماد وتطبيق مؤشر الجاهزية الذكي</span>
         </button>
       </div>
 
