@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.6.2
+ * Version: 1.6.3
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -628,15 +628,18 @@ export function syncQuickDisplays() {
   const quickStore = document.getElementById('quick-store-name');
   if (quickStore) quickStore.innerText = branchDisplay;
 
+  const quickDate = document.getElementById('quick-audit-date');
+  if (quickDate) quickDate.innerText = currentAudit.auditDate || new Date().toISOString().split('T')[0];
+
   const quickWeek = document.getElementById('quick-audit-week');
-  if (quickWeek) quickWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
+  if (quickWeek) quickWeek.style.display = 'none';
 
   // تحديث شريط سياق الجولة النشطة المخصص للهواتف الذكية
   const mobileContextBranch = document.getElementById('mobile-context-branch');
   if (mobileContextBranch) mobileContextBranch.innerText = branchDisplay;
 
   const mobileContextWeek = document.getElementById('mobile-context-week');
-  if (mobileContextWeek) mobileContextWeek.innerText = 'أسبوع ' + (currentAudit.weekNumber || 43);
+  if (mobileContextWeek) mobileContextWeek.remove();
 
   const printStore = document.getElementById('print-header-store');
   if (printStore) printStore.innerText = branchDisplay;
@@ -891,7 +894,17 @@ export function populateSpecialistSelect() {
   }
 
   const specialists = getSpecialists();
-  if (specialists.length === 0) {
+  const existingNames = specialists.map(s => typeof s === 'string' ? s : (s.name || ''));
+
+  // Ensure currentAudit.auditorName is always represented in options
+  const fullList = [...specialists];
+  if (currentAudit.auditorName && !existingNames.includes(currentAudit.auditorName)) {
+    fullList.unshift({ id: 'active_specialist', name: currentAudit.auditorName });
+  } else if (!currentAudit.auditorName && existingNames.length > 0) {
+    currentAudit.auditorName = existingNames[0];
+  }
+
+  if (fullList.length === 0) {
     if (currentAudit.auditorName) {
       specialistSelect.innerHTML = `<option value="${currentAudit.auditorName}" selected>${currentAudit.auditorName}</option>`;
     } else {
@@ -900,16 +913,8 @@ export function populateSpecialistSelect() {
     return;
   }
 
-  const specialistNames = specialists.map(s => typeof s === 'string' ? s : (s.name || ''));
-
-  if (!currentAudit.auditorName && specialistNames.length > 0) {
-    currentAudit.auditorName = specialistNames[0];
-  } else if (currentAudit.auditorName && !specialistNames.includes(currentAudit.auditorName)) {
-    specialistNames.unshift(currentAudit.auditorName);
-  }
-
   let html = '';
-  specialists.forEach(s => {
+  fullList.forEach(s => {
     const name = typeof s === 'string' ? s : (s.name || '');
     const id = typeof s === 'object' && s.id ? s.id : '';
     const selected = (name === currentAudit.auditorName) ? 'selected' : '';
@@ -2187,10 +2192,7 @@ export function renderBulkExportUI() {
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap mb-1">
               <span class="text-xs sm:text-sm font-black text-white hover:text-gold-400 transition">${aud.branchName || 'معرض غير محدد'}</span>
-              <span class="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                الأسبوع ${aud.weekNumber || 1}
-              </span>
-              <span class="text-[10px] text-slate-400 bg-corp-900 px-2 py-0.5 rounded border border-corp-800 flex items-center gap-1 font-mono">
+              <span class="text-[10px] text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/30 flex items-center gap-1 font-mono font-bold">
                 <i data-lucide="calendar" class="w-3 h-3 text-gold-400"></i>
                 <span>${aud.auditDate || 'تاريخ غير محدد'}</span>
               </span>
@@ -2259,7 +2261,7 @@ export function openArchivedAuditPreview(auditId) {
   if (title) title.innerText = audit.branchName || 'معرض غير محدد';
   if (meta) {
     meta.innerHTML = `
-      الأسبوع: <strong class="text-amber-400">${audit.weekNumber || 1}</strong> | التاريخ: <strong>${audit.auditDate}</strong> | الأخصائي: <strong>${audit.auditorName}</strong> | الأقسام: <strong>${(audit.sections || []).length}</strong>
+      التاريخ: <strong>${audit.auditDate || 'غير محدد'}</strong> | الأخصائي: <strong>${audit.auditorName || 'غير محدد'}</strong> | الأقسام: <strong>${(audit.sections || []).length}</strong>
     `;
   }
 

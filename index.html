@@ -486,7 +486,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.2</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.3</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -561,38 +561,20 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.2</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.3</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
       </div>
 
       <!-- مؤشرات الحالة وأزرار الإجراءات السريعة والمستخدم النشط -->
-      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-        <!-- شارة المستخدم النشط (مدير النظام أو الأخصائي) -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- شارة زر المستخدم النشط وإعدادات الحساب (تفتح نافذة إعدادات المستخدم) -->
         <div id="header-user-badge" class="hidden whitespace-nowrap shrink-0">
           <!-- تُملأ ديناميكياً بواسطة syncUserHeaderUI -->
         </div>
 
-        <!-- زر ربط بصمة الجهاز السريع -->
-        <button type="button" id="header-bind-biometric-btn" onclick="promptRegisterBiometric()" class="hidden bg-corp-850 hover:bg-corp-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 font-bold text-xs p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="ربط بصمة هذا الجهاز للدخول السريع">
-          <span class="text-cyan-400">👆</span>
-          <span class="hidden lg:inline text-[11px] whitespace-nowrap">ربط البصمة</span>
-        </button>
-
-        <!-- زر قفل الشاشة وتسجيل الخروج -->
-        <button type="button" id="header-logout-btn" onclick="lockOrLogoutSession()" class="hidden bg-corp-850 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-corp-750 hover:border-rose-500/40 font-bold text-xs p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="قفل الشاشة وتسجيل الخروج">
-          <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
-          <span class="hidden lg:inline text-[11px] whitespace-nowrap">قفل / خروج</span>
-        </button>
-
-        <!-- مؤشر العمل أوفلاين/أونلاين (نص رقيق بدون إطار مع نقطة مضيئة 6px) -->
-        <div id="net-status-badge" class="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 select-none whitespace-nowrap px-1" title="جاهز للعمل دون اتصال بالإنترنت">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
-          <span class="text-[11px] text-slate-300 font-medium whitespace-nowrap" id="net-status-text">متصل • جاهز أوفلاين</span>
-        </div>
-
-        <!-- مؤشر الحفظ التلقائي (نص رقيق بدون إطار مع نقطة مضيئة 6px) -->
+        <!-- مؤشر الحفظ التلقائي (نص رقيق بدون إطار مع نقطة مضيئة 6px على الشاشات الكبيرة) -->
         <div class="hidden xl:flex items-center gap-1.5 text-xs text-slate-400 select-none whitespace-nowrap px-1">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50"></span>
           <span id="save-status-indicator" class="text-[11px] text-slate-300 font-medium whitespace-nowrap">محفوظ محلياً</span>
@@ -621,31 +603,23 @@
 
     <!-- شريط سياق الجولة النشطة وإجراءاتها السريعة للجوال (Mobile Active Tour Context Bar) -->
     <div id="mobile-tour-context-bar" class="md:hidden bg-corp-950/95 border-t border-corp-850 px-3 py-1.5 flex items-center justify-between gap-2 text-xs select-none">
-      <!-- معلومات المعرض والأسبوع -->
-      <div class="flex items-center gap-1.5 min-w-0 text-slate-200 font-bold truncate">
+      <!-- اسم المعرض يتسع بالكامل مع أيقونة المعرض -->
+      <div class="flex items-center gap-1.5 min-w-0 text-slate-200 font-bold flex-1 truncate">
         <span class="text-amber-400 shrink-0 text-xs">🏠</span>
-        <span id="mobile-context-branch" class="truncate text-[11px] text-white font-black">معرض غير محدد</span>
-        <span class="text-slate-500 shrink-0">•</span>
-        <span class="text-gold-400 shrink-0 text-[10px] whitespace-nowrap font-bold" id="mobile-context-week">أسبوع 43</span>
+        <span id="mobile-context-branch" class="truncate text-xs text-white font-black">معرض غير محدد</span>
       </div>
 
-      <!-- أزرار الإجراءات السريعة على الجوال -->
+      <!-- أزرار الإجراءات السريعة الحصرية للشريط العلوي على الجوال -->
       <div class="flex items-center gap-1 shrink-0">
-        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="حفظ الجولة الحالية">
+        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="حفظ الجولة الحالية">
           <span>💾</span>
           <span>حفظ</span>
         </button>
-        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="بدء جولة جديدة">
+        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold px-2.5 py-1 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="بدء جولة جديدة">
           <span>➕</span>
           <span>جديدة</span>
         </button>
-        <button type="button" onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="معاينة وطباعة التقرير">
-          <span>🖨️</span>
-          <span>التقرير</span>
-        </button>
       </div>
-    </div>
-
     </div>
 
     <!-- شريط التنقل العلوي للشاشات المتوسطة والكبيرة -->
@@ -678,7 +652,7 @@
           </div>
           <div class="flex items-center gap-1.5">
             <i data-lucide="calendar" class="w-3.5 h-3.5 text-gold-500"></i>
-            <span class="text-slate-200" id="quick-audit-week">الأسبوع 43</span>
+            <span class="text-slate-200 font-mono" id="quick-audit-date">--</span>
           </div>
         </div>
       </div>
@@ -710,45 +684,38 @@
           </button>
         </div>
 
-        <div id="meta-inputs-grid" class="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+        <div id="meta-inputs-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <!-- 1. الفرع / المعرض -->
-          <div class="space-y-1.5 md:col-span-2">
-            <div class="flex items-center justify-between">
+          <div class="space-y-1.5 flex flex-col justify-end">
+            <div class="flex items-center justify-between h-6">
               <label class="block text-xs font-bold text-slate-300">المعرض / الفرع:</label>
-              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
+              <button type="button" id="btn-manage-branches" data-manage="branches" onclick="openManagementModal('branches')" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الفروع</button>
             </div>
-            <div class="flex gap-2">
-              <select id="select-branch" onchange="handleBranchSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
-                <!-- يُملأ ديناميكياً من LocalStorage -->
-              </select>
-            </div>
+            <select id="select-branch" onchange="handleBranchSelectChange(this.value)" class="w-full h-11 bg-corp-950 border border-corp-700 rounded-xl px-3 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition">
+              <!-- يُملأ ديناميكياً من LocalStorage -->
+            </select>
           </div>
 
           <!-- 2. أخصائي العرض المرئي -->
-          <div class="space-y-1.5 md:col-span-1">
+          <div class="space-y-1.5 flex flex-col justify-end">
+            <div class="flex items-center justify-between h-6">
               <div class="flex items-center gap-1.5">
                 <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
                 <span id="specialist-locked-badge" class="hidden text-[10px] text-amber-400 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20" title="اسم الأخصائي مقفل وفقاً لحساب تسجيل الدخول">🔒 مقفل</span>
               </div>
-              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
+              <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
             </div>
-            <div class="flex gap-2">
-              <select id="select-specialist" onchange="handleSpecialistSelectChange(this.value)" class="flex-1 bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
-                <!-- يُملأ ديناميكياً من LocalStorage -->
-              </select>
-            </div>
+            <select id="select-specialist" onchange="handleSpecialistSelectChange(this.value)" class="w-full h-11 bg-corp-950 border border-corp-700 rounded-xl px-3 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition">
+              <!-- يُملأ ديناميكياً من LocalStorage -->
+            </select>
           </div>
 
-          <!-- 3. رقم الأسبوع وتاريخ الزيارة -->
-          <div class="grid grid-cols-2 gap-2">
-            <div class="space-y-1.5">
-              <label class="block text-xs font-bold text-slate-300">الأسبوع:</label>
-              <input type="number" id="input-week" min="1" max="53" value="43" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-3 py-2 text-xs md:text-sm text-center font-bold text-gold-400 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
-            </div>
-            <div class="space-y-1.5">
+          <!-- 3. تاريخ الزيارة الميدانية -->
+          <div class="space-y-1.5 flex flex-col justify-end">
+            <div class="flex items-center justify-between h-6">
               <label class="block text-xs font-bold text-slate-300">تاريخ الزيارة:</label>
-              <input type="date" id="input-date" class="w-full bg-corp-950 border border-corp-700 rounded-xl px-2 py-2 text-xs text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none">
             </div>
+            <input type="date" id="input-date" class="w-full h-11 bg-corp-950 border border-corp-700 rounded-xl px-3 text-xs md:text-sm text-slate-100 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition font-sans">
           </div>
         </div>
 
@@ -845,16 +812,8 @@
           <p class="text-xs text-slate-400">التقط صور قبل وبعد لأي قسم داخل المعرض مع وسوم التحسين والشرح الفني</p>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-          <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الأرشيف">
-            <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-400"></i>
-            <span>💾 حفظ في سجل الجولات</span>
-          </button>
-          <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
-            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-            <span>➕ بدء جولة جديدة</span>
-          </button>
-          <button type="button" id="btn-add-section" onclick="addNewSection()" class="flex-1 sm:flex-none bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button type="button" id="btn-add-section" onclick="addNewSection()" class="w-full sm:w-auto bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
             <i data-lucide="plus-circle" class="w-5 h-5"></i>
             <span>+ توثيق قسم جديد</span>
           </button>
@@ -1240,7 +1199,7 @@
 
               <!-- بحث بالاسم أو الأخصائي -->
               <div class="relative flex-1">
-                <input type="text" id="bulk-search-input" oninput="renderBulkExportUI()" placeholder="بحث باسم المعرض أو الأخصائي أو الأسبوع..." class="w-full bg-corp-950 border border-corp-700 rounded-lg pr-7 pl-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-gold-500 outline-none">
+                <input type="text" id="bulk-search-input" oninput="renderBulkExportUI()" placeholder="بحث باسم المعرض أو الأخصائي أو تاريخ الزيارة..." class="w-full bg-corp-950 border border-corp-700 rounded-lg pr-7 pl-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-gold-500 outline-none">
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-2.5 pointer-events-none"></i>
               </div>
             </div>
@@ -2585,6 +2544,111 @@
           إغلاق
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== نافذة إعدادات الحساب والمستخدم الموحدة (USER SETTINGS & ACCOUNT MODAL) ==================== -->
+  <div id="user-settings-modal" style="display: none; z-index: 100000;" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md items-center justify-center p-4">
+    <div class="bg-corp-900 border border-gold-500/40 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden relative text-right flex flex-col max-h-[90vh]" dir="rtl">
+      
+      <!-- الهيدر الأنيق للمودال -->
+      <div class="px-5 py-4 border-b border-corp-800 flex items-center justify-between bg-corp-950/60">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gold-500/15 border border-gold-500/30 flex items-center justify-center text-gold-400 font-bold text-base shadow-sm">
+            ⚙️
+          </div>
+          <div>
+            <h3 class="text-sm md:text-base font-black text-white">إعدادات الحساب والنظام</h3>
+            <p class="text-[11px] text-slate-400 font-medium">إدارة الجلسة الحالية، الأمان البيومتري، والمزامنة</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeUserSettingsModal()" class="w-8 h-8 rounded-xl bg-corp-850 hover:bg-corp-800 border border-corp-700/60 text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95 cursor-pointer" title="إغلاق">
+          ✕
+        </button>
+      </div>
+
+      <!-- محتوى المودال القابل للتمرير -->
+      <div class="p-5 space-y-4 overflow-y-auto">
+        
+        <!-- 1. بطاقة الملف التعريفي للمستخدم النشط -->
+        <div class="bg-corp-950/80 border border-corp-800 rounded-2xl p-4 relative overflow-hidden">
+          <div class="flex items-center gap-3">
+            <div id="user-settings-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-gold-500 to-amber-700 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg shadow-gold-500/20 shrink-0">
+              👑
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h4 id="user-settings-name" class="font-black text-base text-white truncate">مدير النظام</h4>
+                <span id="user-settings-role-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-gold-500/20 text-gold-300 border border-gold-500/40">مدير النظام الفائق</span>
+              </div>
+              <p id="user-settings-username" class="text-xs text-slate-400 font-mono mt-0.5">@sam</p>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-corp-850 flex items-center justify-between text-xs text-slate-300">
+            <span class="text-slate-400">الفروع المخصصة:</span>
+            <span id="user-settings-branches" class="font-bold text-amber-300">جميع فروع المملكة</span>
+          </div>
+        </div>
+
+        <!-- 2. قسم الأمان البيومتري (Biometric WebAuthn) -->
+        <div class="bg-corp-950/80 border border-corp-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-cyan-400 text-base">👆</span>
+              <h5 class="font-bold text-xs text-white">الدخول البيومتري (بصمة الإصبع / الوجه)</h5>
+            </div>
+            <span id="user-settings-biometric-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">جاري الفحص...</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            يتيح لك ربط مستشعر البصمة في جهازك (Touch ID / Face ID / Windows Hello) تسجيل الدخول الفوري دون إدخال كلمة المرور.
+          </p>
+          <button type="button" id="user-settings-bind-biometric-btn" onclick="promptRegisterBiometric()" class="w-full py-2.5 px-3 bg-corp-850 hover:bg-corp-800 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-cyan-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+            <span class="text-sm">👆</span>
+            <span id="user-settings-bind-btn-text">تفعيل / ربط بصمة هذا الجهاز (WebAuthn)</span>
+          </button>
+        </div>
+
+        <!-- 3. معلومات النظام ومحرك التخزين والمزامنة السحابية -->
+        <div class="bg-corp-950/80 border border-corp-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 text-base">⚡</span>
+              <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
+            </div>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.3</span>
+          </div>
+          
+          <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">محرك التخزين المحلي:</span>
+              <span class="font-bold text-emerald-400 font-mono">IndexedDB (samx_vm_idb)</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">السحابة المركزية:</span>
+              <span class="font-bold text-sky-400 font-mono">Cloudflare D1 + R2 Sync</span>
+            </div>
+          </div>
+
+          <button type="button" onclick="handleCloudSyncTours()" class="w-full py-2.5 px-3 bg-corp-850 hover:bg-corp-800 border border-gold-500/30 hover:border-gold-500/60 text-gold-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+            <span class="text-sm">🔄</span>
+            <span>فحص ومزامنة السحابة الآن</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ذيل المودال وأزرار التحكم بالجلسة -->
+      <div class="p-4 border-t border-corp-800 bg-corp-950/90 flex items-center justify-between gap-3">
+        <button type="button" onclick="closeUserSettingsModal(); lockOrLogoutSession();" class="flex-1 py-2.5 px-4 bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-200 hover:text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+          <i data-lucide="lock" class="w-4 h-4 text-rose-400"></i>
+          <span>قفل الشاشة / تسجيل الخروج</span>
+        </button>
+        <button type="button" onclick="closeUserSettingsModal()" class="py-2.5 px-5 bg-corp-800 hover:bg-corp-750 text-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer">
+          إغلاق
+        </button>
+      </div>
+
     </div>
   </div>
 

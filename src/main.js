@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.2
+ * Version: 1.6.3
  * Architecture: ES Modules Coordinator
  */
 
@@ -395,6 +395,10 @@ export async function promptRegisterBiometric() {
     showToast('✅ تم ربط بصمة هذا الجهاز بنجاح! يمكنك الآن تسجيل الدخول السريع بلمسة واحدة.', 'success');
     syncUserHeaderUI(session);
     syncBiometricStatusUI();
+    const modal = document.getElementById('user-settings-modal');
+    if (modal && modal.style.display !== 'none') {
+      openUserSettingsModal();
+    }
   } else {
     showToast(result.message || 'تعذر ربط البصمة البيومترية', 'error');
   }
@@ -405,6 +409,9 @@ export function lockOrLogoutSession() {
 
   clearActiveAuthSession();
   syncUserHeaderUI(null);
+
+  const modal = document.getElementById('user-settings-modal');
+  if (modal) modal.style.display = 'none';
 
   const splash = document.getElementById('samx-splash');
   if (splash) {
@@ -423,6 +430,86 @@ export function lockOrLogoutSession() {
   }
 
   showToast('تم قفل الشاشة بنجاح. بيانات التدقيق محفوظة بأمان 🔒', 'info');
+}
+
+export function openUserSettingsModal() {
+  const modal = document.getElementById('user-settings-modal');
+  if (!modal) return;
+
+  const session = getActiveAuthSession();
+  if (!session) {
+    showToast('لا توجد جلسة مستخدم نشطة حالياً', 'warning');
+    return;
+  }
+
+  const nameEl = document.getElementById('user-settings-name');
+  const userEl = document.getElementById('user-settings-username');
+  const roleEl = document.getElementById('user-settings-role-badge');
+  const branchesEl = document.getElementById('user-settings-branches');
+  const avatarEl = document.getElementById('user-settings-avatar');
+  const bioStatusEl = document.getElementById('user-settings-biometric-status');
+  const bioBtnText = document.getElementById('user-settings-bind-btn-text');
+
+  if (nameEl) nameEl.textContent = session.displayName || session.username;
+  if (userEl) userEl.textContent = `@${session.username}`;
+
+  if (roleEl) {
+    if (session.role === 'admin') {
+      roleEl.textContent = 'مدير النظام الفائق (Super Admin)';
+      roleEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-black bg-gold-500/20 text-gold-300 border border-gold-500/40';
+    } else {
+      roleEl.textContent = 'أخصائي الـ VM (Specialist)';
+      roleEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40';
+    }
+  }
+
+  if (avatarEl) {
+    avatarEl.textContent = session.role === 'admin' ? '👑' : '👤';
+  }
+
+  if (branchesEl) {
+    if (session.role === 'admin') {
+      const bList = getBranches();
+      branchesEl.textContent = `جميع فروع المملكة (${bList.length} فرعاً)`;
+    } else if (Array.isArray(session.assignedBranches) && session.assignedBranches.includes('*')) {
+      branchesEl.textContent = 'جميع فروع المملكة';
+    } else if (Array.isArray(session.assignedBranches) && session.assignedBranches.length > 0) {
+      branchesEl.textContent = `${session.assignedBranches.length} فروع مخصصة (${session.assignedBranches.slice(0, 2).join('، ')}${session.assignedBranches.length > 2 ? '...' : ''})`;
+    } else {
+      branchesEl.textContent = 'لم يتم تخصيص فروع بعد';
+    }
+  }
+
+  if (bioStatusEl) {
+    const isSupported = isBiometricAuthSupported();
+    if (!isSupported) {
+      bioStatusEl.textContent = 'غير مدعوم بالجهاز';
+      bioStatusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+      if (bioBtnText) bioBtnText.textContent = 'المتصفح أو الجهاز لا يدعم WebAuthn';
+    } else {
+      const cred = getRegisteredBiometricCredential();
+      const isLinked = cred && cred.username === session.username;
+      if (isLinked) {
+        bioStatusEl.textContent = 'مفعل ومربوط ✅';
+        bioStatusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        if (bioBtnText) bioBtnText.textContent = 'تحديث / إعادة ربط البصمة';
+      } else {
+        bioStatusEl.textContent = 'غير مربوط ⚠️';
+        bioStatusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        if (bioBtnText) bioBtnText.textContent = 'تفعيل / ربط بصمة هذا الجهاز (WebAuthn)';
+      }
+    }
+  }
+
+  modal.style.display = 'flex';
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function closeUserSettingsModal() {
+  const modal = document.getElementById('user-settings-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية
@@ -488,18 +575,7 @@ export async function bootApp() {
 export function bindMetaInputs() {
   refreshMainSelects();
 
-  const weekInput = document.getElementById('input-week');
   const dateInput = document.getElementById('input-date');
-
-  if (weekInput) {
-    weekInput.value = currentAudit.weekNumber || 43;
-    weekInput.addEventListener('input', (e) => {
-      currentAudit.weekNumber = e.target.value;
-      syncQuickDisplays();
-      saveAuditToStorage();
-    });
-  }
-
   if (dateInput) {
     dateInput.value = currentAudit.auditDate || new Date().toISOString().split('T')[0];
     dateInput.addEventListener('input', (e) => {
@@ -4086,6 +4162,8 @@ if (typeof window !== 'undefined') {
   window.refreshTeamManagementUI = refreshTeamManagementUI;
   window.renderTeamManagementUI = renderTeamManagementUI;
   window.handleCloudSyncTours = handleCloudSyncTours;
+  window.openUserSettingsModal = openUserSettingsModal;
+  window.closeUserSettingsModal = closeUserSettingsModal;
   window.bootApp = bootApp;
 }
 

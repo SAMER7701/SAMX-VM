@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Authentication & Biometric Security Engine (Phase 2)
- * Version: 1.6.2
+ * Version: 1.6.3
  * Features:
  * - Immutable Super Admin (sam / 7701)
  * - Session Management (sessionStorage) & Role-Based Access Control (RBAC)
@@ -494,25 +494,27 @@ export function syncUserHeaderUI(user = null) {
 
   if (activeUser.role === 'admin') {
     badgeContainer.innerHTML = `
-      <div class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-black bg-gradient-to-r from-amber-500/20 to-gold-500/10 border border-gold-500/40 text-gold-300 shadow-sm shadow-gold-500/5 select-none whitespace-nowrap shrink-0" title="جلسة مدير النظام الفائق نشطة">
-        <span class="text-amber-400 shrink-0">👑</span>
-        <span class="hidden sm:inline text-gold-400 font-bold whitespace-nowrap">مدير النظام:</span>
-        <span class="text-white whitespace-nowrap">${activeUser.username}</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
-      </div>
+      <button type="button" onclick="openUserSettingsModal()" class="group flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500/20 via-gold-500/15 to-amber-600/10 hover:from-amber-500/30 hover:to-gold-500/20 border border-gold-500/40 hover:border-gold-400 text-gold-300 shadow-sm shadow-gold-500/5 select-none whitespace-nowrap shrink-0 transition active:scale-95 cursor-pointer" title="إعدادات الحساب وجلسة مدير النظام">
+        <span class="text-amber-400 shrink-0 text-sm">👑</span>
+        <span class="hidden sm:inline text-gold-400 font-bold whitespace-nowrap">المدير:</span>
+        <span class="text-white whitespace-nowrap font-mono">${activeUser.username}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse" title="متصل"></span>
+        <span class="text-[10px] text-slate-400 group-hover:text-amber-300 transition-colors mr-0.5">⚙️</span>
+      </button>
     `;
   } else {
     badgeContainer.innerHTML = `
-      <div class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/15 border border-sky-500/30 text-sky-300 shadow-sm select-none whitespace-nowrap shrink-0" title="جلسة أخصائي الـ VM">
-        <span class="shrink-0">👤</span>
+      <button type="button" onclick="openUserSettingsModal()" class="group flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 hover:border-sky-400/50 text-sky-300 shadow-sm select-none whitespace-nowrap shrink-0 transition active:scale-95 cursor-pointer" title="إعدادات الحساب وجلسة أخصائي الـ VM">
+        <span class="shrink-0 text-sm">👤</span>
         <span class="hidden sm:inline text-sky-400 whitespace-nowrap">أخصائي:</span>
         <span class="text-white truncate max-w-[85px] sm:max-w-[130px] whitespace-nowrap">${activeUser.displayName || activeUser.username}</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
-      </div>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse" title="متصل"></span>
+        <span class="text-[10px] text-slate-400 group-hover:text-sky-300 transition-colors mr-0.5">⚙️</span>
+      </button>
     `;
   }
 
-  // فحص حالة زر ربط البصمة في الشريط العلوي
+  // فحص حالة زر ربط البصمة في الشريط العلوي (إن وجد)
   if (bindBiometricBtn) {
     const isSupported = isBiometricAuthSupported();
     const cred = getRegisteredBiometricCredential();
