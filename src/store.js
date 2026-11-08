@@ -18,6 +18,8 @@ export const STORAGE_KEY_TAGS = 'samx_quick_tags_v1';
 export const STORAGE_KEY_ASSIGNEES = 'samx_quick_assignees_v1';
 export const STORAGE_KEY_BRANDING = 'samx_branding_v1';
 export const STORAGE_KEY_AUDIT_ARCHIVE = 'samx_audit_history_v1';
+export const STORAGE_KEY_SAVED_TOURS = 'savedTours';
+export const STORAGE_KEY_CURRENT_TOUR = 'currentTour';
 export const STORAGE_KEY_STATUS_SUB_OPTIONS = 'samx_status_sub_options_v1';
 export const LEGACY_BRANCHES_KEY = 'samx_branches';
 export const LEGACY_SPECIALISTS_KEY = 'samx_specialists';
@@ -943,7 +945,9 @@ export function getSectionSubOptions(sec, statusKey) {
 // حفظ التقرير في التخزين المحلي
 export function saveAuditToStorage() {
   try {
-    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(currentAudit));
+    const json = JSON.stringify(currentAudit);
+    localStorage.setItem(APP_STORAGE_KEY, json);
+    localStorage.setItem(STORAGE_KEY_CURRENT_TOUR, json);
     const ind = document.getElementById('save-status-indicator');
     if (ind) {
       ind.innerText = 'محفوظ محلياً ' + new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
@@ -961,7 +965,10 @@ export function saveAuditToStorage() {
 // استرجاع التقرير من التخزين المحلي
 export function loadAuditFromStorage() {
   try {
-    const saved = localStorage.getItem(APP_STORAGE_KEY);
+    let saved = localStorage.getItem(APP_STORAGE_KEY);
+    if (!saved) {
+      saved = localStorage.getItem(STORAGE_KEY_CURRENT_TOUR);
+    }
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object') {
@@ -1145,7 +1152,10 @@ export function generateSeedAuditArchive() {
 export function getArchivedAudits() {
   if (typeof localStorage === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_AUDIT_ARCHIVE);
+    let raw = localStorage.getItem(STORAGE_KEY_AUDIT_ARCHIVE);
+    if (!raw) {
+      raw = localStorage.getItem(STORAGE_KEY_SAVED_TOURS);
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
@@ -1161,14 +1171,14 @@ export function getArchivedAudits() {
           }
           return true;
         });
-        if (realAudits.length !== parsed.length) {
-          localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(realAudits));
-        }
+        localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(realAudits));
+        localStorage.setItem(STORAGE_KEY_SAVED_TOURS, JSON.stringify(realAudits));
         return realAudits;
       }
     }
     // تهيئة أولية بقائمة فارغة تماماً
     localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEY_SAVED_TOURS, JSON.stringify([]));
     return [];
   } catch (e) {
     console.warn('getArchivedAudits error:', e);
@@ -1177,12 +1187,14 @@ export function getArchivedAudits() {
 }
 
 /**
- * حفظ قائمة تقارير الجولات في التخزين المحلي
+ * حفظ قائمة تقارير الجولات في التخزين المحلي (تزامن كامل مع savedTours)
  */
 export function saveArchivedAudits(audits) {
   if (!Array.isArray(audits)) return false;
   try {
-    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(audits));
+    const json = JSON.stringify(audits);
+    localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, json);
+    localStorage.setItem(STORAGE_KEY_SAVED_TOURS, json);
     return true;
   } catch (e) {
     console.error('saveArchivedAudits error:', e);
@@ -1191,14 +1203,14 @@ export function saveArchivedAudits(audits) {
 }
 
 /**
- * حفظ مسودة التدقيق الحالية النشطة كنسخة مستقلة في الأرشيف
+ * حفظ مسودة التدقيق الحالية النشطة كنسخة مستقلة في الأرشيف وسجل الجولات
  */
 export function archiveCurrentAudit() {
-  if (!currentAudit || !Array.isArray(currentAudit.sections) || currentAudit.sections.length === 0) {
-    return { success: false, reason: 'لا توجد أقسام مسجلة في الجولة الحالية لحفظها في الأرشيف' };
+  if (!currentAudit) {
+    return { success: false, reason: 'لا توجد جولة نشطة لحفظها' };
   }
-  const branchName = currentAudit.branchName || 'معرض غير محدد';
-  const auditorName = currentAudit.auditorName || 'أخصائي العرض المرئي';
+  const branchName = (currentAudit.branchName || '').trim() || 'معرض غير محدد';
+  const auditorName = (currentAudit.auditorName || '').trim() || 'أخصائي العرض المرئي';
   const weekNumber = Number(currentAudit.weekNumber) || 43;
   const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
   
@@ -1209,8 +1221,12 @@ export function archiveCurrentAudit() {
   const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   const monthName = `${monthNames[dateObj.getMonth()] || 'شهر'} ${year}`;
 
+  if (!currentAudit.id) {
+    currentAudit.id = 'tour_' + Date.now();
+  }
+
   const auditCopy = {
-    id: currentAudit.id || ('audit_' + Date.now()),
+    id: currentAudit.id,
     branchName,
     auditorName,
     weekNumber,
@@ -1218,7 +1234,8 @@ export function archiveCurrentAudit() {
     monthKey,
     monthName,
     savedAt: new Date().toISOString(),
-    sections: JSON.parse(JSON.stringify(currentAudit.sections))
+    sections: JSON.parse(JSON.stringify(currentAudit.sections || [])),
+    visitSummary: currentAudit.visitSummary || ''
   };
 
   const list = getArchivedAudits();
@@ -1231,6 +1248,61 @@ export function archiveCurrentAudit() {
 
   saveArchivedAudits(list);
   return { success: true, item: auditCopy, list };
+}
+
+/**
+ * هجرة وحفظ مسودة العمل النشطة تلقائياً في سجل الأرشيف عند بدء التطبيق
+ * لضمان عدم ضياع التقرير الحالي للمستخدم وظهوره مباشرة في سجل الجولات
+ */
+export function autoMigrateActiveTourToArchive() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const list = getArchivedAudits();
+    
+    // فحص ما إذا كان هناك عمل نشط حالي مسجل
+    const branch = (currentAudit.branchName || '').trim();
+    const hasBranch = branch !== '' && branch !== 'لم يتم تحديد الفرع';
+    const hasSections = Array.isArray(currentAudit.sections) && currentAudit.sections.length > 0;
+    
+    if (hasBranch || hasSections) {
+      const branchName = hasBranch ? branch : 'معرض الهفوف - الاحساء';
+      const weekNumber = Number(currentAudit.weekNumber) || 43;
+      
+      const existingIdx = list.findIndex(a => 
+        (currentAudit.id && a.id === currentAudit.id) || 
+        (a.branchName && a.branchName === branchName && Number(a.weekNumber) === weekNumber)
+      );
+
+      const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
+      const dateObj = new Date(auditDate);
+      const year = dateObj.getFullYear() || 2026;
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      const monthName = `${monthNames[dateObj.getMonth()] || 'شهر'} ${year}`;
+
+      const activeEntry = {
+        id: currentAudit.id || ('tour_' + Date.now()),
+        branchName: branchName,
+        auditorName: currentAudit.auditorName || 'أخصائي العرض المرئي',
+        weekNumber,
+        auditDate,
+        monthKey: `${year}-${month}`,
+        monthName,
+        savedAt: new Date().toISOString(),
+        sections: JSON.parse(JSON.stringify(currentAudit.sections || [])),
+        visitSummary: currentAudit.visitSummary || ''
+      };
+
+      if (existingIdx !== -1) {
+        list[existingIdx] = activeEntry;
+      } else {
+        list.unshift(activeEntry);
+      }
+      saveArchivedAudits(list);
+    }
+  } catch (err) {
+    console.warn('autoMigrateActiveTourToArchive error:', err);
+  }
 }
 
 /**
@@ -1362,8 +1434,11 @@ if (typeof window !== 'undefined') {
   window.getArchivedAudits = getArchivedAudits;
   window.saveArchivedAudits = saveArchivedAudits;
   window.archiveCurrentAudit = archiveCurrentAudit;
+  window.autoMigrateActiveTourToArchive = autoMigrateActiveTourToArchive;
   window.addAuditsToArchive = addAuditsToArchive;
   window.deleteArchivedAudit = deleteArchivedAudit;
   window.resetArchivedAuditsToDefault = resetArchivedAuditsToDefault;
   window.getArchivedAuditById = getArchivedAuditById;
+  window.STORAGE_KEY_SAVED_TOURS = STORAGE_KEY_SAVED_TOURS;
+  window.STORAGE_KEY_CURRENT_TOUR = STORAGE_KEY_CURRENT_TOUR;
 }

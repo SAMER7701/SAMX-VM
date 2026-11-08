@@ -450,13 +450,27 @@
         </div>
 
         <!-- مؤشر الحفظ التلقائي -->
-        <div class="hidden sm:flex items-center gap-1 text-[11px] text-slate-400 bg-corp-850 px-2.5 py-1 rounded-lg border border-corp-800">
+        <div class="hidden xl:flex items-center gap-1 text-[11px] text-slate-400 bg-corp-850 px-2.5 py-1 rounded-lg border border-corp-800">
           <i data-lucide="check-check" class="w-3.5 h-3.5 text-gold-500"></i>
           <span id="save-status-indicator">محفوظ محلياً</span>
         </div>
 
+        <!-- زر حفظ في سجل الجولات -->
+        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الجولات والأرشيف">
+          <i data-lucide="bookmark-plus" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden sm:inline">💾 حفظ في سجل الجولات</span>
+          <span class="sm:hidden">💾 حفظ</span>
+        </button>
+
+        <!-- زر بدء جولة جديدة -->
+        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="hidden sm:inline">➕ بدء جولة جديدة</span>
+          <span class="sm:hidden">➕ جديدة</span>
+        </button>
+
         <!-- زر التقرير السريع -->
-        <button onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95">
+        <button onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-3 sm:px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
           <i data-lucide="printer" class="w-4 h-4"></i>
           <span class="hidden sm:inline">معاينة وطباعة التقرير</span>
           <span class="sm:hidden">التقرير</span>
@@ -656,8 +670,16 @@
           <p class="text-xs text-slate-400">التقط صور قبل وبعد لأي قسم داخل المعرض مع وسوم التحسين والشرح الفني</p>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <button type="button" id="btn-add-section" onclick="addNewSection()" class="flex-1 sm:flex-none bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95">
+        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الأرشيف">
+            <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-400"></i>
+            <span>💾 حفظ في سجل الجولات</span>
+          </button>
+          <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+            <span>➕ بدء جولة جديدة</span>
+          </button>
+          <button type="button" id="btn-add-section" onclick="addNewSection()" class="flex-1 sm:flex-none bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
             <i data-lucide="plus-circle" class="w-5 h-5"></i>
             <span>+ توثيق قسم جديد</span>
           </button>
@@ -1073,11 +1095,17 @@
               <!-- يُملأ ديناميكياً بعدد الجولات المحددة -->
             </div>
 
-            <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="flex items-center gap-2 w-full md:w-auto flex-wrap">
               <button type="button" id="btn-export-bulk-json" onclick="exportBulkSelectedJson()" class="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-corp-800 hover:bg-corp-750 text-slate-300 hover:text-white border border-corp-700 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="تصدير ملفات JSON للجولات المحددة في حزمة واحدة">
                 <i data-lucide="file-code" class="w-4 h-4 text-sky-400"></i>
                 <span>تصدير حزمة JSON</span>
               </button>
+
+              <label class="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-corp-800 hover:bg-corp-750 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="استيراد ملفات جولات تدقيق سابقة بصيغة JSON من جهازك">
+                <i data-lucide="folder-up" class="w-4 h-4 text-emerald-400"></i>
+                <span>📂 استيراد ملف جولة (JSON)</span>
+                <input type="file" multiple accept=".json" onchange="uploadJsonToArchive(event)" class="hidden">
+              </label>
 
               <button type="button" id="btn-export-bulk-pdf" onclick="exportBulkMonthlyAuditPdf()" class="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-amber-500 hover:from-gold-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-gold-500/20 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer">
                 <i data-lucide="file-down" class="w-4 h-4 text-slate-950"></i>
@@ -2257,8 +2285,18 @@
       </div>
 
       <!-- تذييل النافذة -->
-      <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-end">
-        <button type="button" onclick="closeArchivedAuditPreview()" class="px-5 py-2 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer">
+      <div class="p-3 bg-corp-950 border-t border-corp-800 flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <button type="button" id="archived-modal-open-preview-btn" class="px-3.5 py-1.5 bg-gradient-to-r from-gold-500 to-amber-500 text-slate-950 rounded-xl text-xs font-black transition active:scale-95 cursor-pointer flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>معاينة وطباعة التقرير (PDF)</span>
+          </button>
+          <button type="button" id="archived-modal-restore-btn" class="px-3.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1.5">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>استعادة للتعديل</span>
+          </button>
+        </div>
+        <button type="button" onclick="closeArchivedAuditPreview()" class="px-4 py-1.5 bg-corp-800 hover:bg-corp-700 text-slate-200 rounded-xl text-xs font-bold transition active:scale-95 cursor-pointer">
           إغلاق
         </button>
       </div>

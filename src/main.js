@@ -46,6 +46,7 @@ import {
   getArchivedAudits,
   saveArchivedAudits,
   archiveCurrentAudit,
+  autoMigrateActiveTourToArchive,
   addAuditsToArchive,
   deleteArchivedAudit,
   getArchivedAuditById,
@@ -288,6 +289,7 @@ export async function bootApp() {
   try { await loadMetadata(); } catch(e) { console.warn('bootApp: loadMetadata error', e); }
   try { calculateCurrentWeek(); } catch(e) {}
   try { loadAuditFromStorage(); } catch(e) {}
+  try { autoMigrateActiveTourToArchive(); } catch(e) {}
   try { bindMetaInputs(); } catch(e) {}
   try { syncBrandingUI(); } catch(e) {}
   try { setupBrandingRealtimeListeners(); } catch(e) {}
@@ -2887,14 +2889,94 @@ export function importJsonBackup(event) {
 
 // ==================== موديول التصدير المجمع لدورة التدقيق الشهرية (Bulk Export Controller) ====================
 
-export function archiveCurrentAuditToStorage() {
-  if (!currentAudit || !Array.isArray(currentAudit.sections) || currentAudit.sections.length === 0) {
-    showToast('لا توجد أقسام موثقة في الجولة الحالية لأرشفتها', 'warning');
+/**
+ * حفظ أو تحديث الجولة الحالية في سجل الجولات المؤرشفة (Persistent savedTours Archive)
+ */
+export function saveCurrentTourToArchive(showFeedback = true) {
+  if (!currentAudit) return;
+  
+  // حفظ العمل النشط محلياً أولاً
+  saveAuditToStorage();
+  
+  const result = archiveCurrentAudit();
+  if (result.success) {
+    renderBulkExportUI();
+    if (showFeedback) {
+      const bName = result.item?.branchName || currentAudit.branchName || 'المعرض';
+      const wNum = result.item?.weekNumber || currentAudit.weekNumber || 1;
+      showToast(`تم حفظ الجولة (${bName} - أسبوع ${wNum}) في الأرشيف بنجاح 💾`, 'success');
+    }
+  } else {
+    if (showFeedback) {
+      showToast(result.reason || 'تعذر حفظ الجولة في الأرشيف', 'error');
+    }
+  }
+}
+
+/**
+ * بدء جولة تدقيق جديدة فارغة مع حفظ الجولة الحالية تلقائياً بعد التأكيد
+ */
+export function startNewTourPrompt() {
+  const branchName = (currentAudit?.branchName || '').trim();
+  const sectionsCount = currentAudit?.sections?.length || 0;
+  const hasWork = (branchName !== '' && branchName !== 'لم يتم تحديد الفرع') || sectionsCount > 0;
+
+  if (hasWork) {
+    if (!confirm('هل تريد حفظ الجولة الحالية وبدء جولة جديدة فارغة؟')) {
+      return;
+    }
+    // حفظ الجولة الحالية تلقائياً في الأرشيف
+    saveCurrentTourToArchive(false);
+  }
+
+  // توليد معرف جديد فريد وتفريغ بيانات الجولة
+  currentAudit.id = 'tour_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+  currentAudit.branchName = '';
+  currentAudit.sections = [];
+  currentAudit.visitSummary = '';
+  currentAudit.auditDate = new Date().toISOString().split('T')[0];
+  calculateCurrentWeek();
+
+  saveAuditToStorage();
+  bindMetaInputs();
+  renderAuditCards();
+  renderBulkExportUI();
+  switchTab('audit');
+
+  showToast('تم حفظ الجولة السابقة وبدء جولة جديدة فارغة بنجاح ➕', 'success');
+
+  setTimeout(() => {
+    const branchSelect = document.getElementById('select-branch');
+    if (branchSelect) branchSelect.focus();
+  }, 100);
+}
+
+/**
+ * فتح ومعاينة تقرير جولة مؤرشفة مباشرة في نافذة الطباعة وتقرير الـ PDF
+ */
+export function previewArchivedAudit(id) {
+  const archived = getArchivedAuditById(id);
+  if (!archived) {
+    showToast('تعذر العثور على بيانات الجولة المطلوبة في الأرشيف', 'error');
     return;
   }
-  const saved = archiveCurrentAudit(currentAudit);
-  renderBulkExportUI();
-  showToast(`✅ تم حفظ جولة (${saved.branchName || 'المعرض'} - أسبوع ${saved.weekNumber || 1}) في الأرشيف المحلي بنجاح`, 'success');
+
+  // حفظ العمل النشط أولاً بأمان
+  saveAuditToStorage();
+
+  const cloned = JSON.parse(JSON.stringify(archived));
+  Object.assign(currentAudit, cloned);
+  if (!currentAudit.id) currentAudit.id = cloned.id || ('tour_' + Date.now());
+
+  bindMetaInputs();
+  saveAuditToStorage();
+  renderAuditCards();
+  switchTab('preview');
+  showToast(`تم فتح معاينة تقرير (${cloned.branchName || 'المعرض'} - أسبوع ${cloned.weekNumber || 1}) جاهز للطباعة والـ PDF`, 'info');
+}
+
+export function archiveCurrentAuditToStorage() {
+  saveCurrentTourToArchive(true);
 }
 
 export async function uploadJsonToArchive(event) {
@@ -3586,6 +3668,9 @@ if (typeof window !== 'undefined') {
   window.resetImageConfig = resetImageConfig;
   window.applyImageConfigToPreview = applyImageConfigToPreview;
   window.archiveCurrentAuditToStorage = archiveCurrentAuditToStorage;
+  window.saveCurrentTourToArchive = saveCurrentTourToArchive;
+  window.startNewTourPrompt = startNewTourPrompt;
+  window.previewArchivedAudit = previewArchivedAudit;
   window.uploadJsonToArchive = uploadJsonToArchive;
   window.toggleSelectAllArchivedAudits = toggleSelectAllArchivedAudits;
   window.confirmDeleteArchivedAudit = confirmDeleteArchivedAudit;

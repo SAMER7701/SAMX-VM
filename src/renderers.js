@@ -2125,8 +2125,8 @@ export function renderBulkExportUI() {
 
         <!-- أزرار الإجراءات السريعة للجولة -->
         <div class="flex items-center gap-1.5 shrink-0 justify-end border-t md:border-t-0 border-corp-800/80 pt-2 md:pt-0">
-          <button type="button" onclick="openArchivedAuditPreview('${aud.id}')" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-corp-700/60 transition flex items-center gap-1 cursor-pointer" title="معاينة تفاصيل الجولة">
-            <i data-lucide="eye" class="w-3.5 h-3.5 text-gold-400"></i>
+          <button type="button" onclick="previewArchivedAudit('${aud.id}')" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-corp-700/60 transition flex items-center gap-1 cursor-pointer" title="معاينة وطباعة تقرير هذه الجولة">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-gold-400"></i>
             <span class="hidden sm:inline">معاينة</span>
           </button>
           <button type="button" onclick="loadArchivedAuditToEditor('${aud.id}')" class="px-2.5 py-1.5 bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-semibold border border-amber-500/30 transition flex items-center gap-1 cursor-pointer" title="استعادة الجولة للتعديل كمسودة نشطة">
@@ -2196,6 +2196,25 @@ export function openArchivedAuditPreview(auditId) {
         </div>
       `).join('');
     }
+  }
+
+  const previewBtn = document.getElementById('archived-modal-open-preview-btn');
+  const restoreBtn = document.getElementById('archived-modal-restore-btn');
+  if (previewBtn) {
+    previewBtn.onclick = () => {
+      closeArchivedAuditPreview();
+      if (typeof window.previewArchivedAudit === 'function') {
+        window.previewArchivedAudit(auditId);
+      }
+    };
+  }
+  if (restoreBtn) {
+    restoreBtn.onclick = () => {
+      closeArchivedAuditPreview();
+      if (typeof window.loadArchivedAuditToEditor === 'function') {
+        window.loadArchivedAuditToEditor(auditId);
+      }
+    };
   }
 
   if (modal) {
