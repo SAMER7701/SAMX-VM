@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.1
+ * Version: 1.6.2
  * Architecture: ES Modules Coordinator
  */
 
@@ -3236,6 +3236,29 @@ export function confirmResetArchivedAudits() {
   showToast('تم تفريغ أرشيف الجولات بنجاح', 'info');
 }
 
+/**
+ * حذف الجولات المحددة فقط من الأرشيف بعد تأكيد المستخدم
+ */
+export function deleteSelectedArchivedAudits() {
+  const checkedBoxes = Array.from(document.querySelectorAll('.bulk-audit-checkbox:checked'));
+  if (checkedBoxes.length === 0) {
+    showToast('يرجى تحديد جولة واحدة على الأقل لحذفها', 'info');
+    return;
+  }
+  const count = checkedBoxes.length;
+  if (!confirm(`هل أنت متأكد من حذف ${count} جولة محددة نهائياً من الأرشيف؟`)) {
+    return;
+  }
+  checkedBoxes.forEach(cb => {
+    const id = cb.dataset.id || cb.value;
+    if (id) {
+      deleteArchivedAudit(id);
+    }
+  });
+  renderBulkExportUI();
+  showToast(`تم حذف ${count} جولة محددة بنجاح من الأرشيف 🗑️`, 'success');
+}
+
 export function toggleReportFooter(show = null) {
   const toggleCb = document.getElementById('toggleSignatures') || document.getElementById('toggle-print-footer');
   const showSignatures = (typeof show === 'boolean') 
@@ -4033,6 +4056,7 @@ if (typeof window !== 'undefined') {
   window.loadArchivedAuditToEditor = loadArchivedAuditToEditor;
   window.downloadSingleArchivedAuditJson = downloadSingleArchivedAuditJson;
   window.confirmResetArchivedAudits = confirmResetArchivedAudits;
+  window.deleteSelectedArchivedAudits = deleteSelectedArchivedAudits;
   window.renderBulkExportUI = renderBulkExportUI;
   window.updateBulkExportSelectionCounter = updateBulkExportSelectionCounter;
   window.openArchivedAuditPreview = openArchivedAuditPreview;

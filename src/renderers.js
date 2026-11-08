@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.6.0
+ * Version: 1.6.2
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -620,7 +620,7 @@ export function updateKPIs() {
   }
 }
 
-// مزامنة عروض تفاصيل المعرض في الهيدر والتقرير المطبوع
+// مزامنة عروض تفاصيل المعرض في الهيدر والتقرير المطبوع وشريط سياق الجوال
 export function syncQuickDisplays() {
   const branchDisplay = sanitizeCorporateText(currentAudit.branchName, 'فرع المعرض العام');
   const auditorDisplay = sanitizeCorporateText(currentAudit.auditorName, 'أخصائي العرض المرئي');
@@ -630,6 +630,13 @@ export function syncQuickDisplays() {
 
   const quickWeek = document.getElementById('quick-audit-week');
   if (quickWeek) quickWeek.innerText = 'الأسبوع ' + (currentAudit.weekNumber || 43);
+
+  // تحديث شريط سياق الجولة النشطة المخصص للهواتف الذكية
+  const mobileContextBranch = document.getElementById('mobile-context-branch');
+  if (mobileContextBranch) mobileContextBranch.innerText = branchDisplay;
+
+  const mobileContextWeek = document.getElementById('mobile-context-week');
+  if (mobileContextWeek) mobileContextWeek.innerText = 'أسبوع ' + (currentAudit.weekNumber || 43);
 
   const printStore = document.getElementById('print-header-store');
   if (printStore) printStore.innerText = branchDisplay;
@@ -1983,6 +1990,18 @@ export function updateBulkExportSelectionCounter() {
   if (selectAllCb) {
     selectAllCb.checked = (totalVisibleCheckboxes > 0 && checkedBoxes.length === totalVisibleCheckboxes);
     selectAllCb.indeterminate = (checkedBoxes.length > 0 && checkedBoxes.length < totalVisibleCheckboxes);
+  }
+
+  // تحديث حالة زر حذف المحدد
+  const deleteBtn = document.getElementById('btn-delete-selected-audits');
+  if (deleteBtn) {
+    const hasSelection = selectedAudits.length > 0;
+    deleteBtn.disabled = !hasSelection;
+    if (hasSelection) {
+      deleteBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    } else {
+      deleteBtn.classList.add('opacity-40', 'cursor-not-allowed');
+    }
   }
 
   if (selectedAudits.length === 0) {

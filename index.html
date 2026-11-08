@@ -486,7 +486,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.0</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.2</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -546,75 +546,105 @@
   </div>
 
   <!-- ==================== رأس النظام الفاخر (EXECUTIVE HEADER) ==================== -->
-  <header class="no-print bg-corp-900/90 backdrop-blur-md border-b border-corp-800 sticky top-0 z-40 shadow-xl">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+  <header class="no-print bg-corp-900/95 backdrop-blur-md border-b border-corp-800 sticky top-0 z-40 shadow-xl">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
       
-      <!-- شعار النظام وهوية SAMX-VM -->
-      <div class="flex items-center gap-3 cursor-pointer select-none group" onclick="replaySplashScreen()" title="إعادة تشغيل شاشة الترحيب السينمائية">
-        <div class="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-gold-500 via-gold-600 to-amber-700 text-slate-950 font-black text-xl shadow-lg shadow-gold-500/20 tracking-wider group-hover:scale-105 transition-transform">
-          <span>SX</span>
-          <span class="absolute -bottom-1 -right-1 bg-slate-950 border border-gold-500/50 text-gold-400 text-[9px] font-bold px-1 rounded-sm">VM</span>
+      <!-- شعار النظام وهوية SAMX-VM بدون أي تداخل مع منع التفاف النص نهائياً -->
+      <div class="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group shrink-0" onclick="replaySplashScreen()" title="إعادة تشغيل شاشة الترحيب السينمائية">
+        <!-- مربع الشعار الأيقوني 40px × 40px مع إبراز SX و VM بنقاء تام دون أي تداخل -->
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-gold-500 via-amber-500 to-amber-700 text-slate-950 font-black text-lg shadow-lg shadow-gold-500/15 tracking-normal group-hover:scale-105 transition-transform shrink-0">
+          <span class="font-black tracking-tighter">SX</span>
+          <span class="absolute -top-1.5 -left-1.5 bg-slate-950 border border-gold-500/60 text-gold-400 text-[8px] font-black px-1 py-0.5 rounded shadow-md leading-none">VM</span>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 whitespace-nowrap">
+            <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.6.0</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.2</span>
           </div>
-          <p class="text-[11px] text-slate-400 hidden sm:block">العرض المرئي والتنسيق التجاري</p>
+          <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
       </div>
 
       <!-- مؤشرات الحالة وأزرار الإجراءات السريعة والمستخدم النشط -->
-      <div class="flex items-center gap-1.5 sm:gap-2 md:gap-2.5">
+      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <!-- شارة المستخدم النشط (مدير النظام أو الأخصائي) -->
-        <div id="header-user-badge" class="hidden">
+        <div id="header-user-badge" class="hidden whitespace-nowrap shrink-0">
           <!-- تُملأ ديناميكياً بواسطة syncUserHeaderUI -->
         </div>
 
         <!-- زر ربط بصمة الجهاز السريع -->
-        <button type="button" id="header-bind-biometric-btn" onclick="promptRegisterBiometric()" class="hidden bg-corp-850 hover:bg-corp-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="ربط بصمة هذا الجهاز للدخول السريع">
+        <button type="button" id="header-bind-biometric-btn" onclick="promptRegisterBiometric()" class="hidden bg-corp-850 hover:bg-corp-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 font-bold text-xs p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="ربط بصمة هذا الجهاز للدخول السريع">
           <span class="text-cyan-400">👆</span>
-          <span class="hidden lg:inline text-[11px]">ربط البصمة</span>
+          <span class="hidden lg:inline text-[11px] whitespace-nowrap">ربط البصمة</span>
         </button>
 
         <!-- زر قفل الشاشة وتسجيل الخروج -->
-        <button type="button" id="header-logout-btn" onclick="lockOrLogoutSession()" class="hidden bg-corp-850 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-corp-750 hover:border-rose-500/40 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="قفل الشاشة وتسجيل الخروج">
+        <button type="button" id="header-logout-btn" onclick="lockOrLogoutSession()" class="hidden bg-corp-850 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-corp-750 hover:border-rose-500/40 font-bold text-xs p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="قفل الشاشة وتسجيل الخروج">
           <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
-          <span class="hidden lg:inline text-[11px]">قفل / خروج</span>
+          <span class="hidden lg:inline text-[11px] whitespace-nowrap">قفل / خروج</span>
         </button>
 
-        <!-- مؤشر العمل أوفلاين/أونلاين -->
-        <div id="net-status-badge" class="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 border border-emerald-500/30 text-emerald-400" title="جاهز للعمل دون اتصال بالإنترنت">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-[11px]" id="net-status-text">أوفلاين</span>
+        <!-- مؤشر العمل أوفلاين/أونلاين (نص رقيق بدون إطار مع نقطة مضيئة 6px) -->
+        <div id="net-status-badge" class="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 select-none whitespace-nowrap px-1" title="جاهز للعمل دون اتصال بالإنترنت">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
+          <span class="text-[11px] text-slate-300 font-medium whitespace-nowrap" id="net-status-text">متصل • جاهز أوفلاين</span>
         </div>
 
-        <!-- مؤشر الحفظ التلقائي -->
-        <div class="hidden xl:flex items-center gap-1 text-[11px] text-slate-400 bg-corp-850 px-2 py-1 rounded-lg border border-corp-800">
-          <i data-lucide="check-check" class="w-3.5 h-3.5 text-gold-500"></i>
-          <span id="save-status-indicator">محفوظ</span>
+        <!-- مؤشر الحفظ التلقائي (نص رقيق بدون إطار مع نقطة مضيئة 6px) -->
+        <div class="hidden xl:flex items-center gap-1.5 text-xs text-slate-400 select-none whitespace-nowrap px-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50"></span>
+          <span id="save-status-indicator" class="text-[11px] text-slate-300 font-medium whitespace-nowrap">محفوظ محلياً</span>
         </div>
 
-        <!-- زر حفظ في سجل الجولات -->
-        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الجولات والأرشيف">
+        <!-- زر حفظ في سجل الجولات (سطح المكتب) -->
+        <button type="button" onclick="saveCurrentTourToArchive()" class="hidden md:flex bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow transition items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap" title="حفظ وتحديث الجولة الحالية في سجل الجولات والأرشيف">
           <i data-lucide="bookmark-plus" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span class="hidden sm:inline">حفظ</span>
+          <span class="whitespace-nowrap">حفظ</span>
         </button>
 
-        <!-- زر بدء جولة جديدة -->
-        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
+        <!-- زر بدء جولة جديدة (سطح المكتب) -->
+        <button type="button" onclick="startNewTourPrompt()" class="hidden md:flex bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow transition items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
           <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span class="hidden sm:inline">جديدة</span>
+          <span class="whitespace-nowrap">جديدة</span>
         </button>
 
-        <!-- زر التقرير السريع -->
-        <button onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+        <!-- زر التقرير السريع (سطح المكتب) -->
+        <button onclick="switchTab('preview')" class="hidden md:flex bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-md transition items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap">
           <i data-lucide="printer" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">التقرير</span>
+          <span class="whitespace-nowrap">التقرير</span>
         </button>
       </div>
+
+    </div>
+
+    <!-- شريط سياق الجولة النشطة وإجراءاتها السريعة للجوال (Mobile Active Tour Context Bar) -->
+    <div id="mobile-tour-context-bar" class="md:hidden bg-corp-950/95 border-t border-corp-850 px-3 py-1.5 flex items-center justify-between gap-2 text-xs select-none">
+      <!-- معلومات المعرض والأسبوع -->
+      <div class="flex items-center gap-1.5 min-w-0 text-slate-200 font-bold truncate">
+        <span class="text-amber-400 shrink-0 text-xs">🏠</span>
+        <span id="mobile-context-branch" class="truncate text-[11px] text-white font-black">معرض غير محدد</span>
+        <span class="text-slate-500 shrink-0">•</span>
+        <span class="text-gold-400 shrink-0 text-[10px] whitespace-nowrap font-bold" id="mobile-context-week">أسبوع 43</span>
+      </div>
+
+      <!-- أزرار الإجراءات السريعة على الجوال -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="حفظ الجولة الحالية">
+          <span>💾</span>
+          <span>حفظ</span>
+        </button>
+        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold px-2 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="بدء جولة جديدة">
+          <span>➕</span>
+          <span>جديدة</span>
+        </button>
+        <button type="button" onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap" title="معاينة وطباعة التقرير">
+          <span>🖨️</span>
+          <span>التقرير</span>
+        </button>
+      </div>
+    </div>
 
     </div>
 
@@ -1081,39 +1111,39 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
           
           <!-- تصدير عرض PowerPoint الاحترافي -->
-          <div class="bg-corp-950 p-4 rounded-xl border border-amber-500/40 flex flex-col justify-between shadow-lg shadow-amber-500/5">
+          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 hover:border-gold-500/40 transition-colors flex flex-col justify-between shadow-lg">
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
                 <i data-lucide="presentation" class="w-4 h-4 text-amber-400"></i>
-                <span class="text-amber-300">عرض PowerPoint (PPTX)</span>
+                <span class="text-amber-300">عروض PowerPoint والتقارير التنفيذية</span>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed mb-3">
-                توليد وتحميل عرض تقديمي رسمي مطابق لمقاس A4 طولي (8.27 × 11.69 بوصة) مطابق تماماً لتقرير الـ PDF أو صيغة 16:9.
+                توليد وتحميل عرض تقديمي رسمي مطابق لمقاس A4 العرضي المعتمد (Landscape) أو شاشات العرض 16:9.
               </p>
             </div>
-            <div class="space-y-2">
-              <button onclick="exportPptxA4Report()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow">
+            <div class="space-y-2 mt-auto pt-3">
+              <button onclick="exportPptxA4Report()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow cursor-pointer">
                 <i data-lucide="file-check-2" class="w-3.5 h-3.5 text-slate-950"></i>
-                <span>تحميل مقاس A4 طولي (.pptx)</span>
+                <span>تحميل عرض A4 عرضي (.pptx)</span>
               </button>
               <div class="grid grid-cols-2 gap-1.5">
-                <button onclick="downloadPrebuiltA4Pptx()" class="bg-corp-850 hover:bg-corp-800 text-amber-400 border border-amber-500/30 py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition" title="تنزيل التقرير المولد مسبقاً بواسطة Python">
+                <button onclick="downloadPrebuiltA4Pptx()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer" title="تنزيل العرض التنفيذي القياسي A4">
                   <i data-lucide="download" class="w-3 h-3"></i>
-                  <span>تقرير بايثون A4</span>
+                  <span>📊 عرض تنفيذي قياسي (A4)</span>
                 </button>
-                <button onclick="exportPptxReport()" class="bg-corp-850 hover:bg-corp-800 text-slate-300 border border-corp-700 py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition">
+                <button onclick="exportPptxReport()" class="bg-corp-850 hover:bg-corp-800 text-slate-300 border border-corp-700 py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer" title="عرض شاشات الاجتماعات 16:9">
                   <i data-lucide="monitor" class="w-3 h-3"></i>
-                  <span>شاشة 16:9</span>
+                  <span>🖥️ عرض شاشات الاجتماعات (16:9)</span>
                 </button>
               </div>
             </div>
           </div>
 
           <!-- تصدير ملف النسخة الاحتياطية -->
-          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
+          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 hover:border-gold-500/40 transition-colors flex flex-col justify-between shadow-lg">
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
                 <i data-lucide="download" class="w-4 h-4 text-gold-400"></i>
@@ -1123,14 +1153,16 @@
                 احفظ نسخة كاملة من التقرير الحالي بجميع صوره وبياناته في ملف JSON على جهازك للرجوع إليه لاحقاً.
               </p>
             </div>
-            <button onclick="exportJsonBackup()" class="w-full bg-corp-850 hover:bg-corp-800 text-gold-400 border border-gold-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95">
-              <i data-lucide="download" class="w-4 h-4"></i>
-              <span>تحميل ملف التقرير (JSON)</span>
-            </button>
+            <div class="mt-auto pt-3">
+              <button onclick="exportJsonBackup()" class="w-full bg-corp-850 hover:bg-corp-800 text-gold-400 border border-gold-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>تحميل ملف التقرير (JSON)</span>
+              </button>
+            </div>
           </div>
 
           <!-- استيراد ملف النسخة الاحتياطية -->
-          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
+          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 hover:border-gold-500/40 transition-colors flex flex-col justify-between shadow-lg">
             <div>
               <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
                 <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
@@ -1140,28 +1172,13 @@
                 استعد مسودة تم حفظها مسبقاً لاستكمال الجولة أو التعديل عليها وطباعتها مجدداً.
               </p>
             </div>
-            <label class="w-full bg-corp-850 hover:bg-corp-800 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition active:scale-95">
-              <i data-lucide="upload" class="w-4 h-4"></i>
-              <span>رفع ملف التقرير واستعادته</span>
-              <input type="file" accept=".json" onchange="importJsonBackup(event)" class="hidden">
-            </label>
-          </div>
-
-          <!-- تفريغ المسودة وبدء تقرير جديد -->
-          <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center gap-2 text-white font-bold text-sm mb-1">
-                <i data-lucide="file-plus" class="w-4 h-4 text-rose-400"></i>
-                <span>بدء تدقيق لمعرض جديد</span>
-              </div>
-              <p class="text-xs text-slate-400 leading-relaxed mb-4">
-                تفريغ الحقول الحالية وبدء جولة جديدة من الصفر مع الحفاظ على اسم مسؤول الـ VM.
-              </p>
+            <div class="mt-auto pt-3">
+              <label class="w-full bg-corp-850 hover:bg-corp-800 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition active:scale-95">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span>رفع ملف التقرير واستعادته</span>
+                <input type="file" accept=".json" onchange="importJsonBackup(event)" class="hidden">
+              </label>
             </div>
-            <button onclick="confirmResetReport()" class="w-full bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-              <span>تفريغ وبدء مسودة جديدة</span>
-            </button>
           </div>
 
         </div>
@@ -1185,26 +1202,21 @@
               </div>
             </div>
 
-            <!-- أزرار الإضافة والمزامنة السحابية للأرشيف -->
+            <!-- أزرار الإضافة والمزامنة السحابية وحذف المحدد للأرشيف -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <button type="button" id="btn-cloud-sync-tours" onclick="handleCloudSyncTours()" class="px-3 py-2 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="مزامنة فورية متبادلة مع سحابة Cloudflare D1 و R2">
+              <button type="button" id="btn-cloud-sync-tours" onclick="handleCloudSyncTours()" class="px-3 py-2 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer whitespace-nowrap" title="مزامنة فورية متبادلة مع سحابة Cloudflare D1 و R2">
                 <i data-lucide="cloud" class="w-4 h-4 text-sky-400"></i>
-                <span id="cloud-sync-btn-text">🔄 مزامنة سحابية فورية</span>
+                <span id="cloud-sync-btn-text">☁️ مزامنة سحابية فورية</span>
               </button>
 
-              <button type="button" onclick="archiveCurrentAuditToStorage()" class="px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="حفظ المسودة المفتوحة حالياً في الأرشيف">
+              <button type="button" onclick="archiveCurrentAuditToStorage()" class="px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer whitespace-nowrap" title="حفظ المسودة المفتوحة حالياً في الأرشيف">
                 <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-400"></i>
-                <span>حفظ الجولة الحالية بالأرشيف</span>
+                <span>💾 حفظ الجولة الحالية بالأرشيف</span>
               </button>
 
-              <label class="px-3 py-2 rounded-xl text-xs font-bold text-slate-200 bg-corp-850 hover:bg-corp-800 border border-corp-700 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="رفع ملفات JSON سابقة من جهازك وإضافتها للأرشيف">
-                <i data-lucide="folder-up" class="w-4 h-4 text-emerald-400"></i>
-                <span>استيراد JSON</span>
-                <input type="file" multiple accept=".json" onchange="uploadJsonToArchive(event)" class="hidden">
-              </label>
-
-              <button type="button" onclick="confirmResetArchivedAudits()" class="p-2 rounded-xl text-xs text-slate-400 hover:text-rose-400 bg-corp-850 hover:bg-corp-800 border border-corp-800 transition cursor-pointer" title="تفريغ أرشيف الجولات بالكامل">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <button type="button" id="btn-delete-selected-audits" onclick="deleteSelectedArchivedAudits()" disabled class="px-3 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap" title="حذف الجولات المحددة من الأرشيف">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-400"></i>
+                <span>🗑️ حذف المحدد</span>
               </button>
             </div>
           </div>
@@ -1431,13 +1443,13 @@
     <div class="flex items-center justify-around">
       
       <button onclick="switchTab('audit')" id="mobile-nav-audit" class="flex flex-col items-center gap-1 py-1 px-3 text-gold-400 font-bold text-[11px] transition">
-        <i data-lucide="camera" class="w-5 h-5"></i>
-        <span>الجولة</span>
+        <i data-lucide="layers" class="w-5 h-5"></i>
+        <span>الأقسام</span>
       </button>
 
-      <button onclick="openEntryModal()" class="flex flex-col items-center gap-1 py-1 px-4 text-slate-950 bg-gradient-to-r from-gold-500 to-amber-500 font-black text-[11px] rounded-xl shadow-lg -translate-y-2 active:scale-90 transition">
-        <i data-lucide="plus" class="w-5 h-5"></i>
-        <span>توثيق</span>
+      <button onclick="openEntryModal()" class="flex flex-col items-center gap-1 py-1 px-3.5 text-slate-950 bg-gradient-to-r from-gold-500 to-amber-500 font-black text-[11px] rounded-xl shadow-lg -translate-y-2 active:scale-90 transition whitespace-nowrap">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <span>+ قسم جديد</span>
       </button>
 
       <button onclick="switchTab('preview')" id="mobile-nav-preview" class="flex flex-col items-center gap-1 py-1 px-3 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">

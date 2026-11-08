@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Authentication & Biometric Security Engine (Phase 2)
- * Version: 1.6.1
+ * Version: 1.6.2
  * Features:
  * - Immutable Super Admin (sam / 7701)
  * - Session Management (sessionStorage) & Role-Based Access Control (RBAC)
@@ -494,18 +494,20 @@ export function syncUserHeaderUI(user = null) {
 
   if (activeUser.role === 'admin') {
     badgeContainer.innerHTML = `
-      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-gradient-to-r from-amber-500/20 to-gold-500/10 border border-gold-500/40 text-gold-300 shadow-sm shadow-gold-500/5 select-none" title="جلسة مدير النظام الفائق نشطة">
-        <span class="text-amber-400">👑</span>
-        <span class="hidden sm:inline text-gold-400 font-bold">مدير النظام:</span>
-        <span class="text-white">${activeUser.username}</span>
+      <div class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-black bg-gradient-to-r from-amber-500/20 to-gold-500/10 border border-gold-500/40 text-gold-300 shadow-sm shadow-gold-500/5 select-none whitespace-nowrap shrink-0" title="جلسة مدير النظام الفائق نشطة">
+        <span class="text-amber-400 shrink-0">👑</span>
+        <span class="hidden sm:inline text-gold-400 font-bold whitespace-nowrap">مدير النظام:</span>
+        <span class="text-white whitespace-nowrap">${activeUser.username}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
       </div>
     `;
   } else {
     badgeContainer.innerHTML = `
-      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/15 border border-sky-500/30 text-sky-300 shadow-sm select-none" title="جلسة أخصائي الـ VM">
-        <span>👤</span>
-        <span class="hidden sm:inline text-sky-400">أخصائي:</span>
-        <span class="text-white truncate max-w-[120px]">${activeUser.displayName || activeUser.username}</span>
+      <div class="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/15 border border-sky-500/30 text-sky-300 shadow-sm select-none whitespace-nowrap shrink-0" title="جلسة أخصائي الـ VM">
+        <span class="shrink-0">👤</span>
+        <span class="hidden sm:inline text-sky-400 whitespace-nowrap">أخصائي:</span>
+        <span class="text-white truncate max-w-[85px] sm:max-w-[130px] whitespace-nowrap">${activeUser.displayName || activeUser.username}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-sm shadow-emerald-400/50 animate-pulse"></span>
       </div>
     `;
   }
