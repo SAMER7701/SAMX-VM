@@ -1,15 +1,19 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.4.0
+ * Version: 1.5.0
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.5.0';
 
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 
 // مفاتيح التخزين المحلي الصريحة (LocalStorage Keys)
 export const APP_STORAGE_KEY = 'samx_vm_active_audit';
+export const STORAGE_KEY_AUTH_SESSION = 'samx_auth_session';
+export const STORAGE_KEY_USERS_REGISTRY = 'samx_users_registry';
+export const STORAGE_KEY_BIOMETRIC_CRED = 'samx_biometric_cred';
+export const STORAGE_KEY_LAST_USER = 'samx_last_user';
 export const STORAGE_KEY_BRANCHES = 'samx_branches_clean_v1';
 export const STORAGE_KEY_SPECIALISTS = 'samx_specialists_clean_v1';
 export const STORAGE_KEY_SECTIONS = 'samx_store_sections_v2';

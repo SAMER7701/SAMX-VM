@@ -61,6 +61,19 @@ import {
 } from './store.js';
 
 import {
+  getActiveAuthSession,
+  saveActiveAuthSession,
+  clearActiveAuthSession,
+  authenticateWithCredentials,
+  isBiometricAuthSupported,
+  getRegisteredBiometricCredential,
+  registerDeviceBiometric,
+  authenticateWithDeviceBiometric,
+  applyUserRolePermissions,
+  syncUserHeaderUI
+} from './auth.js';
+
+import {
   showToast,
   showModalInlineFeedback,
   updateKPIs,
@@ -185,40 +198,26 @@ export function wireButtonListeners() {
   }
 }
 
-// ==================== إدارة الشاشة الترحيبية المحدثة (Fabric Thread & Spotlight Splash Controller) ====================
-export function initSplashScreen() {
-  const splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
-  if (!splash) return;
+// ==================== إدارة بوابة الدخول والترحيب البيومترية المتطورة (Two-Stage Welcome & Biometric Login) ====================
 
-  // التحقق من تشغيل الشاشة مسبقاً خلال الجلسة الحالية
-  const hasSeenSplash = sessionStorage.getItem('samx_splash_shown');
-  if (hasSeenSplash) {
-    splash.classList.add('hide');
-    splash.style.display = 'none';
-    return;
+export function syncBiometricStatusUI() {
+  const label = document.getElementById('biometric-status-label');
+  if (!label) return;
+
+  const isSupported = isBiometricAuthSupported();
+  const registered = getRegisteredBiometricCredential();
+
+  if (!isSupported) {
+    label.innerText = 'المصادقة البيومترية غير مدعومة';
+  } else if (registered && registered.username) {
+    label.innerText = `الدخول السريع ببصمة (${registered.username})`;
+  } else {
+    label.innerText = 'الدخول السريع ببصمة الجهاز';
   }
-
-  // إخفاء تلقائي بعد 2.2 ثانية للتوافق مع زمن القراءة المريح والمحدد
-  if (splash._dismissTimer) {
-    clearTimeout(splash._dismissTimer);
-  }
-
-  splash._dismissTimer = setTimeout(() => {
-    dismissSplashScreen();
-  }, 2200);
-
-  // إمكانية الإغلاق السريع عبر زر الهروب Escape
-  const handleKeydown = (e) => {
-    if (e.key === 'Escape') {
-      dismissSplashScreen();
-      window.removeEventListener('keydown', handleKeydown);
-    }
-  };
-  window.addEventListener('keydown', handleKeydown);
 }
 
-export function dismissSplashScreen() {
-  const splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
+export function initSplashScreen() {
+  const splash = document.getElementById('samx-splash');
   if (!splash) return;
 
   if (splash._dismissTimer) {
@@ -226,9 +225,44 @@ export function dismissSplashScreen() {
     splash._dismissTimer = null;
   }
 
-  try {
-    sessionStorage.setItem('samx_splash_shown', 'true');
-  } catch (e) {}
+  const session = getActiveAuthSession();
+
+  // الحالة 1: المستخدم مسجل دخوله بالفعل مسبقاً خلال هذه الجلسة
+  if (session) {
+    applyUserRolePermissions(session);
+    syncUserHeaderUI(session);
+
+    // ترحيب سينمائي هادئ لمدة 2.0 ثانية ثم دخول التطبيق مباشرة
+    splash.classList.remove('is-login-mode');
+    splash._dismissTimer = setTimeout(() => {
+      dismissSplashScreen();
+    }, 2000);
+    return;
+  }
+
+  // الحالة 2: المستخدم غير مسجل دخوله
+  // المرحلة 1: عرض الشاشة الترحيبية السينمائية الفاخرة لمدة 2.0 ثانية
+  splash.classList.remove('is-login-mode');
+  splash._dismissTimer = setTimeout(() => {
+    // المرحلة 2: التحول السلس في نفس الشاشة إلى بوابة تسجيل الدخول والبصمة
+    splash.classList.add('is-login-mode');
+    syncBiometricStatusUI();
+
+    const usernameInp = document.getElementById('login-username');
+    if (usernameInp) {
+      setTimeout(() => usernameInp.focus(), 250);
+    }
+  }, 2000);
+}
+
+export function dismissSplashScreen() {
+  const splash = document.getElementById('samx-splash');
+  if (!splash) return;
+
+  if (splash._dismissTimer) {
+    clearTimeout(splash._dismissTimer);
+    splash._dismissTimer = null;
+  }
 
   splash.classList.add('hide');
   setTimeout(() => {
@@ -239,36 +273,144 @@ export function dismissSplashScreen() {
 }
 
 export function replaySplashScreen() {
-  let splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
-  if (!splash) {
-    const splashEl = document.createElement('div');
-    splashEl.id = 'samx-splash';
-    splashEl.className = 'splash-screen no-print';
-    splashEl.onclick = dismissSplashScreen;
-    splashEl.innerHTML = `
-      <div class="spotlight-glow"></div>
-      <div class="splash-content">
-        <div class="fabric-line"></div>
-        <div class="brand-box">
-          <div class="brand-badge">VISUAL MERCHANDISING</div>
-          <h1 class="brand-title">SAMX<span>•VM</span></h1>
-          <p class="brand-sub">نظام التدقيق وضبط الهوية البصرية</p>
-        </div>
-        <div class="corner-grid tl"></div>
-        <div class="corner-grid br"></div>
-      </div>
-    `;
-    document.body.appendChild(splashEl);
-    splash = splashEl;
+  let splash = document.getElementById('samx-splash');
+  if (!splash) return;
+
+  if (splash._dismissTimer) {
+    clearTimeout(splash._dismissTimer);
+    splash._dismissTimer = null;
   }
 
-  try {
-    sessionStorage.removeItem('samx_splash_shown');
-  } catch (e) {}
-
   splash.style.display = 'flex';
-  splash.classList.remove('hide');
-  initSplashScreen();
+  splash.classList.remove('hide', 'is-login-mode');
+
+  const session = getActiveAuthSession();
+  if (session) {
+    // إذا كان مسجلاً للدخول، يتم فقط عرض الشعار الترحيبي والتلاشي التلقائي
+    splash._dismissTimer = setTimeout(() => {
+      dismissSplashScreen();
+    }, 2200);
+  } else {
+    initSplashScreen();
+  }
+}
+
+export function handleLoginSubmit() {
+  const usernameInp = document.getElementById('login-username');
+  const passwordInp = document.getElementById('login-password');
+  const errorMsg = document.getElementById('login-error-msg');
+  const card = document.getElementById('login-portal-card');
+
+  const username = usernameInp ? usernameInp.value : '';
+  const password = passwordInp ? passwordInp.value : '';
+
+  const authResult = authenticateWithCredentials(username, password);
+
+  if (authResult.success) {
+    if (errorMsg) {
+      errorMsg.innerText = '';
+      errorMsg.classList.add('hidden');
+    }
+    applyUserRolePermissions(authResult.user);
+    syncUserHeaderUI(authResult.user);
+    showToast(`✅ مرحباً بك! تم تسجيل الدخول بنجاح (${authResult.user.displayName})`, 'success');
+    dismissSplashScreen();
+  } else {
+    if (errorMsg) {
+      errorMsg.innerText = authResult.message || 'بيانات الدخول غير صحيحة، يرجى التأكد من اسم المستخدم وكلمة المرور';
+      errorMsg.classList.remove('hidden');
+    }
+    if (card) {
+      card.classList.remove('login-shake');
+      void card.offsetWidth; // إعادة تشغيل اهتزاز الخطأ
+      card.classList.add('login-shake');
+    }
+    if (passwordInp) {
+      passwordInp.focus();
+      passwordInp.select();
+    }
+  }
+}
+
+export async function handleBiometricLogin() {
+  const btn = document.getElementById('biometric-login-btn');
+  const ring = btn?.querySelector('.biometric-scanner-ring');
+
+  if (ring) {
+    ring.style.borderColor = '#06b6d4';
+    ring.style.boxShadow = '0 0 35px #06b6d4';
+  }
+
+  const result = await authenticateWithDeviceBiometric();
+
+  if (result.success) {
+    if (ring) {
+      ring.style.borderColor = '#10b981';
+      ring.style.boxShadow = '0 0 45px #10b981';
+    }
+    applyUserRolePermissions(result.user);
+    syncUserHeaderUI(result.user);
+    showToast(`✅ مرحباً بك! تم التحقق من بصمة الجهاز بنجاح (${result.user.displayName})`, 'success');
+    setTimeout(() => {
+      dismissSplashScreen();
+    }, 350);
+  } else {
+    if (ring) {
+      ring.style.borderColor = '';
+      ring.style.boxShadow = '';
+    }
+    if (result.reason === 'not_enrolled') {
+      showToast('يرجى تسجيل الدخول بكلمة المرور أولاً لتفعيل البصمة على هذا الجهاز', 'info');
+      const userInp = document.getElementById('login-username');
+      if (userInp) userInp.focus();
+    } else {
+      showToast(result.message || 'فشل التحقق من البصمة البيومترية', 'error');
+    }
+  }
+}
+
+export async function promptRegisterBiometric() {
+  const session = getActiveAuthSession();
+  if (!session) {
+    showToast('يرجى تسجيل الدخول أولاً قبل ربط البصمة', 'warning');
+    return;
+  }
+
+  showToast('جاري استدعاء مستشعر البصمة على جهازك للربط...', 'info');
+  const result = await registerDeviceBiometric(session);
+
+  if (result.success) {
+    showToast('✅ تم ربط بصمة هذا الجهاز بنجاح! يمكنك الآن تسجيل الدخول السريع بلمسة واحدة.', 'success');
+    syncUserHeaderUI(session);
+    syncBiometricStatusUI();
+  } else {
+    showToast(result.message || 'تعذر ربط البصمة البيومترية', 'error');
+  }
+}
+
+export function lockOrLogoutSession() {
+  if (!confirm('هل ترغب في قفل الشاشة وتسجيل الخروج؟')) return;
+
+  clearActiveAuthSession();
+  syncUserHeaderUI(null);
+
+  const splash = document.getElementById('samx-splash');
+  if (splash) {
+    splash.style.display = 'flex';
+    splash.classList.remove('hide');
+    splash.classList.add('is-login-mode');
+
+    const passInp = document.getElementById('login-password');
+    if (passInp) passInp.value = '';
+    const errorMsg = document.getElementById('login-error-msg');
+    if (errorMsg) errorMsg.classList.add('hidden');
+
+    syncBiometricStatusUI();
+    const userInp = document.getElementById('login-username');
+    if (userInp) setTimeout(() => userInp.focus(), 250);
+  }
+
+  showToast('تم قفل الشاشة بنجاح. بيانات التدقيق محفوظة بأمان 🔒', 'info');
 }
 
 // تشغيل التطبيق بحصانة تامة ودعم لكافة حالات الجاهزية
@@ -312,6 +454,12 @@ export async function bootApp() {
     refreshSpecialistsUI();
     refreshMainSelects();
     toggleReportFooter();
+
+    const session = getActiveAuthSession();
+    if (session) {
+      applyUserRolePermissions(session);
+      syncUserHeaderUI(session);
+    }
   } catch (e) {
     console.warn('Boot UI refresh error:', e);
   }
@@ -3689,6 +3837,13 @@ if (typeof window !== 'undefined') {
   window.resetImageConfig = resetImageConfig;
   window.applyImageConfigToPreview = applyImageConfigToPreview;
   window.shareWhatsAppSummary = shareWhatsAppSummary;
+  window.handleLoginSubmit = handleLoginSubmit;
+  window.handleBiometricLogin = handleBiometricLogin;
+  window.promptRegisterBiometric = promptRegisterBiometric;
+  window.lockOrLogoutSession = lockOrLogoutSession;
+  window.syncBiometricStatusUI = syncBiometricStatusUI;
+  window.getActiveAuthSession = getActiveAuthSession;
+  window.applyUserRolePermissions = applyUserRolePermissions;
   window.bootApp = bootApp;
 }
 

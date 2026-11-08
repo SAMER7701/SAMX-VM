@@ -380,19 +380,95 @@
       transform: scale(1.02);
       pointer-events: none;
     }
+
+    /* تأثير بطاقة الدخول الشفافة بالمرحلة الثانية */
+    .login-portal-card {
+      opacity: 0;
+      transform: translateY(25px) scale(0.95);
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(217, 119, 6, 0.12);
+      border-radius: 1.25rem;
+      width: 100%;
+      margin-top: 18px;
+    }
+
+    .splash-screen.is-login-mode .brand-box {
+      transform: translateY(-24px) scale(0.88);
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .splash-screen.is-login-mode .login-portal-card {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .splash-screen.is-login-mode .corner-grid {
+      opacity: 0.12;
+    }
+
+    /* حلقة مستشعر البصمة والليزر المتحرك */
+    .biometric-scanner-ring {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), inset 0 0 12px rgba(6, 182, 212, 0.15);
+      animation: bioPulse 2.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes bioPulse {
+      0% {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.2), inset 0 0 8px rgba(6, 182, 212, 0.1);
+        border-color: rgba(245, 158, 11, 0.4);
+      }
+      100% {
+        box-shadow: 0 0 30px rgba(245, 158, 11, 0.45), inset 0 0 20px rgba(6, 182, 212, 0.3);
+        border-color: rgba(251, 191, 36, 0.8);
+      }
+    }
+
+    .biometric-laser-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #06b6d4, #fbbf24, #06b6d4, transparent);
+      box-shadow: 0 0 8px #06b6d4, 0 0 15px #fbbf24;
+      animation: laserScan 2.4s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes laserScan {
+      0% { top: 12%; opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { top: 86%; opacity: 0.3; }
+    }
+
+    /* اهتزاز البطاقة عند خطأ الدخول */
+    @keyframes loginShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    .login-shake {
+      animation: loginShake 0.45s ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-gold-500 selection:text-slate-950 pb-20 md:pb-8">
 
-  <!-- شاشة الدخول المحدثة بالزمن الهادئ والمريح -->
-  <div id="samx-splash" class="splash-screen no-print" onclick="dismissSplashScreen()">
+  <!-- شاشة الدخول وبوابة المصادقة البيومترية المتطورة (Two-Stage Cinematic Welcome & Biometric Login Portal) -->
+  <div id="samx-splash" class="splash-screen no-print">
     <div class="spotlight-glow"></div>
     
-    <div class="splash-content">
-      <!-- خيط النسيج المنساب ببطء هادئ -->
+    <div class="splash-content w-full max-w-sm px-4">
+      <!-- خيط النسيج المنساب ببطء هادئ (المرحلة الأولى) -->
       <div class="fabric-line"></div>
       
-      <!-- شعار الأداة -->
+      <!-- شعار الأداة والترحيب الرسمي -->
       <div class="brand-box">
         <div class="brand-badge">VISUAL MERCHANDISING</div>
         <h1 class="brand-title">SAMX<span>•VM</span></h1>
@@ -402,23 +478,72 @@
       <!-- شبكة الزوايا الهندسية -->
       <div class="corner-grid tl"></div>
       <div class="corner-grid br"></div>
+
+      <!-- بطاقة تسجيل الدخول الشفافة ومستشعر البصمة البيومتري (المرحلة الثانية) -->
+      <div id="login-portal-card" class="login-portal-card p-5 text-right" dir="rtl">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.5.0</span>
+        </div>
+
+        <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
+          <!-- حقل اسم المستخدم -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">اسم المستخدم / الحساب:</label>
+            <div class="relative w-full">
+              <input type="text" id="login-username" dir="ltr" placeholder="اسم المستخدم (Username)" autocomplete="username" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
+              <span class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none">👤</span>
+            </div>
+          </div>
+
+          <!-- حقل كلمة المرور -->
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 mb-1">كلمة المرور:</label>
+            <div class="relative w-full">
+              <input type="password" id="login-password" dir="ltr" placeholder="كلمة المرور (Password)" autocomplete="current-password" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
+              <span class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none">🔒</span>
+            </div>
+          </div>
+
+          <!-- رسالة تنبيه الخطأ -->
+          <div id="login-error-msg" class="hidden text-[11px] text-rose-300 font-bold text-center leading-snug bg-rose-950/60 border border-rose-500/30 rounded-lg p-2"></div>
+
+          <!-- زر تسجيل الدخول الرئيسي -->
+          <button type="submit" id="login-submit-btn" class="w-full py-2.5 px-4 bg-gradient-to-r from-gold-500 via-amber-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+            <span>تسجيل الدخول إلى النظام</span>
+            <span class="text-sm">➔</span>
+          </button>
+        </form>
+
+        <!-- مستشعر البصمة البيومتري المباشر -->
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col items-center">
+          <button type="button" id="biometric-login-btn" onclick="handleBiometricLogin()" class="group flex flex-col items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-900/40 transition cursor-pointer active:scale-95" title="الدخول السريع ببصمة الجهاز">
+            <div class="biometric-scanner-ring relative w-14 h-14 rounded-full flex items-center justify-center border border-amber-500/40 bg-slate-950/90 group-hover:border-amber-400 transition-all overflow-hidden">
+              <div class="biometric-laser-line"></div>
+              <svg class="w-8 h-8 text-amber-400 group-hover:text-cyan-300 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a10 10 0 0 0-6.88 2.77" />
+                <path d="M18.88 4.77A10 10 0 0 0 12 2" />
+                <path d="M2 12c0 3.32 1.34 6.32 3.51 8.49" />
+                <path d="M22 12c0 3.32-1.34 6.32-3.51 8.49" />
+                <path d="M7 12a5 5 0 0 1 5-5" />
+                <path d="M12 7a5 5 0 0 1 5 5" />
+                <path d="M9 12a3 3 0 0 1 3-3" />
+                <path d="M12 9a3 3 0 0 1 3 3" />
+                <path d="M12 12v3" />
+                <path d="M12 18v2" />
+                <path d="M8 15a4 4 0 0 0 8 0" />
+              </svg>
+            </div>
+            <span id="biometric-status-label" class="text-[10px] font-bold text-slate-300 group-hover:text-amber-300 transition">الدخول السريع ببصمة الجهاز</span>
+          </button>
+        </div>
+
+      </div>
     </div>
   </div>
-
-  <script>
-  // زيادة زمن البقاء الإجمالي إلى 2.2 ثانية لتكون كافية للرؤية والقراءة براحة تامة
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      const splash = document.getElementById('samx-splash');
-      if (splash) {
-        splash.classList.add('hide');
-        setTimeout(() => {
-          try { splash.remove(); } catch(e) { splash.style.display = 'none'; }
-        }, 600); // إزالة ناعمة بالكامل
-      }
-    }, 2200); 
-  });
-  </script>
 
   <!-- ==================== رأس النظام الفاخر (EXECUTIVE HEADER) ==================== -->
   <header class="no-print bg-corp-900/90 backdrop-blur-md border-b border-corp-800 sticky top-0 z-40 shadow-xl">
@@ -435,45 +560,59 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.4.0</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.5.0</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">العرض المرئي والتنسيق التجاري</p>
         </div>
       </div>
 
-      <!-- مؤشرات الحالة وأزرار الإجراءات السريعة -->
-      <div class="flex items-center gap-2 md:gap-3">
+      <!-- مؤشرات الحالة وأزرار الإجراءات السريعة والمستخدم النشط -->
+      <div class="flex items-center gap-1.5 sm:gap-2 md:gap-2.5">
+        <!-- شارة المستخدم النشط (مدير النظام أو الأخصائي) -->
+        <div id="header-user-badge" class="hidden">
+          <!-- تُملأ ديناميكياً بواسطة syncUserHeaderUI -->
+        </div>
+
+        <!-- زر ربط بصمة الجهاز السريع -->
+        <button type="button" id="header-bind-biometric-btn" onclick="promptRegisterBiometric()" class="hidden bg-corp-850 hover:bg-corp-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="ربط بصمة هذا الجهاز للدخول السريع">
+          <span class="text-cyan-400">👆</span>
+          <span class="hidden lg:inline text-[11px]">ربط البصمة</span>
+        </button>
+
+        <!-- زر قفل الشاشة وتسجيل الخروج -->
+        <button type="button" id="header-logout-btn" onclick="lockOrLogoutSession()" class="hidden bg-corp-850 hover:bg-rose-950/60 text-slate-300 hover:text-rose-400 border border-corp-750 hover:border-rose-500/40 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="قفل الشاشة وتسجيل الخروج">
+          <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="hidden lg:inline text-[11px]">قفل / خروج</span>
+        </button>
+
         <!-- مؤشر العمل أوفلاين/أونلاين -->
-        <div id="net-status-badge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 border border-emerald-500/30 text-emerald-400" title="جاهز للعمل دون اتصال بالإنترنت">
+        <div id="net-status-badge" class="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 border border-emerald-500/30 text-emerald-400" title="جاهز للعمل دون اتصال بالإنترنت">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="hidden md:inline text-[11px]" id="net-status-text">متصل • جاهز أوفلاين</span>
+          <span class="text-[11px]" id="net-status-text">أوفلاين</span>
         </div>
 
         <!-- مؤشر الحفظ التلقائي -->
-        <div class="hidden xl:flex items-center gap-1 text-[11px] text-slate-400 bg-corp-850 px-2.5 py-1 rounded-lg border border-corp-800">
+        <div class="hidden xl:flex items-center gap-1 text-[11px] text-slate-400 bg-corp-850 px-2 py-1 rounded-lg border border-corp-800">
           <i data-lucide="check-check" class="w-3.5 h-3.5 text-gold-500"></i>
-          <span id="save-status-indicator">محفوظ محلياً</span>
+          <span id="save-status-indicator">محفوظ</span>
         </div>
 
         <!-- زر حفظ في سجل الجولات -->
-        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الجولات والأرشيف">
+        <button type="button" onclick="saveCurrentTourToArchive()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 hover:text-amber-200 border border-amber-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="حفظ وتحديث الجولة الحالية في سجل الجولات والأرشيف">
           <i data-lucide="bookmark-plus" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span class="hidden sm:inline">💾 حفظ في سجل الجولات</span>
-          <span class="sm:hidden">💾 حفظ</span>
+          <span class="hidden sm:inline">حفظ</span>
         </button>
 
         <!-- زر بدء جولة جديدة -->
-        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
+        <button type="button" onclick="startNewTourPrompt()" class="bg-corp-850 hover:bg-corp-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 font-bold text-xs px-2 sm:px-2.5 py-1.5 rounded-lg shadow transition flex items-center gap-1 active:scale-95 cursor-pointer" title="حفظ الجولة الحالية وبدء جولة تدقيق جديدة فارغة">
           <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span class="hidden sm:inline">➕ بدء جولة جديدة</span>
-          <span class="sm:hidden">➕ جديدة</span>
+          <span class="hidden sm:inline">جديدة</span>
         </button>
 
         <!-- زر التقرير السريع -->
-        <button onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-3 sm:px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
+        <button onclick="switchTab('preview')" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-xs px-2.5 sm:px-3.5 py-1.5 rounded-lg shadow-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer">
           <i data-lucide="printer" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">معاينة وطباعة التقرير</span>
-          <span class="sm:hidden">التقرير</span>
+          <span class="hidden sm:inline">التقرير</span>
         </button>
       </div>
 
@@ -553,8 +692,10 @@
 
           <!-- 2. أخصائي العرض المرئي -->
           <div class="space-y-1.5 md:col-span-1">
-            <div class="flex items-center justify-between">
-              <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
+              <div class="flex items-center gap-1.5">
+                <label class="block text-xs font-bold text-slate-300">أخصائي / مسؤول الـ VM:</label>
+                <span id="specialist-locked-badge" class="hidden text-[10px] text-amber-400 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20" title="اسم الأخصائي مقفل وفقاً لحساب تسجيل الدخول">🔒 مقفل</span>
+              </div>
               <button type="button" id="btn-manage-specialists" data-manage="specialists" onclick="openManagementModal('specialists')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all active:scale-95 shadow-sm">⚙️ إدارة الأخصائيين</button>
             </div>
             <div class="flex gap-2">
