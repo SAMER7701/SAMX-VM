@@ -2994,9 +2994,9 @@ export function toggleReportFooter(show = null) {
   if (signatureSection) {
     signatureSection.style.display = showSignatures ? 'block' : 'none';
     if (showSignatures) {
-      signatureSection.classList.remove('hidden', 'no-print');
+      signatureSection.classList.remove('hidden', 'no-print', 'is-hidden-print');
     } else {
-      signatureSection.classList.add('hidden', 'no-print');
+      signatureSection.classList.add('hidden', 'no-print', 'is-hidden-print');
     }
   }
 }

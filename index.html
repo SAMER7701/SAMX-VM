@@ -82,31 +82,20 @@
     }
 
     @media print {
-      html, body {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
+      /* 1. Reset all root wrappers so nothing pushes Page 1 down */
+      html, body, #app, main, .app-container, .report-wrapper, #print-root, #view-preview, #print-sheet-wrapper, #print-sections-container {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
       }
-      /* Prevent ghost blank page at the very start of print */
-      body > *:first-child,
-      #app > *:first-child,
-      .print-page-section:first-of-type,
-      .executive-cover-page:first-child {
-        page-break-before: avoid !important;
-        break-before: avoid !important;
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-      }
-      /* Prevent ghost blank page at the end of print */
-      .print-page-section:last-of-type,
-      .executive-cover-page:last-child,
-      body > *:last-child {
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
-      }
+
       .no-print, header, nav, #toast-container, .modal-backdrop {
         display: none !important;
       }
@@ -133,31 +122,57 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
-      /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي مقفل على صفحة أفقية واحدة فقط */
-      .executive-cover-page, #print-page-1-container {
-        height: calc(210mm - 16mm) !important;
-        max-height: calc(210mm - 16mm) !important;
-        min-height: calc(210mm - 16mm) !important;
+
+      /* 2. Remove all break-after rules completely - apply 186mm safe height buffer */
+      .executive-cover-page,
+      .print-page-section,
+      .official-signatures-section,
+      #print-page-1-container,
+      .print-card,
+      .section-card {
+        page-break-after: auto !important;
+        break-after: auto !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
+        /* Safe height buffer (186mm instead of 194mm) so Page 1 never overflows to Page 2 */
+        height: 186mm !important;
+        max-height: 186mm !important;
+        min-height: 0 !important;
+        box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: center !important;
-        align-items: stretch !important;
-        box-sizing: border-box !important;
+        justify-content: space-between !important;
+        padding: 2mm 0 !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      /* 3. Only break BEFORE subsequent pages (Page 2, Page 3, etc.) */
+      .executive-cover-page ~ .print-page-section,
+      .executive-cover-page ~ #print-sections-container > .print-page-section:first-child,
+      #print-sections-container > .print-page-section:first-child,
+      .print-page-section + .print-page-section,
+      .print-page-section + .official-signatures-section:not(.is-hidden-print),
+      #print-sections-container + .official-signatures-section:not(.is-hidden-print) {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+
+      /* 4. First page must NEVER break before */
+      .executive-cover-page,
+      #print-page-1-container,
+      body > *:first-child,
+      #app > *:first-child {
         page-break-before: avoid !important;
         break-before: avoid !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: hidden !important;
-      }
-      #print-page-1-container.no-summary {
-        height: auto !important;
-        min-height: auto !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        justify-content: center !important;
       }
 
       /* ترويسة الصفحة الأولى الرسمية فقط - لا تتكرر في صفحات الأقسام الميدانية */
@@ -179,8 +194,6 @@
         box-sizing: border-box !important;
         page-break-before: avoid !important;
         break-before: avoid !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
         padding: 3mm 4mm !important;
@@ -205,33 +218,6 @@
         box-shadow: none !important;
       }
 
-      /* بطاقة القسم الميداني المقفلة كصفحة أفقية مستقلة ومحكومة بالكامل */
-      .print-page-section, .print-card, .section-card {
-        border: none !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-before: always !important;
-        break-before: page !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        height: calc(210mm - 18mm) !important;
-        max-height: calc(210mm - 18mm) !important;
-        min-height: calc(210mm - 18mm) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        box-sizing: border-box !important;
-        padding: 4mm 0 !important;
-        overflow: hidden !important;
-        background: #ffffff !important;
-      }
-      .print-card:first-child, .section-card:first-child, .print-page-section:first-child {
-        page-break-before: always !important;
-        break-before: page !important;
-      }
       #print-sections-container {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
@@ -258,29 +244,12 @@
         max-height: 50mm !important;
       }
 
-      /* تذييل الاعتمادات والتوقيعات الرسمية في صفحة مستقلة ختامية */
-      #print-signatures-footer, .official-signatures-section {
-        page-break-before: always !important;
-        break-before: page !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-        height: calc(210mm - 18mm) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        box-sizing: border-box !important;
-        padding: 6mm 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-      }
-
-      /* عندما يكون قسم التوقيعات مخفياً في الطباعة والمعاينة */
+      /* 5. Clean DOM removal for hidden signatures */
+      .is-hidden-print,
+      #print-signatures-footer.is-hidden-print,
+      .official-signatures-section.is-hidden-print,
       #print-signatures-footer.hidden,
-      #print-signatures-footer.no-print,
       .official-signatures-section.hidden,
-      .official-signatures-section.no-print,
       #print-signatures-footer[style*="display: none"],
       .official-signatures-section[style*="display: none"] {
         display: none !important;
