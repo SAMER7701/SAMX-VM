@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.6.3
+ * Version: 1.6.4
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -10,6 +10,7 @@ import {
   modalState,
   STATUS_MAP,
   VM_CATEGORY_CHECKLISTS,
+  calculateReadinessScore,
   getBranches,
   getSpecialists,
   getStoreSections,
@@ -661,6 +662,18 @@ export function syncQuickDisplays() {
 
   const printCount = document.getElementById('print-header-count');
   if (printCount) printCount.innerText = (currentAudit.sections ? currentAudit.sections.length : 0) + ' أقسام';
+
+  const printScore = document.getElementById('print-header-readiness-score');
+  if (printScore) {
+    const score = calculateReadinessScore(currentAudit);
+    if ((currentAudit.sections || []).length === 0) {
+      printScore.innerText = '—';
+      printScore.className = 'font-black text-[10px] px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-300';
+    } else {
+      printScore.innerText = score.text;
+      printScore.className = `font-black text-[10px] px-1.5 py-0.5 rounded border ${score.badgeClass}`;
+    }
+  }
 
   syncBrandingUI();
   updateKPIs();

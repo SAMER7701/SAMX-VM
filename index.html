@@ -262,7 +262,60 @@
         max-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
-        border: none !important;
+      }
+    }
+
+    /* ==================== معاينة ورقة التقرير التكيفية لشاشات الجوال (Mobile Scale-to-Fit Preview) ==================== */
+    @media screen and (max-width: 768px) {
+      .report-preview-viewport {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #print-sheet-wrapper {
+        padding: 14px 12px !important;
+        border-radius: 16px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      /* تنسيق مرن لترويسة التقرير يمنع قطع الشعار أو البطاقة بالكامل */
+      #print-main-header {
+        margin-bottom: 12px !important;
+        padding-bottom: 12px !important;
+      }
+
+      #print-main-header > div {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+
+      #print-header-logo-container {
+        order: -1 !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        padding: 0 0 8px 0 !important;
+        border-bottom: 1px dashed #cbd5e1 !important;
+      }
+
+      #print-header-logo-img {
+        max-height: 42px !important;
+        max-width: 180px !important;
+      }
+
+      #print-main-header .min-w-\[220px\] {
+        min-width: 0 !important;
+        width: 100% !important;
+        text-align: right !important;
+      }
+
+      #print-main-header .min-w-\[195px\] {
+        min-width: 0 !important;
+        width: 100% !important;
       }
     }
 
@@ -486,7 +539,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.3</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.4</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -561,7 +614,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.3</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.4</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -850,141 +903,112 @@
     <!-- ==================== 2. تبويب المعاينة والتقرير التنفيذي (PREVIEW & PRINT) ==================== -->
     <section id="view-preview" class="hidden space-y-4">
       
-      <!-- شريط أدوات التصدير والمشاركة (يختفي عند الطباعة) -->
-      <div class="no-print bg-corp-900 border border-corp-800 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-            <i data-lucide="file-check-2" class="w-4 h-4"></i>
+      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.4 بتصميم نظيف من صفين) -->
+      <div class="no-print bg-corp-900 border border-corp-800 p-4 rounded-2xl space-y-3 shadow-lg">
+        <!-- الصف الأول: شريط الخيارات والملخص -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
+              <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إدراج التوقيعات الرسمية</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
+              <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إظهار عبارة الاعتماد السفلية</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء مؤشر جاهزية المعرض في ترويسة التقرير">
+              <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إظهار مؤشر الجاهزية (%)</span>
+            </label>
           </div>
-          <div>
-            <h3 class="font-bold text-sm text-white">التقرير التنفيذي للعرض المرئي</h3>
-            <p class="text-xs text-slate-400">جاهز للتصدير كـ PDF، الطباعة الرسمية، أو الإرسال الفوري لمدير المنطقة</p>
-          </div>
+          <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>⭐ تخصيص ملخص الزيارة</span>
+          </button>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
-            <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-            <span>إدراج التوقيعات الرسمية</span>
-          </label>
-          <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-2 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
-            <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-            <span>إظهار عبارة الاعتماد السفلية</span>
-          </label>
-          <button onclick="openVisitSummaryModal()" class="flex-1 sm:flex-none bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
-            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span>ملخص الزيارة ⭐</span>
+        <!-- الصف الثاني: أزرار التصدير والمشاركة الأساسية (زرين عريضين متساويين بنسبة 50/50) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-corp-800/80">
+          <button type="button" onclick="printReport()" id="btn-export-pdf" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs md:text-sm py-2.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer" title="تصدير وطباعة تقرير الـ PDF الميداني الرسمي">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>🖨️ طباعة وتصدير التقرير (PDF)</span>
           </button>
-          <button onclick="printReport()" id="btn-export-pdf" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="طباعة وتحميل تقرير PDF رسمي عالي الدقة بدون أي قص">
-            <i data-lucide="file-down" class="w-4 h-4"></i>
-            <span>تحميل PDF (طباعة)</span>
-          </button>
-          <button onclick="printReport()" class="flex-1 sm:flex-none bg-slate-100 hover:bg-white text-slate-900 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
-            <i data-lucide="printer" class="w-4 h-4 text-corp-900"></i>
-            <span>طباعة / نافذة PDF</span>
-          </button>
-          <button onclick="openBrandingModal()" class="flex-1 sm:flex-none bg-corp-850 hover:bg-corp-800 text-gold-400 border border-gold-500/30 font-bold text-xs px-3.5 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95" title="تخصيص شعار واسم الشركة في التقارير">
-            <i data-lucide="palette" class="w-3.5 h-3.5 text-gold-400"></i>
-            <span>الهوية والشعار</span>
-          </button>
-          <button onclick="exportPptxA4Report()" id="btn-export-pptx-a4" class="flex-1 sm:flex-none bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95">
-            <i data-lucide="file-check-2" class="w-4 h-4 text-slate-950"></i>
-            <span>PowerPoint (A4 طولي 📄)</span>
-          </button>
-          <button onclick="exportPptxReport()" id="btn-export-pptx" class="flex-1 sm:flex-none bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/40 font-bold text-xs px-3.5 py-2 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95">
-            <i data-lucide="presentation" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span>PowerPoint (16:9)</span>
-          </button>
-          <button onclick="printReport()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow flex items-center justify-center gap-2 transition active:scale-95" title="طباعة / مشاركة تقرير الـ PDF الميداني">
-            <i data-lucide="share-2" class="w-4 h-4"></i>
-            <span>مشاركة عبر واتساب (PDF)</span>
-          </button>
-          <button onclick="switchTab('audit')" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-3 py-2 rounded-xl border border-corp-700 transition">
-            <span>العودة للتعديل</span>
+          <button type="button" onclick="shareWhatsAppSummary()" class="w-full bg-emerald-700/80 hover:bg-emerald-600 text-white font-black text-xs md:text-sm py-2.5 px-4 rounded-xl shadow border border-emerald-500/30 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer" title="مشاركة ملخص الجولة ورابط التقرير عبر واتساب">
+            <i data-lucide="share-2" class="w-4 h-4 text-emerald-300"></i>
+            <span>🟢 مشاركة عبر واتساب (PDF)</span>
           </button>
         </div>
       </div>
 
-      <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
-      <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
-        
-        <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
-        <div id="print-page-1-container" class="print-page-1-wrapper executive-cover-page flex flex-col">
+      <!-- حاوية المعاينة المتجاوبة للشاشات الصغيرة والجوال (Scale-to-fit) -->
+      <div class="report-preview-viewport w-full overflow-hidden">
+        <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
+        <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
+          
+          <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
+          <div id="print-page-1-container" class="print-page-1-wrapper executive-cover-page flex flex-col">
 
-          <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
-          <div id="print-main-header" class="border-b-2 border-slate-900 pb-4 mb-6">
-            <div class="flex items-center justify-between gap-4">
-              
-              <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
-              <div class="flex flex-col items-start text-right min-w-[220px] shrink-0" dir="rtl">
-                <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
-                <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
-                  <span id="print-badge-company-name">الشياكة</span>
-                  <span class="text-slate-400 font-normal">|</span>
-                  <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
+            <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
+            <div id="print-main-header" class="border-b-2 border-slate-900 pb-4 mb-6">
+              <div class="flex items-center justify-between gap-4">
+                
+                <!-- 1. الطرف الأيمن: كتلة الترويسة الرئيسية المكدسة رأسياً (شارة الشركة + اسم المعرض + العنوان العربي + الترجمة الإنجليزية) -->
+                <div class="flex flex-col items-start text-right min-w-[220px] shrink-0" dir="rtl">
+                  <!-- شارة الشركة الكبسولية الداكنة المخصصة ديناميكياً -->
+                  <div class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-slate-800 shadow-sm mb-1">
+                    <span id="print-badge-company-name">الشياكة</span>
+                    <span class="text-slate-400 font-normal">|</span>
+                    <span class="text-slate-200 font-bold">تدقيق أسبوعي</span>
+                  </div>
+                  <!-- اسم المعرض/الفرع المختار ديناميكياً -->
+                  <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight leading-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
+                  <!-- العنوان الفرعي العربي من إعدادات الهوية -->
+                  <p class="text-xs text-slate-700 mt-0.5 font-bold leading-snug" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
+                  <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
+                  <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
                 </div>
-                <!-- اسم المعرض/الفرع المختار ديناميكياً -->
-                <h2 class="text-lg md:text-xl font-black text-slate-950 tracking-tight leading-tight" id="print-header-store">فرع العليا العام - الرياض</h2>
-                <!-- العنوان الفرعي العربي من إعدادات الهوية -->
-                <p class="text-xs text-slate-700 mt-0.5 font-bold leading-snug" id="print-header-subtitle">العرض المرئي والتنسيق التجاري</p>
-                <!-- الترجمة الإنجليزية بخط أصغر وأخف -->
-                <p class="text-[9.5px] text-slate-500 font-medium tracking-wide mt-0.5" dir="ltr" style="text-align: right;">Visual Merchandising & Commercial Styling</p>
+
+                <!-- 2. الوسط المطلق: الشعار الرسمي للشركة (توسيط كامل ونقي) -->
+                <div class="flex-1 flex items-center justify-center px-4" id="print-header-logo-container">
+                  <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
+                </div>
+
+                <!-- 3. الطرف الأيسر: بطاقة بيانات التقرير الرسمية مع مؤشر الجاهزية البصرية -->
+                <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
+                  <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
+                  <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
+                  <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
+                  <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
+                  <div id="print-header-score-row" class="flex items-center justify-between gap-3 pt-1 border-t border-slate-200">
+                    <span class="text-slate-700 font-bold">مؤشر الجاهزية:</span>
+                    <span id="print-header-readiness-score" class="font-black text-[10px] px-1.5 py-0.5 rounded border bg-emerald-100 text-emerald-800 border-emerald-300">—</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (معاينة مطبوعة نقية 100% WYSIWYG قابلة للنقر للتخصيص) -->
+            <div id="print-visit-summary-wrapper" onclick="openVisitSummaryModal()" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all cursor-pointer group hover:border-slate-400 hover:shadow-md" title="انقر لتخصيص أو تعديل ملخص الزيارة">
+              <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
+                <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
+                  <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
+                  <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
+                  <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
+                  <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
+                </div>
+                <div class="no-print flex items-center gap-1.5 text-xs text-slate-400 group-hover:text-amber-600 transition font-medium">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                  <span>تعديل الملخص</span>
+                </div>
               </div>
 
-              <!-- 2. الوسط المطلق: الشعار الرسمي للشركة (توسيط كامل ونقي) -->
-              <div class="flex-1 flex items-center justify-center px-4" id="print-header-logo-container">
-                <img id="print-header-logo-img" src="/assets/alshiak_logo_2x.png" alt="الشياكة alShiaka" class="max-h-12 max-w-[210px] w-auto h-auto object-contain drop-shadow-sm" />
+              <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية النظيفة -->
+              <div id="print-visit-summary-list" class="space-y-2">
+                <!-- يُحقن ديناميكياً عبر renderVisitSummary() -->
               </div>
-
-              <!-- 3. الطرف الأيسر: بطاقة بيانات التقرير الرسمية (ONLY: Store, Specialist, Date, Total Sections) محاذاة لليمين، خط مصغر، وتباين حاد -->
-              <div class="text-right text-[10px] space-y-1 bg-slate-50/90 p-2.5 rounded-xl border border-slate-300 min-w-[195px] shrink-0 shadow-sm" dir="rtl">
-                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">اسم المعرض:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-branch">فرع العليا العام</span></div>
-                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">أخصائي الـ VM:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-auditor">أحمد المهندس</span></div>
-                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">تاريخ التدقيق:</span> <span class="font-black text-slate-950 text-[10.5px]" id="print-header-date">2026-10-30</span></div>
-                <div class="flex items-center justify-between gap-3"><span class="text-slate-700 font-bold">إجمالي الأقسام:</span> <span class="font-black text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded" id="print-header-count">0</span></div>
-              </div>
-
             </div>
           </div>
-
-          <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
-          <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
-              <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
-                <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
-                <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
-                <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
-                <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
-              </div>
-              <div class="no-print flex items-center gap-1.5 flex-wrap">
-                <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600"></i>
-                  <span>تجميع تلقائي</span>
-                </button>
-                <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold border border-emerald-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إضافة سطر نقطة جديدة">
-                  <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-600"></i>
-                  <span>إضافة نقطة +</span>
-                </button>
-                <button type="button" onclick="openVisitSummaryModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="فتح نافذة التعديل والمعاينة الكاملة">
-                  <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-700"></i>
-                  <span>نافذة التخصيص</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- حاوية التحرير المباشر التفاعلي للملخص (Interactive In-Place Editor) - تظهر للشاشة وتختفي عند الطباعة -->
-            <div class="no-print space-y-2 mb-3">
-              <div class="relative">
-                <textarea id="report-visit-summary-input" rows="5" oninput="updateLiveVisitSummary(this.value)" placeholder="اكتب أو عدل نقاط ملخص الزيارة الميدانية هنا، كل نقطة في سطر مستقل..." class="w-full bg-slate-50 border-2 border-slate-300 hover:border-slate-400 focus:border-slate-900 rounded-xl p-3 text-xs md:text-sm text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none leading-relaxed transition font-medium placeholder:text-slate-400 resize-y shadow-inner"></textarea>
-              </div>
-              <div class="flex items-center justify-between text-[11px] text-slate-500 px-1">
-                <span class="flex items-center gap-1">
-                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
-                  <span>تحرير مباشر لحظي: يتم حفظ كل تعديل واعتماده فوراً للتصدير كـ PDF و PowerPoint.</span>
-                </span>
-                <span class="text-slate-400">سطر جديد = نقطة إنجاز مستقلة</span>
-              </div>
-            </div>
 
             <!-- قائمة النقاط الرسمية المنسقة للطباعة والمعاينة النهائية -->
             <div id="print-visit-summary-list" class="space-y-2">
@@ -1056,6 +1080,7 @@
           <span id="print-footer-disclaimer"></span>
         </div>
 
+      </div>
       </div>
 
     </section>
@@ -2194,15 +2219,21 @@
       <!-- محتوى النافذة -->
       <div class="p-4 md:p-6 space-y-4 overflow-y-auto flex-1">
         
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-2">
           <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
             <i data-lucide="sparkles" class="w-4 h-4 text-gold-400"></i>
             <span>قائمة نقاط ملخص الإنجازات (كل نقطة في سطر مستقل):</span>
           </span>
-          <button type="button" onclick="autoGenerateVisitSummaryPrompt()" class="text-xs bg-corp-850 hover:bg-corp-800 text-gold-400 hover:text-gold-300 px-3 py-1.5 rounded-xl border border-gold-500/30 font-bold transition flex items-center gap-1.5 shadow-xs" title="إعادة استخراج وتلخيص الإنجازات تلقائياً من الأقسام الموثقة">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>تجميع ذكي تلقائي</span>
-          </button>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="appendPointToVisitSummary()" class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-500/30 font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer" title="إضافة سطر نقطة إنجاز جديدة">
+              <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>➕ إضافة نقطة</span>
+            </button>
+            <button type="button" onclick="autoGenerateVisitSummaryPrompt()" class="text-xs bg-corp-850 hover:bg-corp-800 text-gold-400 hover:text-gold-300 px-3 py-1.5 rounded-xl border border-gold-500/30 font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer" title="إعادة استخراج وتلخيص الإنجازات تلقائياً من الأقسام الموثقة">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>تجميع ذكي تلقائي</span>
+            </button>
+          </div>
         </div>
 
         <div class="space-y-1.5">
@@ -2619,7 +2650,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.3</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.4</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

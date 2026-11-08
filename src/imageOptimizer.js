@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Client-Side Image Optimizer
- * Version: 1.6.3
+ * Version: 1.6.4
  *
  * Compresses camera uploads and section photos via offscreen <canvas>:
  * - Max dimension: 1400px (guarantees crystal-clear 300dpi-equivalent A4 landscape print rendering)

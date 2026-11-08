@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.3
+ * Version: 1.6.4
  * Architecture: ES Modules Coordinator
  */
 
@@ -10,6 +10,7 @@ import {
   metadataCache,
   modalState,
   STATUS_MAP,
+  calculateReadinessScore,
   loadMetadata,
   getBranches,
   getSpecialists,
@@ -3381,6 +3382,24 @@ export function toggleFooterCompliance(show) {
   showToast(show ? 'تم تفعيل ظهور عبارة الاعتماد السفلية في التقرير' : 'تم إخفاء عبارة الاعتماد السفلية من التقرير', 'info');
 }
 
+// التحكم في ظهور مؤشر الجاهزية البصرية في ترويسة التقرير
+export function toggleReadinessScore(show = null) {
+  const cb = document.getElementById('toggle-readiness-score');
+  const isChecked = (typeof show === 'boolean') ? show : (cb ? cb.checked : true);
+  if (cb && typeof show === 'boolean') cb.checked = isChecked;
+
+  const scoreRow = document.getElementById('print-header-score-row');
+  if (scoreRow) {
+    if (isChecked) {
+      scoreRow.style.display = 'flex';
+      scoreRow.classList.remove('hidden', 'no-print', 'is-hidden-print');
+    } else {
+      scoreRow.style.display = 'none';
+      scoreRow.classList.add('hidden', 'no-print', 'is-hidden-print');
+    }
+  }
+}
+
 // ==================== إدارة وتخصيص ملخص إنجازات وتعديلات الزيارة الميدانية ====================
 
 export function openVisitSummaryModal() {
@@ -3480,17 +3499,27 @@ export function resetVisitSummaryToAuto() {
 }
 
 export function appendPointToVisitSummary() {
+  const modalTextarea = document.getElementById('visit-summary-textarea');
   const liveInput = document.getElementById('report-visit-summary-input');
-  const currentVal = liveInput ? liveInput.value.trim() : (currentAudit.visitSummary || '');
+  const modal = document.getElementById('visit-summary-modal');
+  const isModalOpen = modal && modal.style.display !== 'none';
+
+  const targetInput = (isModalOpen && modalTextarea) ? modalTextarea : (modalTextarea || liveInput);
+  const currentVal = targetInput ? targetInput.value.trim() : (currentAudit.visitSummary || '');
   const newPoint = 'القسم العام: ضبط وتنسيق المعروضات وفق معايير الهوية المعتمدة.';
   const updatedVal = currentVal ? `${currentVal}\n${newPoint}` : newPoint;
-  if (liveInput) {
-    liveInput.value = updatedVal;
-    liveInput.focus();
-    liveInput.scrollTop = liveInput.scrollHeight;
+
+  if (targetInput) {
+    targetInput.value = updatedVal;
+    targetInput.focus();
+    targetInput.scrollTop = targetInput.scrollHeight;
   }
-  updateLiveVisitSummary(updatedVal);
-  showToast('تمت إضافة نقطة إنجاز جديدة، يمكنك تحريرها الآن مباشرة', 'success');
+  if (isModalOpen) {
+    updateVisitSummaryModalPreview();
+  } else {
+    updateLiveVisitSummary(updatedVal);
+  }
+  showToast('تمت إضافة نقطة إنجاز جديدة، يمكنك تحريرها الآن', 'success');
 }
 
 // ==================== إدارة الهوية البصرية وشعار الشركة (Brand Identity Controller) ====================
@@ -3780,7 +3809,21 @@ export async function exportPptxA4Report() {
 }
 
 export async function shareWhatsAppSummary() {
-  printReport();
+  const branch = currentAudit.branchName || 'فرع المعرض العام';
+  const date = currentAudit.auditDate || new Date().toISOString().split('T')[0];
+  const auditor = currentAudit.auditorName || 'أخصائي الـ VM';
+  const secCount = (currentAudit.sections || []).length;
+  const score = calculateReadinessScore(currentAudit);
+  const scoreLine = (secCount > 0) ? `\n📊 *مؤشر الجاهزية البصرية:* ${score.text}` : '';
+  
+  const msg = `*تقرير الزيارة الميدانية للعرض المرئي (SAMX-VM)*\n🏠 *المعرض:* ${branch}\n📅 *تاريخ التدقيق:* ${date}\n👤 *أخصائي الـ VM:* ${auditor}\n📋 *إجمالي الأقسام:* ${secCount} أقسام${scoreLine}\n\n📄 التقرير التنفيذي الرسمي المعتمد جاهز ومحفوظ بصيغة PDF.`;
+  
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+  try {
+    window.open(waUrl, '_blank');
+  } catch (e) {
+    window.location.href = waUrl;
+  }
 }
 
 export function setupNetworkStatusListener() {
@@ -4182,6 +4225,7 @@ if (typeof window !== 'undefined') {
   window.handleCloudSyncTours = handleCloudSyncTours;
   window.openUserSettingsModal = openUserSettingsModal;
   window.closeUserSettingsModal = closeUserSettingsModal;
+  window.toggleReadinessScore = toggleReadinessScore;
   window.bootApp = bootApp;
 }
 
