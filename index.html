@@ -88,6 +88,16 @@
         padding: 0 !important;
         margin: 0 !important;
       }
+      /* Prevent ghost blank page at the very start of print */
+      body > *:first-child,
+      #app > *:first-child,
+      .print-page-section:first-of-type,
+      .executive-cover-page:first-child {
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+      }
       .no-print, header, nav, #toast-container, .modal-backdrop {
         display: none !important;
       }
