@@ -184,27 +184,27 @@ export function wireButtonListeners() {
   }
 }
 
-// ==================== إدارة الشاشة الترحيبية السينمائية (Cinematic Splash Screen Controller) ====================
+// ==================== إدارة الشاشة الترحيبية المحدثة (Fabric Thread & Spotlight Splash Controller) ====================
 export function initSplashScreen() {
-  const splash = document.getElementById('splash-screen');
+  const splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
   if (!splash) return;
 
   // التحقق من تشغيل الشاشة مسبقاً خلال الجلسة الحالية
   const hasSeenSplash = sessionStorage.getItem('samx_splash_shown');
   if (hasSeenSplash) {
-    splash.classList.add('splash-hidden');
+    splash.classList.add('hide');
     splash.style.display = 'none';
     return;
   }
 
-  // إخفاء تلقائي بعد 3.4 ثانية للتوافق مع مدة الأنيميشن السينمائي
+  // إخفاء تلقائي بعد 2.2 ثانية للتوافق مع زمن القراءة المريح والمحدد
   if (splash._dismissTimer) {
     clearTimeout(splash._dismissTimer);
   }
 
   splash._dismissTimer = setTimeout(() => {
     dismissSplashScreen();
-  }, 3400);
+  }, 2200);
 
   // إمكانية الإغلاق السريع عبر زر الهروب Escape
   const handleKeydown = (e) => {
@@ -217,7 +217,7 @@ export function initSplashScreen() {
 }
 
 export function dismissSplashScreen() {
-  const splash = document.getElementById('splash-screen');
+  const splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
   if (!splash) return;
 
   if (splash._dismissTimer) {
@@ -229,22 +229,44 @@ export function dismissSplashScreen() {
     sessionStorage.setItem('samx_splash_shown', 'true');
   } catch (e) {}
 
-  splash.classList.add('splash-hidden');
+  splash.classList.add('hide');
   setTimeout(() => {
-    splash.style.display = 'none';
+    try {
+      splash.style.display = 'none';
+    } catch(e) {}
   }, 600);
 }
 
 export function replaySplashScreen() {
-  const splash = document.getElementById('splash-screen');
-  if (!splash) return;
+  let splash = document.getElementById('samx-splash') || document.getElementById('splash-screen');
+  if (!splash) {
+    const splashEl = document.createElement('div');
+    splashEl.id = 'samx-splash';
+    splashEl.className = 'splash-screen no-print';
+    splashEl.onclick = dismissSplashScreen;
+    splashEl.innerHTML = `
+      <div class="spotlight-glow"></div>
+      <div class="splash-content">
+        <div class="fabric-line"></div>
+        <div class="brand-box">
+          <div class="brand-badge">VISUAL MERCHANDISING</div>
+          <h1 class="brand-title">SAMX<span>•VM</span></h1>
+          <p class="brand-sub">نظام التدقيق وضبط الهوية البصرية</p>
+        </div>
+        <div class="corner-grid tl"></div>
+        <div class="corner-grid br"></div>
+      </div>
+    `;
+    document.body.appendChild(splashEl);
+    splash = splashEl;
+  }
 
   try {
     sessionStorage.removeItem('samx_splash_shown');
   } catch (e) {}
 
   splash.style.display = 'flex';
-  splash.classList.remove('splash-hidden');
+  splash.classList.remove('hide');
   initSplashScreen();
 }
 
