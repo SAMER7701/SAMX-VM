@@ -182,6 +182,94 @@ export function getDynamicJustifications(sec) {
 }
 
 /**
+ * صياغة إنجاز الـ VM الميداني بلغة احترافية وأفعال إنجاز بشرية
+ */
+export function formatArabicVmAction(actionSnippet) {
+  if (!actionSnippet || typeof actionSnippet !== 'string') {
+    return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
+  }
+
+  let text = actionSnippet
+    .replace(/^[\[\(\s]+|[\]\)\s]+$/g, '')
+    .replace(/^إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '')
+    .replace(/^التعديل الميداني الفوري\s*[:\-\s]*/g, '')
+    .replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '')
+    .replace(/\s*واعتماد التنسيق\s*\.?$/g, '')
+    .replace(/[:\.\s]+$/g, '')
+    .trim();
+
+  if (!text) {
+    return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
+  }
+
+  // إذا كانت العبارة تبدأ بالفعل بفعل ماضٍ مثل "تم" أو "تمت"
+  if (/^تم[ت]?\s+/.test(text)) {
+    return text;
+  }
+
+  // تحويل المصادر الشائعة إلى أفعال إنجاز احترافية
+  if (/^سلامة\s+ونظافة\s+المانيكان/.test(text)) {
+    return 'تم ضبط ونظافة المانيكانات والتأكد من استقامة الوقفة والتثبيت';
+  }
+  if (/^نظافة\s+وضبط\s+المانيكان/.test(text)) {
+    return 'تم ضبط ونظافة المانيكانات وضبط زوايا التثبيت';
+  }
+  if (/^نقل\s+/.test(text)) {
+    return 'تم نقل وإعادة تهيئة ' + text.replace(/^نقل\s+/, '');
+  }
+  if (/^إحلال\s+/.test(text)) {
+    return 'تم إحلال وتنسيق ' + text.replace(/^إحلال\s+/, '');
+  }
+  if (/^توحيد\s+/.test(text)) {
+    return 'تم توحيد فئات وعرض ' + text.replace(/^توحيد\s+/, '');
+  }
+  if (/^إعادة\s+تنسيق\s+/.test(text)) {
+    return 'تمت إعادة تنسيق وترتيب ' + text.replace(/^إعادة\s+تنسيق\s+/, '');
+  }
+  if (/^إعادة\s+ترتيب\s+/.test(text)) {
+    return 'تمت إعادة ترتيب وتنسيق ' + text.replace(/^إعادة\s+ترتيب\s+/, '');
+  }
+  if (/^إعادة\s+/.test(text)) {
+    return 'تمت ' + text;
+  }
+  if (/^تنسيق\s+/.test(text)) {
+    return 'تمت إعادة ترتيب وتنسيق ' + text.replace(/^تنسيق\s+/, '');
+  }
+  if (/^ترتيب\s+/.test(text)) {
+    return 'تم ترتيب وتنسيق ' + text.replace(/^ترتيب\s+/, '');
+  }
+  if (/^ضبط\s+/.test(text)) {
+    return 'تم ضبط وتحسين ' + text.replace(/^ضبط\s+/, '');
+  }
+  if (/^مراجعة\s+/.test(text)) {
+    return 'تمت مراجعة وضبط ' + text.replace(/^مراجعة\s+/, '');
+  }
+  if (/^تطبيق\s+/.test(text)) {
+    return 'تم تطبيق ' + text.replace(/^تطبيق\s+/, '');
+  }
+  if (/^معالجة\s+/.test(text)) {
+    return 'تمت معالجة وضبط ' + text.replace(/^معالجة\s+/, '');
+  }
+  if (/^تعديل\s+/.test(text)) {
+    return 'تم تعديل وتنسيق ' + text.replace(/^تعديل\s+/, '');
+  }
+  if (/^تحسين\s+/.test(text)) {
+    return 'تم تحسين وتطوير ' + text.replace(/^تحسين\s+/, '');
+  }
+  if (/^إبراز\s+/.test(text)) {
+    return 'تم إبراز وتنسيق ' + text.replace(/^إبراز\s+/, '');
+  }
+  if (/^تجديد\s+/.test(text)) {
+    return 'تم تجديد وترتيب ' + text.replace(/^تجديد\s+/, '');
+  }
+  if (/^توزيع\s+/.test(text)) {
+    return 'تم توزيع وتنظيم ' + text.replace(/^توزيع\s+/, '');
+  }
+
+  return 'تم إنجاز ' + text;
+}
+
+/**
  * دالة مساعدة لتنقية نصوص نقاط الملخص من أي عبارات نمطية وأقواس أو فواصل زائدة
  */
 export function cleanSummaryPointText(line) {
@@ -200,7 +288,7 @@ export function cleanSummaryPointText(line) {
   str = str.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '');
   str = str.replace(/\s*واعتماد التنسيق\s*\.?$/g, '');
 
-  // 3. إزالة الأقواس المربعة حول اسم القسم وتنظيف النقطتين والرموز (مثل [القسم :]: أو [القسم]: أو القسم :.)
+  // 3. إزالة الأقواس المربعة حول اسم القسم في البداية وتنظيف النقطتين والرموز
   str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*[:\s]*/, '$1: ');
   str = str.replace(/^\[\s*([^\]]+?)\s*\]\s*[:\s]*/, '$1: ');
   str = str.replace(/^([^:]+?)\s*[:\.]+\s*:\s*/, '$1: ');
@@ -225,25 +313,38 @@ export function cleanSummaryPointText(line) {
 }
 
 /**
- * دالة لتنسيق نقطة الملخص كعنصر HTML يبرز اسم القسم بخط عريض ومميز متبوعاً بالإجراء
- * مثال: **الواجهة الرئيسية والمانيكانات:** سلامة ونظافة المانيكان وضبط التثبيت والوقفة.
+ * دالة لتنسيق نقطة الملخص كعنصر HTML يبرز اسم القسم والتكليفات الموجهة للفرع/الصيانة
  */
 export function formatSummaryPointHtml(point) {
   const cleaned = cleanSummaryPointText(point);
   const colonIdx = cleaned.indexOf(':');
+  
+  let titleHtml = '';
+  let body = cleaned;
+
   if (colonIdx > 0 && colonIdx < 60) {
     let title = cleaned.substring(0, colonIdx).trim();
-    // إزالة أي نقاط أو فواصل زائدة من نهاية العنوان قبل النقطتين
     title = title.replace(/[:\.\s]+$/, '');
-    const action = cleaned.substring(colonIdx + 1).trim();
-    return `<strong class="font-black text-slate-950">${title}:</strong> <span class="font-medium text-slate-800">${action}</span>`;
+    titleHtml = `<strong class="font-black text-slate-950">${title}:</strong> `;
+    body = cleaned.substring(colonIdx + 1).trim();
   }
-  return `<span class="font-medium text-slate-800">${cleaned}</span>`;
+
+  // تحويل تكليفات المتابعة للفرع إلى كبسولة مميزة وأنيقة
+  body = body.replace(/—\s*\[(تكليف متابعة[^\]]+)\]/g, (match, content) => {
+    return `<span class="inline-block text-amber-900 bg-amber-50/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-xs">${content}</span>`;
+  });
+
+  // تحويل طلبات الصيانة والإدارة إلى كبسولة مميزة وأنيقة
+  body = body.replace(/—\s*\[(طلب صيانة[^\]]+)\]/g, (match, content) => {
+    return `<span class="inline-block text-rose-900 bg-rose-50/90 border border-rose-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-xs">${content}</span>`;
+  });
+
+  return `${titleHtml}<span class="font-medium text-slate-800">${body}</span>`;
 }
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة بدلاً من تكرار القسم
+ * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة مع صياغة بشرية ناطقة بالإنجاز الفعلي
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -251,8 +352,8 @@ export function aggregateVisitAchievements(audit = null) {
 
   if (sections.length === 0) {
     return [
-      'الواجهات ونقاط الجذب: مراجعة جاهزية الواجهات الرئيسية وترتيب الأقسام وتطبيق معايير الهوية.',
-      'التنسيق التجاري: تدقيق اتساق المعروضات وتوزيع نقاط الجذب البصري وفق الأدلة المعتمدة.'
+      'الواجهات ونقاط الجذب: تمت مراجعة جاهزية الواجهات الرئيسية وتطبيق معايير الهوية البصرية المعتمدة.',
+      'التنسيق التجاري: تم توحيد فئات العرض وضبط اتساق وتوزيع نقاط الجذب وفق الأدلة المعتمدة.'
     ];
   }
 
@@ -272,50 +373,43 @@ export function aggregateVisitAchievements(audit = null) {
       actionSnippet = tags.join('، ');
     } else {
       const justs = getDynamicJustifications(sec);
-      actionSnippet = justs.length > 0 ? justs[0] : 'ضبط وتنسيق المعروضات وفق معايير الهوية';
+      actionSnippet = justs.length > 0 ? justs[0] : 'تنسيق وترتيب المعروضات وفق معايير الهوية';
     }
 
-    let cleanAction = actionSnippet
-      .replace(/^[\[\(\s]+|[\]\)\s]+$/g, '')
-      .replace(/^إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '')
-      .replace(/^التعديل الميداني الفوري\s*[:\-\s]*/g, '')
-      .replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '')
-      .replace(/\s*واعتماد التنسيق\s*\.?$/g, '')
-      .replace(/[:\.\s]+$/g, '')
-      .trim();
+    // صياغة إنجاز الـ VM الميداني بلغة احترافية وأفعال إنجاز بشرية
+    let vmAccomplishment = formatArabicVmAction(actionSnippet);
 
     const statuses = getSectionStatuses(sec);
     const rawResolvedSubs = getSectionSubOptions(sec, 'resolved');
     const followupSubs = getSectionSubOptions(sec, 'store_followup');
     const mgmtSubs = getSectionSubOptions(sec, 'management_action');
 
-    // استبعاد الخيار الافتراضي (معالجة كاملة 100%) ليبقى "تم المعالجة ميدانياً" ناصعاً
+    // استبعاد الخيار الافتراضي (معالجة كاملة 100%) نهائياً من أي نص
     const resolvedSubs = rawResolvedSubs.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'));
 
-    // توحيد الحالات المتعددة لنفس القسم في نقطة واحدة مجمعة (One single point per section)
-    const statusClauses = [];
-
-    if (statuses.includes('resolved')) {
-      const detail = resolvedSubs.length > 0 ? ` (${resolvedSubs.join('، ')})` : '';
-      statusClauses.push(`تم المعالجة ميدانياً${detail} لإنجاز ${cleanAction}`);
+    if (resolvedSubs.length > 0) {
+      vmAccomplishment += ` (تنفيذ ميداني - ${resolvedSubs.join('، ')})`;
     }
+
+    // بناء تكليفات المتابعة لإدارة المعرض وطلبات الصيانة بوضوح تام يفصل إنجاز الـ VM عن مهام الفرع
+    let branchClause = '';
     if (statuses.includes('store_followup')) {
-      const detail = followupSubs.length > 0 ? ` (${followupSubs.join('، ')})` : '';
-      statusClauses.push(`تكليف ${sec.actionAssignee || 'مدير المعرض'} بمتابعة الفرع${detail}`);
-    }
-    if (statuses.includes('management_action')) {
-      const detail = mgmtSubs.length > 0 ? ` (${mgmtSubs.join('، ')})` : '';
-      statusClauses.push(`توجيه طلب صيانة/إدارة إلى ${sec.actionAssignee || 'فريق الصيانة'}${detail}`);
+      const followupDetail = followupSubs.length > 0 ? followupSubs.join('، ') : 'استكمال الجاهزية والنواقص';
+      const assignee = (sec.actionAssignee && sec.actionAssignee.trim()) ? sec.actionAssignee.trim() : 'إدارة المعرض';
+      branchClause = ` — [تكليف متابعة لـ ${assignee}: ${followupDetail}]`;
     }
 
-    if (statusClauses.length > 0) {
-      points.push(`${cleanTitle}: ${statusClauses.join(' • ')}.`);
-    } else {
-      points.push(`${cleanTitle}: تم المعالجة ميدانياً لإنجاز ${cleanAction}.`);
+    let mgmtClause = '';
+    if (statuses.includes('management_action')) {
+      const mgmtDetail = mgmtSubs.length > 0 ? mgmtSubs.join('، ') : 'متابعة الصيانة والتوريد';
+      mgmtClause = ` — [طلب صيانة/إدارة: ${mgmtDetail}]`;
     }
+
+    const fullPoint = `${cleanTitle}: ${vmAccomplishment}${branchClause}${mgmtClause}.`;
+    points.push(cleanSummaryPointText(fullPoint));
   });
 
-  return points.map(pt => cleanSummaryPointText(pt));
+  return points;
 }
 
 /**
@@ -616,6 +710,7 @@ export function syncBrandingUI() {
 
 /**
  * رسم ملخص إنجازات وتعديلات الزيارة الميدانية في واجهة التقرير المطبوع والمعاينة
+ * مع مقياس متكيف ديناميكياً يضمن احتواء حتى 15 قسماً في الصفحة الأولى دون أي انقسام
  */
 export function renderVisitSummary() {
   const container = document.getElementById('print-visit-summary-list');
@@ -646,13 +741,40 @@ export function renderVisitSummary() {
     liveCount.innerText = `${points.length} نقاط`;
   }
 
+  // حساب المقياس الديناميكي لحجم الخط والمسافات لاستيعاب حتى 15 قسماً في الصفحة الأولى دون أي تجاوز
+  const count = points.length;
+  let fontSize = '12px';
+  let lineHeight = '1.45';
+  let rowGap = '4mm';
+  let badgeSize = 'w-4 h-4 text-[10px]';
+
+  if (count <= 5) {
+    fontSize = '12px';
+    lineHeight = '1.45';
+    rowGap = '4mm';
+    badgeSize = 'w-4 h-4 text-[10px]';
+  } else if (count <= 10) {
+    fontSize = '11px';
+    lineHeight = '1.35';
+    rowGap = '2.5mm';
+    badgeSize = 'w-3.5 h-3.5 text-[9px]';
+  } else {
+    // أكثر من 10 أقسام (حتى 15 قسماً)
+    fontSize = '9.8px';
+    lineHeight = '1.25';
+    rowGap = '1.8mm';
+    badgeSize = 'w-3 h-3 text-[8px]';
+  }
+
+  container.style.gap = rowGap;
+
+  // إزالة البطاقات الصندوقية الضخمة (bulky boxes) واستبدالها بسطور خفيفة وأنيقة تمنع انقسام الصفحة تماماً
   container.innerHTML = points.map((pt, idx) => `
-    <div class="print-break-inside-avoid flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed" style="page-break-inside: avoid; break-inside: avoid;">
-      <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
+    <div class="print-break-inside-avoid flex items-start gap-2 py-0.5" style="page-break-inside: avoid; break-inside: avoid; font-size: ${fontSize}; line-height: ${lineHeight};">
+      <span class="${badgeSize} rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-black shrink-0 shadow-xs mt-0.5">
         ${idx + 1}
       </span>
-      <div class="flex-1 leading-relaxed text-right" dir="rtl">${formatSummaryPointHtml(pt)}</div>
-      <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
+      <div class="flex-1 text-right" dir="rtl">${formatSummaryPointHtml(pt)}</div>
     </div>
   `).join('');
 }

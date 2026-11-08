@@ -3081,25 +3081,7 @@ export function saveVisitSummaryFromModal() {
 export function updateLiveVisitSummary(value) {
   currentAudit.visitSummary = typeof value === 'string' ? value : '';
   saveAuditToStorage();
-  
-  const points = getEffectiveVisitSummary(currentAudit);
-  const liveCount = document.getElementById('visit-summary-live-count');
-  if (liveCount) {
-    liveCount.innerText = `${points.length} نقاط`;
-  }
-  
-  const printList = document.getElementById('print-visit-summary-list');
-  if (printList) {
-    printList.innerHTML = points.map((pt, idx) => `
-      <div class="print-break-inside-avoid flex items-start gap-2.5 p-2 rounded-lg bg-slate-50/80 border border-slate-200/80 text-xs text-slate-800 leading-relaxed" style="page-break-inside: avoid; break-inside: avoid;">
-        <span class="w-5 h-5 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs mt-0.5">
-          ${idx + 1}
-        </span>
-        <div class="flex-1 leading-relaxed text-right" dir="rtl">${formatSummaryPointHtml(pt)}</div>
-        <span class="text-emerald-600 font-bold text-[11px] shrink-0">✓</span>
-      </div>
-    `).join('');
-  }
+  renderVisitSummary();
 }
 
 export function resetVisitSummaryToAuto() {

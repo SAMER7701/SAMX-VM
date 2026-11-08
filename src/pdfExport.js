@@ -497,14 +497,13 @@ export async function exportAuditToPdf() {
                 ${visitSummaryPoints.length} إنجازات موثقة ✅
               </span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
               ${visitSummaryPoints.map((pt, ptIdx) => `
-                <div style="display: flex; align-items: flex-start; gap: 9px; font-size: 10.5px; color: #1e293b; line-height: 1.45; text-align: right; direction: rtl; padding: 6px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; break-inside: avoid;">
-                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 9px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 10px; color: #1e293b; line-height: 1.35; text-align: right; direction: rtl; padding: 2px 0; page-break-inside: avoid; break-inside: avoid;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 9999px; background: #0f172a; color: #facc15; font-size: 8.5px; font-weight: 900; line-height: 1; flex-shrink: 0; margin-top: 1px;">
                     ${ptIdx + 1}
                   </span>
                   <div style="flex: 1; text-align: right; direction: rtl;">${formatSummaryPointHtml(pt)}</div>
-                  <span style="color: #16a34a; font-weight: 800; font-size: 11px; flex-shrink: 0;">✓</span>
                 </div>
               `).join('')}
             </div>

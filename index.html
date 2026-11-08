@@ -115,13 +115,14 @@
         break-inside: avoid !important;
       }
       /* الحاوية الموحدة للصفحة الأولى: ترويسة أفقية + ملخص تنفيذي مقفل على صفحة أفقية واحدة فقط */
-      #print-page-1-container {
-        height: calc(210mm - 18mm) !important;
-        max-height: calc(210mm - 18mm) !important;
-        min-height: calc(210mm - 18mm) !important;
+      .executive-cover-page, #print-page-1-container {
+        height: calc(210mm - 16mm) !important;
+        max-height: calc(210mm - 16mm) !important;
+        min-height: calc(210mm - 16mm) !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
+        justify-content: center !important;
+        align-items: stretch !important;
         box-sizing: border-box !important;
         page-break-before: avoid !important;
         break-before: avoid !important;
@@ -129,7 +130,7 @@
         break-inside: avoid !important;
         page-break-after: always !important;
         break-after: page !important;
-        padding: 4mm 0 !important;
+        padding: 0 !important;
         margin: 0 !important;
         overflow: hidden !important;
       }
@@ -145,10 +146,11 @@
         flex-shrink: 0 !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
-        margin-bottom: 0 !important;
+        margin-bottom: 2.5mm !important;
+        padding-bottom: 2mm !important;
       }
 
-      /* بطاقة ملخص الزيارة: توسيط رأسي متوازن في المساحة المتبقية من الصفحة الأولى */
+      /* بطاقة ملخص الزيارة: حاوية موحدة خفيفة ومحاذاة رأسياً بدون انقسام */
       #print-visit-summary-wrapper {
         margin-top: auto !important;
         margin-bottom: auto !important;
@@ -162,28 +164,26 @@
         break-inside: avoid !important;
         page-break-after: avoid !important;
         break-after: avoid !important;
-        padding: 10px 16px !important;
-        border: 1.5px solid #cbd5e1 !important;
-        border-top: 4px solid #0f172a !important;
-        border-radius: 12px !important;
+        padding: 3mm 4mm !important;
+        border: 1px solid #cbd5e1 !important;
+        border-top: 3px solid #0f172a !important;
+        border-radius: 8px !important;
         background: #ffffff !important;
       }
 
       #print-visit-summary-list {
         display: flex !important;
         flex-direction: column !important;
-        gap: 4px !important;
       }
       #print-visit-summary-list > div {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        padding: 4px 10px !important;
-        margin-bottom: 2px !important;
-        line-height: 1.35 !important;
-        font-size: 11px !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        background-color: #f8fafc !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
       }
 
       /* بطاقة القسم الميداني المقفلة كصفحة أفقية مستقلة ومحكومة بالكامل */
@@ -820,7 +820,7 @@
       <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
         
         <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
-        <div id="print-page-1-container" class="print-page-1-wrapper flex flex-col">
+        <div id="print-page-1-container" class="print-page-1-wrapper executive-cover-page flex flex-col">
 
           <!-- ترويسة التقرير الرسمية الفاخرة مع الشعار واسم الشركة الديناميكي -->
           <div id="print-main-header" class="border-b-2 border-slate-900 pb-4 mb-6">
