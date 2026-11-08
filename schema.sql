@@ -46,8 +46,40 @@ CREATE TABLE IF NOT EXISTS store_sections (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. الفهارس لتسريع الاستعلام والبحث
+-- 5. جدول المستخدمين والأخصائيين (Users & Authentication)
+CREATE TABLE IF NOT EXISTS users (
+  username TEXT PRIMARY KEY,
+  password TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'specialist',
+  branches_json TEXT DEFAULT '[]', -- JSON array of assigned branch names
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed Super Admin sam / 7701
+INSERT OR IGNORE INTO users (username, password, display_name, role, branches_json)
+VALUES ('sam', '7701', 'سمير سلطان (مدير النظام)', 'admin', '["*"]');
+
+-- 6. جدول جولات التدقيق الميداني السحابية (Cloud Tours)
+CREATE TABLE IF NOT EXISTS tours (
+  id TEXT PRIMARY KEY,
+  owner_username TEXT NOT NULL,
+  specialist_name TEXT NOT NULL,
+  branch_name TEXT NOT NULL,
+  week_num INTEGER DEFAULT 1,
+  audit_date TEXT NOT NULL,
+  summary_json TEXT,
+  r2_payload_key TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. الفهارس لتسريع الاستعلام والبحث
 CREATE INDEX IF NOT EXISTS idx_audit_branch ON audit_reports(branch_name);
 CREATE INDEX IF NOT EXISTS idx_audit_date ON audit_reports(audit_date);
 CREATE INDEX IF NOT EXISTS idx_audit_auditor ON audit_reports(auditor_name);
 CREATE INDEX IF NOT EXISTS idx_sections_name ON store_sections(name);
+CREATE INDEX IF NOT EXISTS idx_tours_owner ON tours(owner_username);
+CREATE INDEX IF NOT EXISTS idx_tours_branch ON tours(branch_name);
+CREATE INDEX IF NOT EXISTS idx_tours_date ON tours(audit_date);

@@ -486,7 +486,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.5.0</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.0</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -560,7 +560,7 @@
             <h1 class="text-lg md:text-xl font-black text-white tracking-wide flex items-center gap-2">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.5.0</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded">v1.6.0</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden sm:block">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -633,6 +633,10 @@
           <button onclick="switchTab('settings')" id="tab-nav-settings" class="px-4 py-2.5 font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
             <i data-lucide="database" class="w-4 h-4"></i>
             <span>النسخ الاحتياطي والأدوات</span>
+          </button>
+          <button onclick="switchTab('team')" id="tab-nav-team" style="display: none;" class="px-4 py-2.5 font-bold border-b-2 border-transparent text-amber-400 hover:text-amber-300 flex items-center gap-2 transition" title="إدارة فريق أخصائيي الـ VM والفروع (خاص بالمدير)">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-400"></i>
+            <span>🛡️ إدارة الفريق والفروع</span>
           </button>
         </div>
 
@@ -1181,16 +1185,21 @@
               </div>
             </div>
 
-            <!-- أزرار الإضافة السريعة للأرشيف -->
+            <!-- أزرار الإضافة والمزامنة السحابية للأرشيف -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button type="button" id="btn-cloud-sync-tours" onclick="handleCloudSyncTours()" class="px-3 py-2 rounded-xl text-xs font-bold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="مزامنة فورية متبادلة مع سحابة Cloudflare D1 و R2">
+                <i data-lucide="cloud" class="w-4 h-4 text-sky-400"></i>
+                <span id="cloud-sync-btn-text">🔄 مزامنة سحابية فورية</span>
+              </button>
+
               <button type="button" onclick="archiveCurrentAuditToStorage()" class="px-3 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="حفظ المسودة المفتوحة حالياً في الأرشيف">
                 <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-400"></i>
                 <span>حفظ الجولة الحالية بالأرشيف</span>
               </button>
 
               <label class="px-3 py-2 rounded-xl text-xs font-bold text-slate-200 bg-corp-850 hover:bg-corp-800 border border-corp-700 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer" title="رفع ملفات JSON سابقة من جهازك وإضافتها للأرشيف">
-                <i data-lucide="folder-up" class="w-4 h-4 text-sky-400"></i>
-                <span>استيراد ملفات JSON</span>
+                <i data-lucide="folder-up" class="w-4 h-4 text-emerald-400"></i>
+                <span>استيراد JSON</span>
                 <input type="file" multiple accept=".json" onchange="uploadJsonToArchive(event)" class="hidden">
               </label>
 
@@ -1202,11 +1211,18 @@
 
           <!-- شريط الفلترة والتحديد السريع -->
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-corp-900/60 p-3 rounded-xl border border-corp-850">
-            <div class="flex items-center gap-2 flex-1">
+            <div class="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
               <!-- تصفية حسب الشهر -->
-              <div class="relative w-full sm:w-56">
+              <div class="relative w-full sm:w-48">
                 <select id="bulk-month-filter" onchange="renderBulkExportUI()" class="w-full bg-corp-950 border border-corp-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-gold-500 outline-none">
                   <option value="all">جميع الفترات والدورات</option>
+                </select>
+              </div>
+
+              <!-- تصفية حسب الأخصائي (تظهر للمدير sam) -->
+              <div id="bulk-specialist-filter-container" class="relative w-full sm:w-48">
+                <select id="bulk-specialist-filter" onchange="renderBulkExportUI()" class="w-full bg-corp-950 border border-corp-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:border-gold-500 outline-none">
+                  <option value="all">جميع الأخصائيين</option>
                 </select>
               </div>
 
@@ -1297,6 +1313,117 @@
       </div>
     </section>
 
+    <!-- ==================== 4. تبويب إدارة الفريق والفروع (TEAM & BRANCHES CONTROL PANEL) ==================== -->
+    <section id="view-team" class="hidden space-y-5">
+      <div class="bg-corp-900 border border-corp-800 rounded-2xl p-5 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-corp-800 gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 via-gold-500/10 to-transparent text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-inner">
+              <i data-lucide="shield-check" class="w-6 h-6 text-amber-400"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-black text-white">إدارة فريق العمل وتخصيص الفروع</h2>
+                <span class="bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">خاص بمدير النظام 👑</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">
+                إضافة وتعديل حسابات أخصائيي الـ VM، ضبط كلمات المرور، وتحديد الفروع المخصصة لكل أخصائي
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="refreshTeamManagementUI()" class="px-3.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+              <i data-lucide="refresh-cw" class="w-4 h-4 text-amber-400"></i>
+              <span>تحديث الفريق</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- بطاقة نموذج إضافة / تعديل أخصائي -->
+        <div class="mt-5 p-4 md:p-5 rounded-2xl bg-corp-950 border border-corp-800 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-corp-850 pb-3">
+            <h3 id="team-form-title" class="text-sm font-black text-white flex items-center gap-2">
+              <i data-lucide="user-plus" class="w-4 h-4 text-gold-400"></i>
+              <span>إضافة أخصائي VM جديد للفريق</span>
+            </h3>
+            <button type="button" id="team-form-cancel-btn" onclick="resetSpecialistForm()" class="hidden text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-corp-850 border border-corp-700 cursor-pointer">
+              إلغاء التعديل
+            </button>
+          </div>
+
+          <form id="team-specialist-form" onsubmit="event.preventDefault(); handleSaveSpecialistSubmit();" class="space-y-4">
+            <input type="hidden" id="spec-form-mode" value="create" />
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- الاسم الثلاثي المعروض -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">الاسم الثلاثي للأخصائي:</label>
+                <input type="text" id="spec-display-name" required placeholder="مثال: فيصل العتيبي" class="w-full bg-corp-900 border border-corp-700 focus:border-gold-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition" />
+              </div>
+
+              <!-- اسم المستخدم الفريد (Username) -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">اسم المستخدم (للدخول):</label>
+                <input type="text" id="spec-username" required dir="ltr" placeholder="مثال: faisal" class="w-full bg-corp-900 border border-corp-700 focus:border-gold-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none font-mono font-bold transition" />
+              </div>
+
+              <!-- كلمة المرور -->
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">كلمة المرور:</label>
+                <div class="relative">
+                  <input type="password" id="spec-password" required dir="ltr" placeholder="••••••••" class="w-full bg-corp-900 border border-corp-700 focus:border-gold-500 rounded-xl pr-3 pl-8 py-2 text-xs text-white placeholder-slate-500 outline-none font-mono font-bold transition" />
+                  <button type="button" onclick="togglePasswordVisibility('spec-password', this)" class="absolute left-2.5 top-2 text-slate-400 hover:text-white cursor-pointer" title="إظهار / إخفاء كلمة المرور">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- اختيار الفروع المخصصة للأخصائي -->
+            <div class="space-y-2 pt-2 border-t border-corp-850">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <label class="block text-xs font-bold text-slate-300">
+                  الفروع المخصصة للأخصائي (حدد الفروع المسموح للأخصائي معاينتها وتدقيقها):
+                </label>
+                <div class="flex items-center gap-2 text-xs">
+                  <button type="button" onclick="selectAllTeamBranches(true)" class="text-[11px] text-amber-400 hover:underline cursor-pointer">تحديد كافة الفروع (*)</button>
+                  <span class="text-slate-600">|</span>
+                  <button type="button" onclick="selectAllTeamBranches(false)" class="text-[11px] text-slate-400 hover:underline cursor-pointer">إلغاء التحديد</button>
+                </div>
+              </div>
+              
+              <div id="team-branches-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 bg-corp-900/60 rounded-xl border border-corp-800 max-h-48 overflow-y-auto">
+                <!-- يُملأ ديناميكياً بقائمة الفروع المسجلة -->
+              </div>
+            </div>
+
+            <!-- زر الحفظ -->
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="submit" id="spec-save-btn" class="bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-black text-xs px-6 py-2.5 rounded-xl shadow-lg shadow-gold-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span id="spec-save-btn-text">حفظ وتفعيل حساب الأخصائي</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- قائمة فريق العمل والدليل -->
+        <div class="mt-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="users" class="w-4 h-4 text-amber-400"></i>
+              <span>دليل فريق أخصائيي الـ VM والحسابات المعتمدة</span>
+            </h3>
+            <span id="team-members-count" class="text-xs text-slate-400 font-mono">0 أعضاء</span>
+          </div>
+
+          <div id="team-members-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <!-- يُملأ ديناميكياً بكروت الأخصائيين -->
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ==================== شريط التنقل السفلي للجوال (BOTTOM NAVIGATION) ==================== -->
@@ -1321,6 +1448,11 @@
       <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center gap-1 py-1 px-3 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span>الأدوات</span>
+      </button>
+
+      <button onclick="switchTab('team')" id="mobile-nav-team" style="display: none;" class="flex flex-col items-center gap-1 py-1 px-3 text-amber-400 font-medium text-[11px] hover:text-amber-300 transition">
+        <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
+        <span>الفريق</span>
       </button>
 
     </div>

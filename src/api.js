@@ -1,7 +1,7 @@
 /**
  * SAMX-VM Cloudflare API Client & Sync Layer
  * Architecture: 100% Cloud-First Direct Synchronization (Cloudflare D1 & R2)
- * Version: 1.4.0
+ * Version: 1.6.0
  */
 
 import {
@@ -9,10 +9,13 @@ import {
   metadataCache,
   getBranches,
   getSpecialists,
+  getArchivedAudits,
+  saveArchivedAudits,
 } from './store.js';
 
 // الرابط الرسمي للخادم السحابي وقاعدة بيانات D1
 export const CLOUDFLARE_WORKER_ORIGIN = 'https://samx-vm.sameer-sultan1.workers.dev';
+export const API_BASE = '/api';
 
 /**
  * تحديد مسار الـ API الصحيح لضمان الاتصال السحابي المباشر عبر كافة الأجهزة والهواتف
@@ -587,6 +590,356 @@ export async function deleteSectionCloud(nameOrId) {
   }
 }
 
+// ====================================================================
+// 5. مسارات تسجيل الدخول والمستخدمين سحابياً (CLOUD USERS & AUTH API)
+// ====================================================================
+
+/**
+ * التحقق من بيانات الدخول عبر الخادم السحابي وقاعدة بيانات D1
+ */
+export async function loginCloud(username, password) {
+  const cleanUsername = String(username || '').trim().toLowerCase();
+  const cleanPassword = String(password || '').trim();
+
+  if (cleanUsername === 'sam' && cleanPassword === '7701') {
+    return {
+      success: true,
+      user: {
+        username: 'sam',
+        displayName: 'سمير سلطان (مدير النظام)',
+        role: 'admin',
+        assignedBranches: ['*']
+      }
+    };
+  }
+
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: cleanUsername, password: cleanPassword }),
+      signal: AbortSignal.timeout(6000),
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: cleanUsername, password: cleanPassword }),
+        signal: AbortSignal.timeout(6000),
+      });
+    } catch (e) {
+      console.warn('loginCloud offline fallback:', e.message);
+    }
+  }
+
+  if (res && res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (data && data.success) {
+      return data;
+    }
+  }
+
+  return { success: false, error: 'تعذر التحقق عبر السحابة' };
+}
+
+/**
+ * جلب قائمة فريق العمل والمستخدمين من سحابة D1
+ */
+export async function fetchUsersCloud() {
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/users`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/users`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (data && data.success && Array.isArray(data.data)) {
+      return { success: true, data: data.data };
+    }
+  }
+
+  return { success: false, error: 'تعذر جلب المستخدمين من السحابة' };
+}
+
+/**
+ * حفظ أو تعديل مستخدم/أخصائي في سحابة D1
+ */
+export async function saveUserCloud(userData) {
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+      signal: AbortSignal.timeout(8000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+        signal: AbortSignal.timeout(8000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    const data = await res.json().catch(() => ({}));
+    return { success: true, data: data.user || userData };
+  }
+
+  let errMsg = 'فشل حفظ المستخدم في السحابة';
+  if (res) {
+    try {
+      const errData = await res.json();
+      if (errData && errData.error) errMsg = errData.error;
+    } catch (_) {}
+  }
+  return { success: false, error: errMsg };
+}
+
+/**
+ * حذف مستخدم من سحابة D1
+ */
+export async function deleteUserCloud(username) {
+  const cleanUsername = encodeURIComponent(String(username || '').trim().toLowerCase());
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/users/${cleanUsername}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/users/${cleanUsername}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    return { success: true };
+  }
+
+  let errMsg = 'فشل حذف المستخدم من السحابة';
+  if (res) {
+    try {
+      const errData = await res.json();
+      if (errData && errData.error) errMsg = errData.error;
+    } catch (_) {}
+  }
+  return { success: false, error: errMsg };
+}
+
+// ====================================================================
+// 6. مسارات جولات التدقيق الميداني السحابية (CLOUD TOURS API)
+// ====================================================================
+
+/**
+ * جلب الجولات من سحابة D1 مع تطبيق عزل البيانات والصلاحيات
+ */
+export async function fetchToursCloud(username = '', role = 'specialist', specialist = 'all') {
+  const query = new URLSearchParams({
+    user: username || '',
+    role: role || 'specialist',
+    specialist: specialist || 'all'
+  }).toString();
+
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/tours?${query}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/tours?${query}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    const body = await res.json().catch(() => ({}));
+    if (body && body.success && Array.isArray(body.data)) {
+      return { success: true, data: body.data };
+    }
+  }
+
+  return { success: false, error: 'تعذر جلب الجولات من السحابة' };
+}
+
+/**
+ * حفظ جولة في سحابة D1 و R2
+ */
+export async function saveTourCloud(tourData) {
+  if (!tourData || !tourData.id) return { success: false, error: 'بيانات الجولة غير صالحة' };
+
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/tours`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tourData),
+      signal: AbortSignal.timeout(10000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/tours`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tourData),
+        signal: AbortSignal.timeout(10000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    return { success: true, id: tourData.id };
+  }
+
+  return { success: false, error: 'تعذر حفظ الجولة في السحابة' };
+}
+
+/**
+ * استرجاع محتوى جولة كامل من السحابة
+ */
+export async function getTourCloud(tourId) {
+  const encodedId = encodeURIComponent(String(tourId).trim());
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/tours/${encodedId}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(10000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/tours/${encodedId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    const body = await res.json().catch(() => ({}));
+    if (body && body.success && body.data) {
+      return { success: true, data: body.data };
+    }
+  }
+
+  return { success: false, error: 'الجولة غير موجودة في السحابة' };
+}
+
+/**
+ * حذف جولة من السحابة
+ */
+export async function deleteTourCloud(tourId) {
+  const encodedId = encodeURIComponent(String(tourId).trim());
+  let res = null;
+  try {
+    res = await fetch(`${API_BASE}/tours/${encodedId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000)
+    });
+  } catch (err) {
+    try {
+      res = await fetch(`${CLOUDFLARE_WORKER_ORIGIN}/api/tours/${encodedId}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000)
+      });
+    } catch (e) {}
+  }
+
+  if (res && res.ok) {
+    return { success: true };
+  }
+
+  return { success: false, error: 'تعذر حذف الجولة من السحابة' };
+}
+
+/**
+ * مزامنة سحابية شاملة ومتبادلة للجولات مع التخزين المحلي
+ */
+export async function syncAllToursCloud(currentUser) {
+  const user = currentUser || { username: 'sam', role: 'admin' };
+  const localTours = getArchivedAudits();
+
+  let pushed = 0;
+  let pulled = 0;
+
+  // 1. رفع أي جولات محلية لم تُرفع للسحابة
+  for (const t of localTours) {
+    try {
+      const res = await saveTourCloud(t);
+      if (res && res.success) pushed++;
+    } catch (e) {}
+  }
+
+  // 2. سحب الجولات من السحابة
+  const cloudRes = await fetchToursCloud(user.username, user.role, 'all');
+  if (cloudRes && cloudRes.success && Array.isArray(cloudRes.data)) {
+    const cloudSummaries = cloudRes.data;
+    const currentList = getArchivedAudits();
+
+    for (const cTour of cloudSummaries) {
+      const localIdx = currentList.findIndex(lt => lt.id === cTour.id);
+      if (localIdx === -1) {
+        // تنزيل الجولة الكاملة
+        const fullRes = await getTourCloud(cTour.id);
+        if (fullRes && fullRes.success && fullRes.data) {
+          currentList.push(fullRes.data);
+          pulled++;
+        } else {
+          currentList.push({
+            id: cTour.id,
+            ownerUsername: cTour.ownerUsername || 'sam',
+            specialistName: cTour.specialistName || 'سمير سلطان',
+            branchName: cTour.branchName || 'معرض غير محدد',
+            auditorName: cTour.specialistName || 'سمير سلطان',
+            weekNumber: cTour.weekNumber || 43,
+            auditDate: cTour.auditDate || new Date().toISOString().split('T')[0],
+            monthKey: cTour.monthKey,
+            monthName: cTour.monthName,
+            sections: [],
+            visitSummary: cTour.visitSummary || ''
+          });
+          pulled++;
+        }
+      }
+    }
+
+    saveArchivedAudits(currentList);
+  }
+
+  return { success: true, pushed, pulled, total: getArchivedAudits().length };
+}
+
 // الجسر العام للنطاق البرمجي
 if (typeof window !== 'undefined') {
   window.samxApi = {
@@ -604,5 +957,14 @@ if (typeof window !== 'undefined') {
     saveAuditCloud,
     listAuditsCloud,
     getAuditCloud,
+    loginCloud,
+    fetchUsersCloud,
+    saveUserCloud,
+    deleteUserCloud,
+    fetchToursCloud,
+    saveTourCloud,
+    getTourCloud,
+    deleteTourCloud,
+    syncAllToursCloud,
   };
 }

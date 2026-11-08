@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.4.0
+ * Version: 1.6.0
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -22,8 +22,11 @@ import {
   getArchivedAuditById,
   deleteArchivedAudit,
   getSectionStatuses,
-  getSectionSubOptions
+  getSectionSubOptions,
+  STORAGE_KEY_USERS_REGISTRY
 } from './store.js';
+
+import { getActiveAuthSession } from './auth.js';
 
 /**
  * دالة تعقيم وتطهير النصوص المؤسسية لمنع ظهور أي رموز أو نصوص طفيلية مثل sam أو undefined
@@ -818,12 +821,23 @@ export function populateBranchSelect() {
   const branchSelect = document.getElementById('select-branch');
   if (!branchSelect) return;
 
-  const branches = getBranches();
+  const activeUser = getActiveAuthSession();
+  let branches = getBranches();
+
+  // إذا كان المستخدم أخصائياً ولديه فروع محددة لا تشمل كافة الفروع (*)
+  if (activeUser && activeUser.role === 'specialist' && Array.isArray(activeUser.assignedBranches) && !activeUser.assignedBranches.includes('*')) {
+    const allowed = activeUser.assignedBranches;
+    branches = branches.filter(b => {
+      const name = typeof b === 'string' ? b : (b.name || '');
+      return allowed.includes(name);
+    });
+  }
+
   if (branches.length === 0) {
     if (currentAudit.branchName) {
       branchSelect.innerHTML = `<option value="${currentAudit.branchName}" selected>${currentAudit.branchName}</option>`;
     } else {
-      branchSelect.innerHTML = '<option value="">-- أضف فرعاً من زر (⚙️ إدارة الفروع) --</option>';
+      branchSelect.innerHTML = '<option value="">-- لا توجد فروع متاحة --</option>';
     }
     return;
   }
@@ -833,8 +847,12 @@ export function populateBranchSelect() {
   if (!currentAudit.branchName && branchNames.length > 0) {
     currentAudit.branchName = branchNames[0];
   } else if (currentAudit.branchName && !branchNames.includes(currentAudit.branchName)) {
-    // If current audit branch is not in the list, preserve it as an option
-    branchNames.unshift(currentAudit.branchName);
+    // If not a restricted specialist, keep current audit branch as option
+    if (!activeUser || activeUser.role === 'admin' || (activeUser.assignedBranches && activeUser.assignedBranches.includes('*'))) {
+      branchNames.unshift(currentAudit.branchName);
+    } else {
+      currentAudit.branchName = branchNames[0];
+    }
   }
 
   let html = '';
@@ -854,6 +872,16 @@ export function populateBranchSelect() {
 export function populateSpecialistSelect() {
   const specialistSelect = document.getElementById('select-specialist');
   if (!specialistSelect) return;
+
+  const activeUser = getActiveAuthSession();
+  if (activeUser && activeUser.role === 'specialist') {
+    const spName = activeUser.displayName || activeUser.username;
+    currentAudit.auditorName = spName;
+    specialistSelect.innerHTML = `<option value="${spName}" selected>${spName}</option>`;
+    specialistSelect.value = spName;
+    specialistSelect.disabled = true;
+    return;
+  }
 
   const specialists = getSpecialists();
   if (specialists.length === 0) {
@@ -1975,12 +2003,49 @@ export function updateBulkExportSelectionCounter() {
 export function renderBulkExportUI() {
   const listContainer = document.getElementById('bulk-audits-list-container');
   const monthFilter = document.getElementById('bulk-month-filter');
+  const specialistFilter = document.getElementById('bulk-specialist-filter');
+  const specialistFilterContainer = document.getElementById('bulk-specialist-filter-container');
   const searchInput = document.getElementById('bulk-search-input');
   if (!listContainer) return;
 
-  const allAudits = getArchivedAudits();
+  const activeUser = getActiveAuthSession() || { username: 'sam', role: 'admin' };
+  let allAudits = getArchivedAudits();
 
-  // 1. تحديث قائمة خيارات الأشهر تلقائياً بناءً على محتوى الأرشيف
+  // 1. عزل البيانات: إذا كان المستخدم أخصائياً، لا يرى إلا جولاته الخاصة
+  if (activeUser.role === 'specialist') {
+    if (specialistFilterContainer) specialistFilterContainer.style.display = 'none';
+    const myUsername = (activeUser.username || '').toLowerCase();
+    const myDisplayName = (activeUser.displayName || '').toLowerCase();
+    allAudits = allAudits.filter(a => {
+      const oUser = (a.ownerUsername || '').toLowerCase();
+      const aName = (a.auditorName || '').toLowerCase();
+      const sName = (a.specialistName || '').toLowerCase();
+      return oUser === myUsername || aName === myDisplayName || sName === myDisplayName;
+    });
+  } else {
+    // مدير النظام sam: إظهار فلتر الأخصائيين وتعبئته بالأسماء المتاحة
+    if (specialistFilterContainer) specialistFilterContainer.style.display = 'block';
+    if (specialistFilter) {
+      const currentSpecialist = specialistFilter.value || 'all';
+      const specialistNames = new Set();
+      allAudits.forEach(a => {
+        const name = a.specialistName || a.auditorName;
+        if (name && name !== 'أخصائي العرض المرئي' && name !== 'أخصائي الـ VM') {
+          specialistNames.add(name);
+        }
+      });
+      let specOptionsHtml = '<option value="all">جميع الأخصائيين</option>';
+      specialistNames.forEach(name => {
+        specOptionsHtml += `<option value="${name}" ${currentSpecialist === name ? 'selected' : ''}>${name}</option>`;
+      });
+      specialistFilter.innerHTML = specOptionsHtml;
+      if (currentSpecialist && (specialistNames.has(currentSpecialist) || currentSpecialist === 'all')) {
+        specialistFilter.value = currentSpecialist;
+      }
+    }
+  }
+
+  // 2. تحديث قائمة خيارات الأشهر تلقائياً بناءً على محتوى الأرشيف
   if (monthFilter) {
     const currentSelectedMonth = monthFilter.value || 'all';
     const monthsMap = new Map();
@@ -2001,20 +2066,28 @@ export function renderBulkExportUI() {
     }
   }
 
-  // 2. تصفية القائمة حسب الشهر والبحث
+  // 3. تصفية القائمة حسب الشهر والأخصائي والبحث
   const filterMonth = monthFilter ? monthFilter.value : 'all';
+  const filterSpecialist = (specialistFilter && activeUser.role === 'admin') ? specialistFilter.value : 'all';
   const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
 
   let filtered = allAudits.filter(aud => {
     if (filterMonth !== 'all' && (aud.monthKey || 'general') !== filterMonth) {
       return false;
     }
+    if (filterSpecialist !== 'all') {
+      const sp = aud.specialistName || aud.auditorName || '';
+      if (sp !== filterSpecialist) {
+        return false;
+      }
+    }
     if (searchTerm) {
       const bName = (aud.branchName || '').toLowerCase();
       const aName = (aud.auditorName || '').toLowerCase();
+      const sName = (aud.specialistName || '').toLowerCase();
       const wNum = String(aud.weekNumber || '');
       const dStr = String(aud.auditDate || '');
-      if (!bName.includes(searchTerm) && !aName.includes(searchTerm) && !wNum.includes(searchTerm) && !dStr.includes(searchTerm)) {
+      if (!bName.includes(searchTerm) && !aName.includes(searchTerm) && !sName.includes(searchTerm) && !wNum.includes(searchTerm) && !dStr.includes(searchTerm)) {
         return false;
       }
     }
@@ -2233,6 +2306,143 @@ export function closeArchivedAuditPreview() {
   }
 }
 
+/**
+ * إدارة وعرض فريق العمل والأخصائيين المعتمدين في تبويب مدير النظام (خاص بـ sam)
+ */
+export async function renderTeamManagementUI() {
+  const membersListContainer = document.getElementById('team-members-list');
+  const branchesContainer = document.getElementById('team-branches-checkboxes');
+  const countBadge = document.getElementById('team-members-count');
+  if (!membersListContainer) return;
+
+  // 1. تعبئة قائمة مربعات اختيار الفروع
+  if (branchesContainer) {
+    const allBranches = getBranches();
+    if (allBranches.length === 0) {
+      branchesContainer.innerHTML = '<span class="text-xs text-slate-500 col-span-4 py-2">لا توجد فروع مسجلة حالياً في النظام. أضف فروعاً من إدارة الفروع أولاً.</span>';
+    } else {
+      branchesContainer.innerHTML = allBranches.map(b => {
+        const name = typeof b === 'string' ? b : (b.name || '');
+        return `
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white cursor-pointer select-none bg-corp-950/70 p-2 rounded-lg border border-corp-800 transition">
+            <input type="checkbox" name="team-branch" value="${name}" class="team-branch-cb rounded text-amber-500 bg-corp-900 border-corp-700 focus:ring-amber-500 cursor-pointer" />
+            <span class="truncate">${name}</span>
+          </label>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. جلب قائمة المستخدمين (من السحابة أو الكاش المحلي)
+  let users = [];
+  try {
+    const { fetchUsersCloud } = await import('./api.js');
+    const cloudRes = await fetchUsersCloud();
+    if (cloudRes && cloudRes.success && Array.isArray(cloudRes.data)) {
+      users = cloudRes.data;
+      localStorage.setItem(STORAGE_KEY_USERS_REGISTRY, JSON.stringify(users));
+    }
+  } catch (e) {}
+
+  if (!users || users.length === 0) {
+    const raw = localStorage.getItem(STORAGE_KEY_USERS_REGISTRY);
+    if (raw) {
+      try { users = JSON.parse(raw); } catch (_) {}
+    }
+  }
+
+  // التأكد من وجود sam
+  if (!users.some(u => u && u.username === 'sam')) {
+    users.unshift({
+      username: 'sam',
+      password: '7701',
+      displayName: 'سمير سلطان (مدير النظام)',
+      role: 'admin',
+      assignedBranches: ['*']
+    });
+  }
+
+  if (countBadge) {
+    countBadge.innerText = `${users.length} حسابات مسجلة`;
+  }
+
+  // 3. رسم كروت المستخدمين
+  membersListContainer.innerHTML = users.map(user => {
+    const isAdmin = user.role === 'admin';
+    const isSam = user.username === 'sam';
+    const branches = Array.isArray(user.assignedBranches) ? user.assignedBranches : ['*'];
+    const isAllBranches = branches.includes('*');
+
+    return `
+      <div class="bg-corp-950 p-4 rounded-xl border ${isAdmin ? 'border-amber-500/40 shadow-lg shadow-amber-500/5' : 'border-corp-800'} flex flex-col justify-between gap-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-xl ${isAdmin ? 'bg-gradient-to-br from-amber-500/20 to-gold-500/10 text-amber-400 border border-amber-500/30' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'} flex items-center justify-center text-lg font-black shrink-0">
+              ${isAdmin ? '👑' : '👤'}
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs md:text-sm font-black text-white">${user.displayName || user.username}</h4>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isAdmin ? 'bg-amber-400/10 text-amber-300 border border-amber-400/20' : 'bg-sky-400/10 text-sky-300 border border-sky-400/20'}">
+                  ${isAdmin ? 'مدير النظام' : 'أخصائي VM'}
+                </span>
+              </div>
+              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-mono">
+                <span>اسم الدخول: <strong class="text-slate-200">@${user.username}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- كلمة المرور مع زر الكشف -->
+          <div class="flex items-center gap-1.5 bg-corp-900 border border-corp-800 px-2 py-1 rounded-lg text-xs font-mono">
+            <span class="text-slate-500 text-[10px]">الرمز:</span>
+            <span id="pass-display-${user.username}" class="text-slate-300 font-bold" data-pass="${user.password || ''}">••••••••</span>
+            <button type="button" onclick="toggleCardPasswordReveal('${user.username}')" class="text-slate-400 hover:text-amber-400 cursor-pointer p-0.5" title="كشف / إخفاء كلمة المرور">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- الفروع المخصصة -->
+        <div class="space-y-1">
+          <span class="text-[10px] text-slate-500 font-bold">الفروع المخصصة للمعاينة:</span>
+          <div class="flex flex-wrap gap-1">
+            ${isAllBranches ? `
+              <span class="text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                كافة الفروع والمناطق (*)
+              </span>
+            ` : branches.length > 0 ? branches.map(b => `
+              <span class="text-[10px] font-semibold bg-corp-900 text-slate-300 border border-corp-750 px-2 py-0.5 rounded-md">
+                ${b}
+              </span>
+            `).join('') : `
+              <span class="text-[10px] text-rose-400 font-bold">لم تُحدد فروع بعد</span>
+            `}
+          </div>
+        </div>
+
+        <!-- إجراءات الأخصائي -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-corp-850">
+          <button type="button" onclick="editSpecialistUser('${user.username}')" class="px-2.5 py-1 text-xs font-bold text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer">
+            <i data-lucide="edit-2" class="w-3 h-3"></i>
+            <span>تعديل</span>
+          </button>
+          ${isSam ? '' : `
+            <button type="button" onclick="deleteSpecialistUserPrompt('${user.username}')" class="px-2.5 py-1 text-xs font-bold text-rose-400 bg-rose-400/10 hover:bg-rose-400/20 border border-rose-400/30 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer">
+              <i data-lucide="trash-2" class="w-3 h-3"></i>
+              <span>حذف</span>
+            </button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch(e){}
+  }
+}
+
 // تصدير دوال العرض للنافذة العامة (Zero Regression Global Bridge)
 if (typeof window !== 'undefined') {
   window.getStatusBadgeHtml = getStatusBadgeHtml;
@@ -2258,6 +2468,7 @@ if (typeof window !== 'undefined') {
   window.updateBrandingLivePreview = updateBrandingLivePreview;
   window.updateBulkExportSelectionCounter = updateBulkExportSelectionCounter;
   window.renderBulkExportUI = renderBulkExportUI;
+  window.renderTeamManagementUI = renderTeamManagementUI;
   window.openArchivedAuditPreview = openArchivedAuditPreview;
   window.closeArchivedAuditPreview = closeArchivedAuditPreview;
   window.renderVisitSummary = renderVisitSummary;

@@ -56,5 +56,18 @@
       "email": "mohammed@samx.vm",
       "phone": "0504567890"
     }
-  ]
+  ],
+  "users": [
+    {
+      "username": "sam",
+      "password": "7701",
+      "displayName": "سمير سلطان (مدير النظام)",
+      "role": "admin",
+      "assignedBranches": [
+        "*"
+      ],
+      "updatedAt": "2026-11-08T03:43:12.896Z"
+    }
+  ],
+  "tours": []
 }

@@ -29,7 +29,18 @@ function cloudflareD1ApiPlugin(): Plugin {
         { id: 'sp_2', name: 'أحمد الغامدي', email: 'ahmed@samx.vm', phone: '0502345678' },
         { id: 'sp_3', name: 'فيصل العتيبي', email: 'faisal@samx.vm', phone: '0503456789' },
         { id: 'sp_4', name: 'محمد الشهري', email: 'mohammed@samx.vm', phone: '0504567890' }
-      ]
+      ],
+      users: [
+        {
+          username: 'sam',
+          password: '7701',
+          displayName: 'سمير سلطان (مدير النظام)',
+          role: 'admin',
+          assignedBranches: ['*'],
+          updatedAt: new Date().toISOString()
+        }
+      ],
+      tours: []
     };
   }
 
@@ -70,7 +81,7 @@ function cloudflareD1ApiPlugin(): Plugin {
           return res.end(JSON.stringify({
             status: 'healthy',
             app: 'SAMX-VM',
-            version: '1.4.0',
+            version: '1.6.0',
             hasD1: true,
             hasR2: true,
             timestamp: new Date().toISOString()
@@ -213,6 +224,272 @@ function cloudflareD1ApiPlugin(): Plugin {
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.statusCode = 200;
             return res.end(JSON.stringify({ success: true, message: 'تم حذف الأخصائي بنجاح' }));
+          }
+        }
+
+        // 5. مسار تسجيل الدخول الموحد (/api/login)
+        if (url === '/api/login' && method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const parsed = JSON.parse(body || '{}');
+              const username = (parsed.username || '').trim().toLowerCase();
+              const password = (parsed.password || '').trim();
+
+              if (!username || !password) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' }));
+              }
+
+              // sam / 7701
+              if (username === 'sam' && password === '7701') {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 200;
+                return res.end(JSON.stringify({
+                  success: true,
+                  user: {
+                    username: 'sam',
+                    displayName: 'سمير سلطان (مدير النظام)',
+                    role: 'admin',
+                    assignedBranches: ['*']
+                  }
+                }));
+              }
+
+              const store = getStore();
+              const users = store.users || [];
+              const found = users.find((u: any) => u.username?.toLowerCase() === username && String(u.password) === password);
+              if (found) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 200;
+                return res.end(JSON.stringify({
+                  success: true,
+                  user: {
+                    username: found.username,
+                    displayName: found.displayName,
+                    role: found.role || 'specialist',
+                    assignedBranches: found.assignedBranches || ['*']
+                  }
+                }));
+              }
+
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.statusCode = 401;
+              return res.end(JSON.stringify({ success: false, error: 'بيانات الدخول غير صحيحة' }));
+            } catch (err: any) {
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // 6. مسارات إدارة فريق العمل والمستخدمين (/api/users)
+        if (url === '/api/users') {
+          const store = getStore();
+          if (!Array.isArray(store.users)) {
+            store.users = [
+              {
+                username: 'sam',
+                password: '7701',
+                displayName: 'سمير سلطان (مدير النظام)',
+                role: 'admin',
+                assignedBranches: ['*'],
+                updatedAt: new Date().toISOString()
+              }
+            ];
+            saveStore(store);
+          }
+
+          if (method === 'GET') {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.statusCode = 200;
+            return res.end(JSON.stringify({ success: true, data: store.users }));
+          }
+
+          if (method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+              try {
+                const parsed = JSON.parse(body || '{}');
+                const rawUsername = (parsed.username || '').trim().toLowerCase();
+                const password = (parsed.password || '').trim();
+                const displayName = (parsed.displayName || parsed.name || '').trim();
+                let role = parsed.role || 'specialist';
+                const assignedBranches = Array.isArray(parsed.assignedBranches) ? parsed.assignedBranches : ['*'];
+
+                if (!rawUsername || !password || !displayName) {
+                  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                  res.statusCode = 400;
+                  return res.end(JSON.stringify({ success: false, error: 'اسم المستخدم وكلمة المرور والاسم الثلاثي حقول إجبارية' }));
+                }
+
+                if (rawUsername === 'sam') role = 'admin';
+
+                const newUser = {
+                  username: rawUsername,
+                  password,
+                  displayName,
+                  role,
+                  assignedBranches,
+                  updatedAt: new Date().toISOString()
+                };
+
+                const existingIdx = store.users.findIndex((u: any) => u.username?.toLowerCase() === rawUsername);
+                if (existingIdx !== -1) {
+                  store.users[existingIdx] = newUser;
+                } else {
+                  store.users.push(newUser);
+                }
+
+                // مزامنة الأخصائي في specialists
+                if (role === 'specialist') {
+                  const spIdx = store.specialists.findIndex((s: any) => s.name === displayName);
+                  if (spIdx === -1) {
+                    store.specialists.push({
+                      id: `sp_${rawUsername}`,
+                      name: displayName,
+                      email: '',
+                      phone: '',
+                      created_at: new Date().toISOString()
+                    });
+                  }
+                }
+
+                saveStore(store);
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 201;
+                return res.end(JSON.stringify({ success: true, user: newUser }));
+              } catch (err: any) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ success: false, error: err.message }));
+              }
+            });
+            return;
+          }
+        }
+
+        if (url.startsWith('/api/users/')) {
+          const targetUsername = decodeURIComponent(url.replace('/api/users/', '').trim()).toLowerCase();
+          if (method === 'DELETE') {
+            if (targetUsername === 'sam') {
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.statusCode = 403;
+              return res.end(JSON.stringify({ success: false, error: 'لا يمكن حذف حساب مدير النظام الفائق (sam)' }));
+            }
+            const store = getStore();
+            store.users = (store.users || []).filter((u: any) => u.username?.toLowerCase() !== targetUsername);
+            saveStore(store);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.statusCode = 200;
+            return res.end(JSON.stringify({ success: true, message: 'تم حذف المستخدم بنجاح' }));
+          }
+        }
+
+        // 7. مسارات جولات التدقيق الميداني السحابية (/api/tours)
+        if (url === '/api/tours') {
+          const store = getStore();
+          if (!Array.isArray(store.tours)) {
+            store.tours = [];
+            saveStore(store);
+          }
+
+          if (method === 'GET') {
+            const rawUrl = req.url || '';
+            const searchParams = new URL(rawUrl, 'http://localhost').searchParams;
+            const userParam = (searchParams.get('user') || '').toLowerCase();
+            const roleParam = (searchParams.get('role') || 'specialist').toLowerCase();
+            const specialistParam = searchParams.get('specialist') || 'all';
+
+            let filtered = store.tours || [];
+            if (roleParam !== 'admin') {
+              filtered = filtered.filter((t: any) => (t.ownerUsername || '').toLowerCase() === userParam);
+            } else if (specialistParam && specialistParam !== 'all') {
+              filtered = filtered.filter((t: any) => t.specialistName === specialistParam || (t.ownerUsername || '').toLowerCase() === specialistParam.toLowerCase());
+            }
+
+            // عرض الملخصات
+            const summaries = filtered.map((t: any) => ({
+              id: t.id,
+              ownerUsername: t.ownerUsername || 'sam',
+              specialistName: t.specialistName || t.auditorName || 'سمير سلطان',
+              auditorName: t.auditorName || t.specialistName || 'سمير سلطان',
+              branchName: t.branchName,
+              weekNumber: t.weekNumber,
+              auditDate: t.auditDate,
+              monthKey: t.monthKey,
+              monthName: t.monthName,
+              sectionsCount: Array.isArray(t.sections) ? t.sections.length : 0,
+              visitSummary: t.visitSummary || '',
+              updatedAt: t.savedAt || t.updatedAt
+            }));
+
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.statusCode = 200;
+            return res.end(JSON.stringify({ success: true, data: summaries }));
+          }
+
+          if (method === 'POST') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', () => {
+              try {
+                const tour = JSON.parse(body || '{}');
+                if (!tour || !tour.id) {
+                  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                  res.statusCode = 400;
+                  return res.end(JSON.stringify({ success: false, error: 'بيانات الجولة غير صالحة' }));
+                }
+
+                const existingIdx = store.tours.findIndex((t: any) => t.id === tour.id);
+                if (existingIdx !== -1) {
+                  store.tours[existingIdx] = tour;
+                } else {
+                  store.tours.unshift(tour);
+                }
+
+                saveStore(store);
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 201;
+                return res.end(JSON.stringify({ success: true, id: tour.id, message: 'تم حفظ الجولة سحابياً بنجاح' }));
+              } catch (err: any) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ success: false, error: err.message }));
+              }
+            });
+            return;
+          }
+        }
+
+        if (url.startsWith('/api/tours/')) {
+          const tourId = decodeURIComponent(url.replace('/api/tours/', '').trim());
+          const store = getStore();
+          store.tours = store.tours || [];
+
+          if (method === 'GET') {
+            const found = store.tours.find((t: any) => t.id === tourId);
+            if (found) {
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.statusCode = 200;
+              return res.end(JSON.stringify({ success: true, data: found }));
+            }
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.statusCode = 404;
+            return res.end(JSON.stringify({ success: false, error: 'الجولة غير موجودة' }));
+          }
+
+          if (method === 'DELETE') {
+            store.tours = store.tours.filter((t: any) => t.id !== tourId);
+            saveStore(store);
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.statusCode = 200;
+            return res.end(JSON.stringify({ success: true, message: 'تم حذف الجولة بنجاح' }));
           }
         }
 

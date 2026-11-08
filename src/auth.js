@@ -1,6 +1,6 @@
 /**
- * SAMX-VM Authentication & Biometric Security Engine (Phase 1)
- * Version: 1.5.0
+ * SAMX-VM Authentication & Biometric Security Engine (Phase 2)
+ * Version: 1.6.0
  * Features:
  * - Immutable Super Admin (sam / 7701)
  * - Session Management (sessionStorage) & Role-Based Access Control (RBAC)
@@ -122,7 +122,7 @@ export function clearActiveAuthSession() {
 /**
  * التحقق من بيانات الدخول (اسم المستخدم وكلمة المرور)
  */
-export function authenticateWithCredentials(usernameInput, passwordInput) {
+export async function authenticateWithCredentials(usernameInput, passwordInput) {
   const cleanUsername = String(usernameInput || '').trim().toLowerCase();
   const cleanPassword = String(passwordInput || '').trim();
 
@@ -145,7 +145,37 @@ export function authenticateWithCredentials(usernameInput, passwordInput) {
     return { success: true, user: session };
   }
 
-  // 2. التحقق من سجل المستخدمين المسجلين (مثل الأخصائيين)
+  // 2. محاولة التحقق عبر السحابة (Cloudflare D1 / API) أولاً
+  try {
+    const { loginCloud } = await import('./api.js');
+    const cloudRes = await loginCloud(cleanUsername, cleanPassword);
+    if (cloudRes && cloudRes.success && cloudRes.user) {
+      const registry = getUsersRegistry();
+      const existingIdx = registry.findIndex(u => String(u.username).toLowerCase() === cleanUsername);
+      const userObj = {
+        username: cloudRes.user.username,
+        password: cleanPassword,
+        role: cloudRes.user.role || 'specialist',
+        displayName: cloudRes.user.displayName,
+        assignedBranches: cloudRes.user.assignedBranches || ['*']
+      };
+      if (existingIdx !== -1) {
+        registry[existingIdx] = userObj;
+      } else {
+        registry.push(userObj);
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_USERS_REGISTRY, JSON.stringify(registry));
+      } catch (e) {}
+
+      const session = saveActiveAuthSession(userObj);
+      return { success: true, user: session };
+    }
+  } catch (cloudErr) {
+    console.warn('Cloud login attempt error:', cloudErr);
+  }
+
+  // 3. التحقق من سجل المستخدمين المسجلين محلياً (Offline fallback)
   const registry = getUsersRegistry();
   const found = registry.find(u => 
     u && String(u.username).toLowerCase() === cleanUsername && String(u.password) === cleanPassword
@@ -364,15 +394,24 @@ export function applyUserRolePermissions(user) {
 
   const specialistSelect = document.getElementById('select-specialist');
   const manageSpecialistsBtn = document.getElementById('btn-manage-specialists');
+  const manageBranchesBtn = document.getElementById('btn-manage-branches');
   const specialistLockBadge = document.getElementById('specialist-locked-badge');
+  const teamNavTab = document.getElementById('tab-nav-team');
+  const teamMobileTab = document.getElementById('mobile-nav-team');
+  const branchSelect = document.getElementById('select-branch');
+  const archiveSpecialistFilter = document.getElementById('bulk-specialist-filter-container');
 
   if (user.role === 'specialist') {
-    // الأخصائي: قفل اسم الأخصائي لمنع انتحال صفة زميل آخر
+    // 1. إخفاء تبويب إدارة الفريق للأخصائي تماماً
+    if (teamNavTab) teamNavTab.style.display = 'none';
+    if (teamMobileTab) teamMobileTab.style.display = 'none';
+    if (archiveSpecialistFilter) archiveSpecialistFilter.style.display = 'none';
+
+    // 2. قفل اسم الأخصائي لمنع انتحال صفة زميل آخر
     const specialistName = user.displayName || user.username;
     currentAudit.auditorName = specialistName;
 
     if (specialistSelect) {
-      // التأكد من وجود خيار باسم الأخصائي
       let optionExists = false;
       for (let i = 0; i < specialistSelect.options.length; i++) {
         if (specialistSelect.options[i].value === specialistName) {
@@ -392,27 +431,40 @@ export function applyUserRolePermissions(user) {
       specialistSelect.classList.add('opacity-80', 'cursor-not-allowed', 'bg-corp-900');
     }
 
-    if (manageSpecialistsBtn) {
-      manageSpecialistsBtn.style.display = 'none';
-    }
+    if (manageSpecialistsBtn) manageSpecialistsBtn.style.display = 'none';
+    if (manageBranchesBtn) manageBranchesBtn.style.display = 'none';
+    if (specialistLockBadge) specialistLockBadge.classList.remove('hidden');
 
-    // إظهار شارة القفل الأمني إن وُجدت
-    if (specialistLockBadge) {
-      specialistLockBadge.classList.remove('hidden');
+    // 3. ربط وتخصيص الفروع للأخصائي (Branch-to-Specialist Binding)
+    if (branchSelect && Array.isArray(user.assignedBranches) && !user.assignedBranches.includes('*')) {
+      const assigned = user.assignedBranches;
+      if (assigned.length > 0) {
+        let optHtml = '';
+        assigned.forEach(bName => {
+          const selected = (bName === currentAudit.branchName) ? 'selected' : '';
+          optHtml += `<option value="${bName}" ${selected}>${bName}</option>`;
+        });
+        branchSelect.innerHTML = optHtml;
+        if (!assigned.includes(currentAudit.branchName)) {
+          currentAudit.branchName = assigned[0];
+          branchSelect.value = assigned[0];
+        }
+      }
     }
   } else {
-    // المدير الفائق (sam / admin): فتح كافة الحقول والصلاحيات وإدارة الأخصائيين
+    // المدير الفائق (sam / admin): إظهار تبويب إدارة الفريق وكافة الصلاحيات
+    if (teamNavTab) teamNavTab.style.display = 'flex';
+    if (teamMobileTab) teamMobileTab.style.display = 'flex';
+    if (archiveSpecialistFilter) archiveSpecialistFilter.style.display = 'block';
+
     if (specialistSelect) {
       specialistSelect.disabled = false;
       specialistSelect.title = '';
       specialistSelect.classList.remove('opacity-80', 'cursor-not-allowed', 'bg-corp-900');
     }
-    if (manageSpecialistsBtn) {
-      manageSpecialistsBtn.style.display = 'inline-flex';
-    }
-    if (specialistLockBadge) {
-      specialistLockBadge.classList.add('hidden');
-    }
+    if (manageSpecialistsBtn) manageSpecialistsBtn.style.display = 'inline-flex';
+    if (manageBranchesBtn) manageBranchesBtn.style.display = 'inline-flex';
+    if (specialistLockBadge) specialistLockBadge.classList.add('hidden');
   }
 
   syncUserHeaderUI(user);

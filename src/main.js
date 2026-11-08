@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.4.0
+ * Version: 1.6.0
  * Architecture: ES Modules Coordinator
  */
 
@@ -57,7 +57,8 @@ import {
   deleteStatusSubOption,
   resetStatusSubOptions,
   getSectionStatuses,
-  getSectionSubOptions
+  getSectionSubOptions,
+  STORAGE_KEY_USERS_REGISTRY
 } from './store.js';
 
 import {
@@ -70,7 +71,8 @@ import {
   registerDeviceBiometric,
   authenticateWithDeviceBiometric,
   applyUserRolePermissions,
-  syncUserHeaderUI
+  syncUserHeaderUI,
+  getUsersRegistry
 } from './auth.js';
 
 import {
@@ -83,6 +85,8 @@ import {
   refreshMainSelects,
   refreshBranchesUI,
   refreshSpecialistsUI,
+  populateBranchSelect,
+  populateSpecialistSelect,
   renderModalList,
   renderInlineDrawerList,
   populateSectionTypeSelect,
@@ -93,6 +97,7 @@ import {
   renderQuickTagsList,
   renderQuickAssigneesList,
   renderBulkExportUI,
+  renderTeamManagementUI,
   updateBulkExportSelectionCounter,
   openArchivedAuditPreview,
   closeArchivedAuditPreview,
@@ -295,7 +300,7 @@ export function replaySplashScreen() {
   }
 }
 
-export function handleLoginSubmit() {
+export async function handleLoginSubmit() {
   const usernameInp = document.getElementById('login-username');
   const passwordInp = document.getElementById('login-password');
   const errorMsg = document.getElementById('login-error-msg');
@@ -304,7 +309,7 @@ export function handleLoginSubmit() {
   const username = usernameInp ? usernameInp.value : '';
   const password = passwordInp ? passwordInp.value : '';
 
-  const authResult = authenticateWithCredentials(username, password);
+  const authResult = await authenticateWithCredentials(username, password);
 
   if (authResult.success) {
     if (errorMsg) {
@@ -313,6 +318,8 @@ export function handleLoginSubmit() {
     }
     applyUserRolePermissions(authResult.user);
     syncUserHeaderUI(authResult.user);
+    populateBranchSelect();
+    populateSpecialistSelect();
     showToast(`✅ مرحباً بك! تم تسجيل الدخول بنجاح (${authResult.user.displayName})`, 'success');
     dismissSplashScreen();
   } else {
@@ -350,6 +357,8 @@ export async function handleBiometricLogin() {
     }
     applyUserRolePermissions(result.user);
     syncUserHeaderUI(result.user);
+    populateBranchSelect();
+    populateSpecialistSelect();
     showToast(`✅ مرحباً بك! تم التحقق من بصمة الجهاز بنجاح (${result.user.displayName})`, 'success');
     setTimeout(() => {
       dismissSplashScreen();
@@ -2886,7 +2895,7 @@ export function switchTab(tabId) {
     if (!passed) return;
   }
 
-  const views = ['audit', 'preview', 'settings'];
+  const views = ['audit', 'preview', 'settings', 'team'];
   views.forEach(v => {
     const viewEl = document.getElementById(`view-${v}`);
     const tabNavEl = document.getElementById(`tab-nav-${v}`);
@@ -2916,6 +2925,10 @@ export function switchTab(tabId) {
     toggleReportFooter();
   } else if (tabId === 'settings') {
     renderBulkExportUI();
+  } else if (tabId === 'team') {
+    if (typeof window.renderTeamManagementUI === 'function') {
+      window.renderTeamManagementUI();
+    }
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3681,6 +3694,210 @@ export function setupNetworkStatusListener() {
   updateNetBadge();
 }
 
+// ==================== دوال إدارة الفريق والفروع السحابية (Super Admin Team Engine) ====================
+
+export function togglePasswordVisibility(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  if (btnEl) {
+    btnEl.innerHTML = isPass 
+      ? '<i data-lucide="eye-off" class="w-3.5 h-3.5 text-amber-400"></i>' 
+      : '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch(e){}
+    }
+  }
+}
+
+export function toggleCardPasswordReveal(username) {
+  const el = document.getElementById(`pass-display-${username}`);
+  if (!el) return;
+  const pass = el.getAttribute('data-pass') || '';
+  if (el.innerText === '••••••••') {
+    el.innerText = pass;
+    el.classList.add('text-amber-300');
+    el.classList.remove('text-slate-300');
+  } else {
+    el.innerText = '••••••••';
+    el.classList.remove('text-amber-300');
+    el.classList.add('text-slate-300');
+  }
+}
+
+export function selectAllTeamBranches(selectAll = true) {
+  const cbs = document.querySelectorAll('.team-branch-cb');
+  cbs.forEach(cb => {
+    cb.checked = selectAll;
+  });
+}
+
+export function resetSpecialistForm() {
+  const form = document.getElementById('team-specialist-form');
+  if (form) form.reset();
+  const modeInp = document.getElementById('spec-form-mode');
+  if (modeInp) modeInp.value = 'create';
+  const usernameInp = document.getElementById('spec-username');
+  if (usernameInp) usernameInp.readOnly = false;
+  const title = document.getElementById('team-form-title');
+  if (title) title.innerHTML = '<i data-lucide="user-plus" class="w-4 h-4 text-gold-400"></i><span>إضافة أخصائي VM جديد للفريق</span>';
+  const btnText = document.getElementById('spec-save-btn-text');
+  if (btnText) btnText.innerText = 'حفظ وتفعيل حساب الأخصائي';
+  const cancelBtn = document.getElementById('team-form-cancel-btn');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+  selectAllTeamBranches(false);
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function editSpecialistUser(username) {
+  const clean = String(username || '').toLowerCase();
+  const registry = getUsersRegistry();
+  const user = registry.find(u => String(u.username).toLowerCase() === clean);
+  if (!user) {
+    showToast('لم يتم العثور على بيانات المستخدم', 'error');
+    return;
+  }
+
+  const modeInp = document.getElementById('spec-form-mode');
+  if (modeInp) modeInp.value = 'edit';
+  const nameInp = document.getElementById('spec-display-name');
+  if (nameInp) nameInp.value = user.displayName || '';
+  const usernameInp = document.getElementById('spec-username');
+  if (usernameInp) {
+    usernameInp.value = user.username || '';
+    if (user.username === 'sam') usernameInp.readOnly = true;
+  }
+  const passInp = document.getElementById('spec-password');
+  if (passInp) passInp.value = user.password || '';
+
+  // تحديد الفروع المخصصة
+  const branches = Array.isArray(user.assignedBranches) ? user.assignedBranches : ['*'];
+  const isAll = branches.includes('*');
+  const cbs = document.querySelectorAll('.team-branch-cb');
+  cbs.forEach(cb => {
+    cb.checked = isAll || branches.includes(cb.value);
+  });
+
+  const title = document.getElementById('team-form-title');
+  if (title) title.innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i><span>تعديل حساب الأخصائي (${user.displayName || user.username})</span>`;
+  const btnText = document.getElementById('spec-save-btn-text');
+  if (btnText) btnText.innerText = 'تحديث وحفظ التعديلات';
+  const cancelBtn = document.getElementById('team-form-cancel-btn');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+
+  const viewTeam = document.getElementById('view-team');
+  if (viewTeam) viewTeam.scrollIntoView({ behavior: 'smooth' });
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+export async function handleSaveSpecialistSubmit() {
+  const nameInp = document.getElementById('spec-display-name');
+  const usernameInp = document.getElementById('spec-username');
+  const passInp = document.getElementById('spec-password');
+
+  const displayName = (nameInp?.value || '').trim();
+  const rawUsername = (usernameInp?.value || '').trim().toLowerCase();
+  const password = (passInp?.value || '').trim();
+
+  if (!displayName || !rawUsername || !password) {
+    showToast('يرجى ملء كافة الحقول الإجبارية', 'error');
+    return;
+  }
+
+  const checkedBranches = [];
+  document.querySelectorAll('.team-branch-cb:checked').forEach(cb => {
+    checkedBranches.push(cb.value);
+  });
+
+  const allBranches = getBranches();
+  const assignedBranches = (checkedBranches.length === 0 || checkedBranches.length === allBranches.length)
+    ? ['*']
+    : checkedBranches;
+
+  const role = rawUsername === 'sam' ? 'admin' : 'specialist';
+
+  const userPayload = {
+    username: rawUsername,
+    password,
+    displayName,
+    role,
+    assignedBranches
+  };
+
+  try {
+    const { saveUserCloud } = await import('./api.js');
+    await saveUserCloud(userPayload);
+  } catch (e) {
+    console.warn('saveUserCloud error:', e);
+  }
+
+  // تحديث السجل المحلي
+  const registry = getUsersRegistry();
+  const existingIdx = registry.findIndex(u => String(u.username).toLowerCase() === rawUsername);
+  if (existingIdx !== -1) {
+    registry[existingIdx] = userPayload;
+  } else {
+    registry.push(userPayload);
+  }
+  localStorage.setItem(STORAGE_KEY_USERS_REGISTRY, JSON.stringify(registry));
+
+  showToast(`✅ تم حفظ حساب الأخصائي (${displayName}) بنجاح`, 'success');
+  resetSpecialistForm();
+  renderTeamManagementUI();
+  populateSpecialistSelect();
+}
+
+export async function deleteSpecialistUserPrompt(username) {
+  if (username === 'sam') {
+    showToast('لا يمكن حذف حساب مدير النظام الفائق (sam)', 'error');
+    return;
+  }
+
+  const confirmed = window.confirm(`هل أنت متأكد من رغبتك في حذف حساب المستخدم (@${username}) نهائياً؟`);
+  if (!confirmed) return;
+
+  try {
+    const { deleteUserCloud } = await import('./api.js');
+    await deleteUserCloud(username);
+  } catch (e) {}
+
+  let registry = getUsersRegistry();
+  registry = registry.filter(u => String(u.username).toLowerCase() !== username.toLowerCase());
+  localStorage.setItem(STORAGE_KEY_USERS_REGISTRY, JSON.stringify(registry));
+
+  showToast(`تم حذف حساب الأخصائي (@${username}) بنجاح`, 'success');
+  renderTeamManagementUI();
+  populateSpecialistSelect();
+}
+
+export function refreshTeamManagementUI() {
+  renderTeamManagementUI();
+  showToast('تم تحديث قائمة فريق العمل والفروع', 'info');
+}
+
+export async function handleCloudSyncTours() {
+  const btnText = document.getElementById('cloud-sync-btn-text');
+  if (btnText) btnText.innerText = 'جاري المزامنة... ⏳';
+
+  const activeUser = getActiveAuthSession() || { username: 'sam', role: 'admin' };
+
+  try {
+    const { syncAllToursCloud } = await import('./api.js');
+    const syncRes = await syncAllToursCloud(activeUser);
+    showToast(`✅ تمت المزامنة السحابية بنجاح! تم رفع (${syncRes.pushed}) وسحب (${syncRes.pulled}) جولات`, 'success');
+  } catch (err) {
+    showToast(`فشلت المزامنة السحابية: ${err.message}`, 'error');
+  } finally {
+    if (btnText) btnText.innerText = '🔄 مزامنة سحابية فورية';
+    renderBulkExportUI();
+  }
+}
+
 // جسر التوافق الشامل للنطاق العام (Zero Regression Global Bridge)
 if (typeof window !== 'undefined') {
   window.showModal = showModal;
@@ -3844,6 +4061,16 @@ if (typeof window !== 'undefined') {
   window.syncBiometricStatusUI = syncBiometricStatusUI;
   window.getActiveAuthSession = getActiveAuthSession;
   window.applyUserRolePermissions = applyUserRolePermissions;
+  window.togglePasswordVisibility = togglePasswordVisibility;
+  window.toggleCardPasswordReveal = toggleCardPasswordReveal;
+  window.selectAllTeamBranches = selectAllTeamBranches;
+  window.resetSpecialistForm = resetSpecialistForm;
+  window.editSpecialistUser = editSpecialistUser;
+  window.handleSaveSpecialistSubmit = handleSaveSpecialistSubmit;
+  window.deleteSpecialistUserPrompt = deleteSpecialistUserPrompt;
+  window.refreshTeamManagementUI = refreshTeamManagementUI;
+  window.renderTeamManagementUI = renderTeamManagementUI;
+  window.handleCloudSyncTours = handleCloudSyncTours;
   window.bootApp = bootApp;
 }
 

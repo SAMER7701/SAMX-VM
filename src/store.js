@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.5.0
+ * Version: 1.6.0
  * Architecture: Modular Local-First ES Module
  */
 
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.6.0';
 
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 
@@ -1163,7 +1163,7 @@ export function getArchivedAudits() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // تنقية وتطهير الأرشيف من أي جولات تجريبية وهمية سابقة
+        // تنقية وتطهير الأرشيف من أي جولات تجريبية وهمية سابقة وضمان عائديتها للأخصائي أو الإدارة
         const realAudits = parsed.filter(a => {
           if (!a || typeof a !== 'object') return false;
           if (typeof a.id === 'string' && a.id.startsWith('audit_cycle_w4')) return false;
@@ -1174,7 +1174,11 @@ export function getArchivedAudits() {
             return false;
           }
           return true;
-        });
+        }).map(a => ({
+          ...a,
+          ownerUsername: a.ownerUsername || 'sam',
+          specialistName: a.specialistName || a.auditorName || 'سمير سلطان'
+        }));
         localStorage.setItem(STORAGE_KEY_AUDIT_ARCHIVE, JSON.stringify(realAudits));
         localStorage.setItem(STORAGE_KEY_SAVED_TOURS, JSON.stringify(realAudits));
         return realAudits;
@@ -1207,14 +1211,27 @@ export function saveArchivedAudits(audits) {
 }
 
 /**
+ * دالة مساعدة للحصول على المستخدم النشط حالياً من الجلسة
+ */
+function getCurrentSessionUser() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_AUTH_SESSION);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+
+/**
  * حفظ مسودة التدقيق الحالية النشطة كنسخة مستقلة في الأرشيف وسجل الجولات
  */
 export function archiveCurrentAudit() {
   if (!currentAudit) {
     return { success: false, reason: 'لا توجد جولة نشطة لحفظها' };
   }
+  const sessionUser = getCurrentSessionUser();
+  const ownerUsername = (sessionUser && sessionUser.username) ? sessionUser.username : 'sam';
   const branchName = (currentAudit.branchName || '').trim() || 'معرض غير محدد';
-  const auditorName = (currentAudit.auditorName || '').trim() || 'أخصائي العرض المرئي';
+  const auditorName = (currentAudit.auditorName || '').trim() || (sessionUser ? sessionUser.displayName : 'سمير سلطان');
   const weekNumber = Number(currentAudit.weekNumber) || 43;
   const auditDate = currentAudit.auditDate || new Date().toISOString().split('T')[0];
   
@@ -1231,6 +1248,8 @@ export function archiveCurrentAudit() {
 
   const auditCopy = {
     id: currentAudit.id,
+    ownerUsername,
+    specialistName: auditorName,
     branchName,
     auditorName,
     weekNumber,
@@ -1284,10 +1303,16 @@ export function autoMigrateActiveTourToArchive() {
       const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
       const monthName = `${monthNames[dateObj.getMonth()] || 'شهر'} ${year}`;
 
+      const sessionUser = getCurrentSessionUser();
+      const ownerUsername = (sessionUser && sessionUser.username) ? sessionUser.username : 'sam';
+      const auditorName = currentAudit.auditorName || (sessionUser ? sessionUser.displayName : 'سمير سلطان');
+
       const activeEntry = {
         id: currentAudit.id || ('tour_' + Date.now()),
+        ownerUsername,
+        specialistName: auditorName,
         branchName: branchName,
-        auditorName: currentAudit.auditorName || 'أخصائي العرض المرئي',
+        auditorName,
         weekNumber,
         auditDate,
         monthKey: `${year}-${month}`,

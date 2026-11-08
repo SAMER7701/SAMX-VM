@@ -135,6 +135,42 @@ async function ensureDatabaseSchema(db) {
   try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN total_sections INTEGER DEFAULT 0").run(); } catch (e) {}
   try { await db.prepare("ALTER TABLE audit_reports ADD COLUMN overall_status TEXT DEFAULT 'pending'").run(); } catch (e) {}
 
+  try {
+    // 5. جدول المستخدمين والأخصائيين
+    await db.prepare(`CREATE TABLE IF NOT EXISTS users (
+      username TEXT PRIMARY KEY,
+      password TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'specialist',
+      branches_json TEXT DEFAULT '[]',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+
+    // تأكيد وجود حساب المدير الفائق sam / 7701
+    await db.prepare(`INSERT OR IGNORE INTO users (username, password, display_name, role, branches_json)
+      VALUES ('sam', '7701', 'سمير سلطان (مدير النظام)', 'admin', '["*"]')`).run();
+  } catch (e) {}
+
+  try {
+    // 6. جدول جولات التدقيق الميداني السحابية
+    await db.prepare(`CREATE TABLE IF NOT EXISTS tours (
+      id TEXT PRIMARY KEY,
+      owner_username TEXT NOT NULL,
+      specialist_name TEXT NOT NULL,
+      branch_name TEXT NOT NULL,
+      week_num INTEGER DEFAULT 1,
+      audit_date TEXT NOT NULL,
+      summary_json TEXT,
+      r2_payload_key TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+  } catch (e) {}
+
+  try { await db.prepare("ALTER TABLE tours ADD COLUMN summary_json TEXT").run(); } catch (e) {}
+  try { await db.prepare("ALTER TABLE tours ADD COLUMN r2_payload_key TEXT").run(); } catch (e) {}
+
   schemaInitialized = true;
 }
 
@@ -156,7 +192,7 @@ async function handleApiRequest(pathname, method, request, env) {
     return jsonResponse({
       status: 'healthy',
       app: 'SAMX-VM',
-      version: '1.4.0',
+      version: '1.6.0',
       hasD1: Boolean(env.DB),
       hasR2: Boolean(env.STORAGE_BUCKET),
       timestamp: new Date().toISOString(),
@@ -561,6 +597,329 @@ async function handleApiRequest(pathname, method, request, env) {
     return new Response(object.body, {
       headers,
     });
+  }
+
+  // ==========================================
+  // مسارات المصادقة السحابية (AUTH API)
+  // ==========================================
+  if (pathname === '/api/login' && method === 'POST') {
+    const body = await request.json();
+    const username = (body.username || '').trim().toLowerCase();
+    const password = (body.password || '').trim();
+
+    if (!username || !password) {
+      return errorResponse('اسم المستخدم وكلمة المرور مطلوبان', 400);
+    }
+
+    // مدير النظام الفائق sam / 7701 مضمون دائماً
+    if (username === 'sam' && password === '7701') {
+      return jsonResponse({
+        success: true,
+        user: {
+          username: 'sam',
+          displayName: 'سمير سلطان (مدير النظام)',
+          role: 'admin',
+          assignedBranches: ['*']
+        }
+      });
+    }
+
+    if (env.DB) {
+      try {
+        const user = await env.DB.prepare(
+          'SELECT username, password, display_name, role, branches_json FROM users WHERE LOWER(username) = ?'
+        ).bind(username).first();
+
+        if (user && user.password === password) {
+          let assignedBranches = ['*'];
+          try {
+            assignedBranches = JSON.parse(user.branches_json || '["*"]');
+          } catch (e) {}
+
+          return jsonResponse({
+            success: true,
+            user: {
+              username: user.username,
+              displayName: user.display_name,
+              role: user.role,
+              assignedBranches
+            }
+          });
+        }
+      } catch (err) {
+        console.error('D1 login query error:', err);
+      }
+    }
+
+    return errorResponse('بيانات الدخول غير صحيحة، يرجى التأكد من اسم المستخدم وكلمة المرور', 401);
+  }
+
+  // ==========================================
+  // مسارات إدارة فريق العمل والمستخدمين (USERS CRUD)
+  // ==========================================
+  if (pathname === '/api/users') {
+    if (method === 'GET') {
+      try {
+        const { results } = await env.DB.prepare(
+          'SELECT username, password, display_name, role, branches_json, updated_at FROM users ORDER BY role ASC, display_name ASC'
+        ).all();
+
+        const formatted = (results || []).map(u => {
+          let branches = [];
+          try { branches = JSON.parse(u.branches_json || '[]'); } catch (e) {}
+          return {
+            username: u.username,
+            password: u.password,
+            displayName: u.display_name,
+            role: u.role,
+            assignedBranches: branches,
+            updatedAt: u.updated_at
+          };
+        });
+
+        return jsonResponse({ success: true, data: formatted });
+      } catch (err) {
+        return errorResponse(`فشل جلب المستخدمين: ${err.message}`, 500);
+      }
+    }
+
+    if (method === 'POST') {
+      const body = await request.json();
+      const rawUsername = (body.username || '').trim().toLowerCase();
+      const password = (body.password || '').trim();
+      const displayName = (body.displayName || body.name || '').trim();
+      let role = body.role || 'specialist';
+      const assignedBranches = Array.isArray(body.assignedBranches) ? body.assignedBranches : ['*'];
+
+      if (!rawUsername || !password || !displayName) {
+        return errorResponse('اسم المستخدم وكلمة المرور والاسم الثلاثي حقول إجبارية', 400);
+      }
+
+      // حماية حساب sam
+      if (rawUsername === 'sam') {
+        role = 'admin';
+      }
+
+      const branchesJson = JSON.stringify(assignedBranches);
+
+      try {
+        await env.DB.prepare(
+          `INSERT INTO users (username, password, display_name, role, branches_json, updated_at)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+           ON CONFLICT(username) DO UPDATE SET 
+             password = excluded.password,
+             display_name = excluded.display_name,
+             role = excluded.role,
+             branches_json = excluded.branches_json,
+             updated_at = CURRENT_TIMESTAMP`
+        ).bind(rawUsername, password, displayName, role, branchesJson).run();
+
+        // مزامنة الأخصائي في جدول specialists إذا كان أخصائياً
+        if (role === 'specialist') {
+          try {
+            await env.DB.prepare(
+              `INSERT INTO specialists (id, name, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT(id) DO UPDATE SET name=excluded.name`
+            ).bind(`sp_${rawUsername}`, displayName).run();
+          } catch (e) {}
+        }
+
+        return jsonResponse({
+          success: true,
+          user: {
+            username: rawUsername,
+            displayName,
+            role,
+            assignedBranches
+          }
+        }, 201);
+      } catch (err) {
+        return errorResponse(`فشل حفظ المستخدم: ${err.message}`, 500);
+      }
+    }
+  }
+
+  if (pathname.startsWith('/api/users/')) {
+    const targetUsername = decodeURIComponent(pathname.replace('/api/users/', '').trim()).toLowerCase();
+    if (method === 'DELETE') {
+      if (targetUsername === 'sam') {
+        return errorResponse('لا يمكن حذف حساب مدير النظام الفائق (sam)', 403);
+      }
+
+      try {
+        await env.DB.prepare('DELETE FROM users WHERE LOWER(username) = ?').bind(targetUsername).run();
+        return jsonResponse({ success: true, message: 'تم حذف المستخدم بنجاح' });
+      } catch (err) {
+        return errorResponse(`فشل حذف المستخدم: ${err.message}`, 500);
+      }
+    }
+  }
+
+  // ==========================================
+  // مسارات جولات التدقيق الميداني السحابية (TOURS CRUD)
+  // ==========================================
+  if (pathname === '/api/tours') {
+    const urlObj = new URL(request.url);
+    const userParam = (urlObj.searchParams.get('user') || '').toLowerCase();
+    const roleParam = (urlObj.searchParams.get('role') || 'specialist').toLowerCase();
+    const specialistParam = urlObj.searchParams.get('specialist') || 'all';
+
+    if (method === 'GET') {
+      try {
+        let query = 'SELECT id, owner_username, specialist_name, branch_name, week_num, audit_date, summary_json, r2_payload_key, updated_at FROM tours';
+        const params = [];
+
+        if (roleParam !== 'admin') {
+          // عزل بيانات الأخصائي: يرى جولاته فقط
+          query += ' WHERE LOWER(owner_username) = ?';
+          params.push(userParam);
+        } else if (specialistParam && specialistParam !== 'all') {
+          // فلترة المدير حسب الأخصائي المحدد
+          query += ' WHERE specialist_name = ? OR LOWER(owner_username) = ?';
+          params.push(specialistParam, specialistParam.toLowerCase());
+        }
+
+        query += ' ORDER BY audit_date DESC, updated_at DESC LIMIT 200';
+
+        let stmt = env.DB.prepare(query);
+        if (params.length > 0) {
+          stmt = stmt.bind(...params);
+        }
+        const { results } = await stmt.all();
+
+        const toursList = (results || []).map(r => {
+          let summary = {};
+          try { summary = JSON.parse(r.summary_json || '{}'); } catch (e) {}
+          return {
+            id: r.id,
+            ownerUsername: r.owner_username,
+            specialistName: r.specialist_name,
+            auditorName: r.specialist_name,
+            branchName: r.branch_name,
+            weekNumber: r.week_num,
+            auditDate: r.audit_date,
+            updatedAt: r.updated_at,
+            monthKey: summary.monthKey,
+            monthName: summary.monthName,
+            sectionsCount: summary.sectionsCount,
+            visitSummary: summary.visitSummary,
+            r2Key: r.r2_payload_key
+          };
+        });
+
+        return jsonResponse({ success: true, data: toursList });
+      } catch (err) {
+        return errorResponse(`فشل جلب الجولات: ${err.message}`, 500);
+      }
+    }
+
+    if (method === 'POST') {
+      const tour = await request.json();
+      if (!tour || !tour.id) {
+        return errorResponse('بيانات الجولة أو المعرف غير صالحة', 400);
+      }
+
+      const id = tour.id;
+      const ownerUsername = (tour.ownerUsername || 'sam').toLowerCase();
+      const specialistName = tour.specialistName || tour.auditorName || 'سمير سلطان';
+      const branchName = tour.branchName || 'معرض غير محدد';
+      const weekNum = Number(tour.weekNumber) || 43;
+      const auditDate = tour.auditDate || new Date().toISOString().split('T')[0];
+      const r2Key = `tours/${ownerUsername}/${id}.json`;
+
+      const summaryJson = JSON.stringify({
+        monthKey: tour.monthKey,
+        monthName: tour.monthName,
+        sectionsCount: Array.isArray(tour.sections) ? tour.sections.length : 0,
+        visitSummary: tour.visitSummary || ''
+      });
+
+      // حفظ الحمولة الكاملة في Cloudflare R2
+      if (env.STORAGE_BUCKET) {
+        try {
+          await env.STORAGE_BUCKET.put(r2Key, JSON.stringify(tour), {
+            httpMetadata: { contentType: 'application/json; charset=utf-8' }
+          });
+        } catch (r2Err) {
+          console.warn('R2 tour payload write warning:', r2Err.message);
+        }
+      }
+
+      // حفظ البيانات في D1 tours
+      try {
+        await env.DB.prepare(
+          `INSERT INTO tours (id, owner_username, specialist_name, branch_name, week_num, audit_date, summary_json, r2_payload_key, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+           ON CONFLICT(id) DO UPDATE SET 
+             owner_username = excluded.owner_username,
+             specialist_name = excluded.specialist_name,
+             branch_name = excluded.branch_name,
+             week_num = excluded.week_num,
+             audit_date = excluded.audit_date,
+             summary_json = excluded.summary_json,
+             r2_payload_key = excluded.r2_payload_key,
+             updated_at = CURRENT_TIMESTAMP`
+        ).bind(id, ownerUsername, specialistName, branchName, weekNum, auditDate, summaryJson, r2Key).run();
+
+        // حفظ في audit_reports أيضاً للتوافق الكامل
+        try {
+          await env.DB.prepare(
+            `INSERT INTO audit_reports (id, branch_name, auditor_name, audit_date, week_number, total_sections, data_json, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+             ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json, updated_at=CURRENT_TIMESTAMP`
+          ).bind(id, branchName, specialistName, auditDate, weekNum, Array.isArray(tour.sections) ? tour.sections.length : 0, JSON.stringify(tour)).run();
+        } catch (e) {}
+
+        return jsonResponse({ success: true, id, message: 'تم حفظ الجولة سحابياً بنجاح' }, 201);
+      } catch (err) {
+        return errorResponse(`فشل حفظ الجولة: ${err.message}`, 500);
+      }
+    }
+  }
+
+  if (pathname.startsWith('/api/tours/')) {
+    const tourId = decodeURIComponent(pathname.replace('/api/tours/', '').trim());
+
+    if (method === 'GET') {
+      // محاولة الجلب أولاً من R2
+      if (env.STORAGE_BUCKET) {
+        try {
+          const rec = await env.DB.prepare('SELECT r2_payload_key FROM tours WHERE id = ?').bind(tourId).first();
+          const r2Key = rec?.r2_payload_key || `tours/sam/${tourId}.json`;
+          const r2Obj = await env.STORAGE_BUCKET.get(r2Key);
+          if (r2Obj) {
+            const fullJson = await r2Obj.json();
+            return jsonResponse({ success: true, data: fullJson });
+          }
+        } catch (e) {}
+      }
+
+      // Fallback إلى جدول audit_reports
+      try {
+        const auditRecord = await env.DB.prepare('SELECT data_json FROM audit_reports WHERE id = ?').bind(tourId).first();
+        if (auditRecord && auditRecord.data_json) {
+          return jsonResponse({ success: true, data: JSON.parse(auditRecord.data_json) });
+        }
+      } catch (e) {}
+
+      return errorResponse('الجولة غير موجودة', 404);
+    }
+
+    if (method === 'DELETE') {
+      try {
+        const rec = await env.DB.prepare('SELECT r2_payload_key FROM tours WHERE id = ?').bind(tourId).first();
+        if (rec && rec.r2_payload_key && env.STORAGE_BUCKET) {
+          try { await env.STORAGE_BUCKET.delete(rec.r2_payload_key); } catch (e) {}
+        }
+
+        await env.DB.prepare('DELETE FROM tours WHERE id = ?').bind(tourId).run();
+        await env.DB.prepare('DELETE FROM audit_reports WHERE id = ?').bind(tourId).run();
+
+        return jsonResponse({ success: true, message: 'تم حذف الجولة بنجاح' });
+      } catch (err) {
+        return errorResponse(`فشل حذف الجولة: ${err.message}`, 500);
+      }
+    }
   }
 
   return errorResponse('المسار المطلوب غير موجود', 404);
