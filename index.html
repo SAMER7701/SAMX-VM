@@ -600,7 +600,7 @@
 
   <!-- ==================== رأس النظام الفاخر (EXECUTIVE HEADER) ==================== -->
   <header class="no-print bg-corp-900/95 backdrop-blur-md border-b border-corp-800 sticky top-0 z-40 shadow-xl">
-    <div class="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+    <div class="w-full max-w-[96vw] mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-4">
       
       <!-- شعار النظام وهوية SAMX-VM بدون أي تداخل مع منع التفاف النص نهائياً -->
       <div class="flex items-center gap-2.5 sm:gap-3 cursor-pointer select-none group shrink-0" onclick="replaySplashScreen()" title="إعادة تشغيل شاشة الترحيب السينمائية">
@@ -676,8 +676,8 @@
     </div>
 
     <!-- شريط التنقل العلوي للشاشات المتوسطة والكبيرة -->
-    <div class="hidden md:block bg-corp-950/60 border-t border-corp-850 px-4">
-      <div class="max-w-6xl mx-auto flex items-center justify-between text-xs">
+    <div class="hidden md:block bg-corp-950/60 border-t border-corp-850 px-4 sm:px-6">
+      <div class="w-full max-w-[96vw] mx-auto flex items-center justify-between text-xs">
         <div class="flex items-center gap-1">
           <button onclick="switchTab('audit')" id="tab-nav-audit" class="px-4 py-2.5 font-bold border-b-2 border-gold-500 text-gold-400 flex items-center gap-2 transition">
             <i data-lucide="camera" class="w-4 h-4"></i>
@@ -713,7 +713,7 @@
   </header>
 
   <!-- ==================== المحتوى الرئيسي (MAIN VIEWS) ==================== -->
-  <main class="max-w-6xl w-full mx-auto px-4 py-4 md:py-6 flex-1 flex flex-col gap-5">
+  <main class="w-full max-w-[96vw] mx-auto px-3 sm:px-6 py-4 md:py-6 flex-1 flex flex-col gap-5">
 
     <!-- ==================== 1. تبويب الجولة الميدانية (AUDIT VIEW) ==================== -->
     <section id="view-audit" class="space-y-5">
@@ -1119,7 +1119,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 items-stretch">
           
           <!-- تصدير عرض PowerPoint الاحترافي -->
           <div class="bg-corp-950 p-4 rounded-xl border border-corp-800 hover:border-gold-500/40 transition-colors flex flex-col justify-between shadow-lg">
@@ -1437,7 +1437,7 @@
             <span id="team-members-count" class="text-xs text-slate-400 font-mono">0 أعضاء</span>
           </div>
 
-          <div id="team-members-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div id="team-members-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
             <!-- يُملأ ديناميكياً بكروت الأخصائيين -->
           </div>
         </div>
