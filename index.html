@@ -9,6 +9,17 @@
   <meta property="og:description" content="نظام إدارة وتوثيق جولات العرض المرئي (Visual Merchandising) وإعداد التقارير التنفيذية الميدانية للمتاجر الفاخرة والتجزئة.">
   <meta property="og:type" content="website">
 
+  <!-- PWA Web App Manifest & Standalone App Capabilities -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0b0f19">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SAMX-VM">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+
   <!-- الخطوط العربية الفاخرة (Cairo & Tajawal) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -539,7 +550,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.5</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.6</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -614,7 +625,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.5</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.6</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -2796,7 +2807,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.5</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.6</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">
@@ -2808,11 +2819,33 @@
               <span class="text-slate-400">السحابة المركزية:</span>
               <span class="font-bold text-sky-400 font-mono">Cloudflare D1 + R2 Sync</span>
             </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400">نمط التشغيل المستقل (PWA):</span>
+              <span id="pwa-status-text" class="font-bold text-amber-400 font-mono">جاهز للتثبيت 📱</span>
+            </div>
           </div>
 
           <button type="button" onclick="handleCloudSyncTours()" class="w-full py-2.5 px-3 bg-corp-850 hover:bg-corp-800 border border-gold-500/30 hover:border-gold-500/60 text-gold-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
             <span class="text-sm">🔄</span>
             <span>فحص ومزامنة السحابة الآن</span>
+          </button>
+        </div>
+
+        <!-- 4. بطاقة تثبيت التطبيق المستقل على الجهاز (PWA Standalone App) -->
+        <div id="pwa-install-card" class="bg-gradient-to-br from-indigo-950/40 via-corp-950/80 to-corp-950 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-indigo-400 text-base">📲</span>
+              <h5 class="font-bold text-xs text-white">تطبيق سطح المكتب والجوال (PWA)</h5>
+            </div>
+            <span id="pwa-installed-pill" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">تطبيق مستقل</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            تشغيل SAMX-VM كتطبيق أصيل مستقل على سطح المكتب (Windows / Mac) أو الهاتف (Android / iPhone) بكامل الشاشة وبدون شريط عنوان المتصفح مع دعم العمل بدون إنترنت.
+          </p>
+          <button type="button" id="btn-install-pwa" onclick="triggerPWAInstall()" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 via-sky-600 to-teal-600 hover:from-indigo-500 hover:to-teal-500 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4 text-white"></i>
+            <span id="btn-install-pwa-text">📲 تثبيت التطبيق على هذا الجهاز</span>
           </button>
         </div>
 

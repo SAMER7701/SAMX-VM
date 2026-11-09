@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.5
+ * Version: 1.6.6
  * Architecture: ES Modules Coordinator
  */
 
@@ -569,6 +569,9 @@ export async function bootApp() {
       applyUserRolePermissions(session);
       syncUserHeaderUI(session);
     }
+
+    // 3. تفعيل وإعداد نمط التشغيل المستقل والتثبيت PWA
+    initPWAInstallation();
   } catch (e) {
     console.warn('Boot UI refresh error:', e);
   }
@@ -4172,6 +4175,104 @@ export async function handleCloudSyncTours() {
   }
 }
 
+// ==================== إدارة التثبيت ونمط التشغيل المستقل (PWA Installation Controller) ====================
+let deferredPWAInstallPrompt = null;
+
+export function initPWAInstallation() {
+  try {
+    // 1. تسجيل Service Worker لدعم التشغيل بدون إنترنت والتخزين المؤقت
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then((reg) => {
+            console.log('SAMX-VM: Service Worker registered successfully', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('SAMX-VM: Service Worker registration failed', err);
+          });
+      });
+    }
+
+    // 2. التحقق من نمط التشغيل المستقل (Standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator && window.navigator.standalone === true);
+
+    const pwaStatusText = document.getElementById('pwa-status-text');
+    const pwaInstalledPill = document.getElementById('pwa-installed-pill');
+    const btnInstall = document.getElementById('btn-install-pwa');
+    const btnInstallText = document.getElementById('btn-install-pwa-text');
+
+    if (isStandalone) {
+      if (pwaStatusText) pwaStatusText.innerText = 'يعمل كتطبيق مستقل ✅';
+      if (pwaInstalledPill) pwaInstalledPill.innerText = 'مثبت حالياً ✓';
+      if (btnInstallText) btnInstallText.innerText = '✓ التطبيق مثبت بالفعل على هذا الجهاز';
+      if (btnInstall) {
+        btnInstall.disabled = true;
+        btnInstall.classList.add('opacity-70', 'pointer-events-none');
+      }
+    }
+
+    // 3. التقاط حدث التثبيت beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPWAInstallPrompt = e;
+      if (pwaStatusText) pwaStatusText.innerText = 'جاهز للتثبيت بنقرة واحدة 📲';
+      if (btnInstallText) btnInstallText.innerText = '📲 تثبيت التطبيق على هذا الجهاز الآن';
+      if (btnInstall) {
+        btnInstall.disabled = false;
+        btnInstall.classList.remove('opacity-70', 'pointer-events-none');
+      }
+    });
+
+    // 4. الاستماع لاكتمال التثبيت appinstalled
+    window.addEventListener('appinstalled', () => {
+      deferredPWAInstallPrompt = null;
+      if (pwaStatusText) pwaStatusText.innerText = 'تم التثبيت بنجاح 🎉';
+      if (pwaInstalledPill) pwaInstalledPill.innerText = 'مثبت ✓';
+      if (btnInstallText) btnInstallText.innerText = '✓ تم تثبيت التطبيق بنجاح';
+      if (btnInstall) {
+        btnInstall.disabled = true;
+        btnInstall.classList.add('opacity-70', 'pointer-events-none');
+      }
+      showToast('🎉 مبروك! تم تثبيت SAMX-VM كتطبيق مستقل على جهازك', 'success');
+    });
+  } catch (err) {
+    console.warn('initPWAInstallation error:', err);
+  }
+}
+
+export async function triggerPWAInstall() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator && window.navigator.standalone === true);
+
+  if (isStandalone) {
+    showToast('التطبيق مثبت ويعمل بالفعل بنمط الشاشة الكاملة المستقل', 'info');
+    return;
+  }
+
+  if (deferredPWAInstallPrompt) {
+    try {
+      await deferredPWAInstallPrompt.prompt();
+      const choiceResult = await deferredPWAInstallPrompt.userChoice;
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        showToast('جاري تثبيت التطبيق على جهازك...', 'success');
+      }
+      deferredPWAInstallPrompt = null;
+    } catch (err) {
+      console.error('PWA install prompt error:', err);
+    }
+    return;
+  }
+
+  // إرشادات للأجهزة الذكية في حال عدم توفر الحدث المباشر (e.g. iOS Safari)
+  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  if (isIOS) {
+    showToast('على iPhone/iPad: اضغط على زر المشاركة (Share) في Safari ثم اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen)', 'info');
+  } else {
+    showToast('لتثبيت التطبيق: افتح قائمة المتصفح (⋮) ثم اضغط على "تثبيت التطبيق" أو "Install App"', 'info');
+  }
+}
+
 // جسر التوافق الشامل للنطاق العام (Zero Regression Global Bridge)
 if (typeof window !== 'undefined') {
   window.showModal = showModal;
@@ -4353,6 +4454,8 @@ if (typeof window !== 'undefined') {
   window.closeSmartAuditorModal = closeSmartAuditorModal;
   window.onAuditorScoreSliderChange = onAuditorScoreSliderChange;
   window.applySmartAuditorResults = applySmartAuditorResults;
+  window.triggerPWAInstall = triggerPWAInstall;
+  window.initPWAInstallation = initPWAInstallation;
   window.bootApp = bootApp;
 }
 
