@@ -3122,7 +3122,7 @@ export function switchTab(tabId) {
         tabNavEl.className = "px-4 py-2.5 font-bold border-b-2 border-gold-500 text-gold-400 flex items-center gap-2 transition";
       }
       if (mobileNavEl) {
-        mobileNavEl.className = "flex flex-col items-center gap-1 py-1 px-3 text-gold-400 font-bold text-[11px] transition";
+        mobileNavEl.className = "flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-gold-400 font-bold text-[11px] transition";
       }
     } else {
       if (viewEl) viewEl.classList.add('hidden');
@@ -3130,7 +3130,7 @@ export function switchTab(tabId) {
         tabNavEl.className = "px-4 py-2.5 font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition";
       }
       if (mobileNavEl) {
-        mobileNavEl.className = "flex flex-col items-center gap-1 py-1 px-3 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition";
+        mobileNavEl.className = "flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition";
       }
     }
   });

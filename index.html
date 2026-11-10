@@ -65,9 +65,40 @@
   </script>
 
   <style>
+    /* ==================== قفل الإزاحة الأفقية الكلية (Global RTL Viewport Lock) ==================== */
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      position: relative;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Cairo', 'Tajawal', sans-serif;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    /* حماية كروت الأقسام والشارات من كسر العرض على شاشات الجوال */
+    #audit-cards-container > div {
+      max-width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    #audit-cards-container span {
+      max-width: 100%;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    /* ضبط أزرار شريط التنقل السفلي للجوال */
+    nav[class*="fixed bottom-0"] button[id^="mobile-nav-"] {
+      padding-left: 0.375rem !important;
+      padding-right: 0.375rem !important;
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
     }
     
     /* مخصصات التمرير */
@@ -130,6 +161,13 @@
         min-width: 0 !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+      }
+
+      #print-sheet-wrapper {
+        zoom: 1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
       }
 
       .no-print, header, nav, #toast-container, .modal-backdrop {
@@ -323,17 +361,20 @@
 
     @media screen and (max-width: 768px) {
       .report-preview-viewport {
+        width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        display: flex;
+        justify-content: center;
       }
-
-      /* على شاشات الجوال: العرض الأفقي الأساسي 1122px مع ضبط الـ zoom ديناميكياً ليملأ كامل عرض الشاشة بسلاسة وتوسيط تام */
       #print-sheet-wrapper {
-        width: 1122px !important;
+        width: 1123px !important;
+        min-width: 1123px !important;
         max-width: none !important;
-        min-width: 1122px !important;
-        padding: 20px 18px !important;
-        border-radius: 16px !important;
+        zoom: 0.31;
+        margin: 0 auto !important;
+        padding: 20px !important;
+        border-radius: 14px !important;
         box-sizing: border-box !important;
       }
 
@@ -367,6 +408,12 @@
     .splash-screen {
       position: fixed;
       inset: 0;
+      width: 100vw;
+      max-width: 100vw;
+      left: 0;
+      right: 0;
+      overflow-x: hidden;
+      box-sizing: border-box;
       background: radial-gradient(circle at center, #111c38 0%, #070d1e 100%);
       z-index: 99999;
       display: flex;
@@ -396,6 +443,10 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+      width: 100%;
+      max-width: 380px;
+      margin: 0 auto;
+      box-sizing: border-box;
     }
 
     /* الخيط يمتد ببطء ووضوح (0.8 ثانية) */
@@ -450,8 +501,8 @@
       opacity: 0;
       animation: fadeIn 0.6s 0.6s ease forwards;
     }
-    .corner-grid.tl { top: -22px; right: -28px; border-width: 2px 2px 0 0; }
-    .corner-grid.br { bottom: -22px; left: -28px; border-width: 0 0 2px 2px; }
+    .corner-grid.tl { top: -22px; right: -8px; border-width: 2px 2px 0 0; }
+    .corner-grid.br { bottom: -22px; left: -8px; border-width: 0 0 2px 2px; }
 
     @keyframes drawLine {
       0% { width: 0; opacity: 0; }
@@ -852,7 +903,7 @@
   </header>
 
   <!-- ==================== المحتوى الرئيسي (MAIN VIEWS) ==================== -->
-  <main class="w-full max-w-[96vw] mx-auto px-3 sm:px-6 py-4 md:py-6 flex-1 flex flex-col gap-5">
+  <main class="w-full max-w-full overflow-x-hidden box-border mx-auto px-3 sm:px-6 py-4 md:py-6 flex-1 flex flex-col gap-5">
 
     <!-- ==================== 1. تبويب الجولة الميدانية (AUDIT VIEW) ==================== -->
     <section id="view-audit" class="space-y-5">
@@ -1089,15 +1140,15 @@
         </details>
 
         <!-- الصف الثالث: زران مباشرين ظاهران بجانب بعضهما (✨ تدقيق الجاهزية الذكي و ⭐ تخصيص ملخص الزيارة) -->
-        <div class="flex items-center gap-2.5 sm:gap-3 w-full">
-          <button type="button" id="btn-smart-readiness-audit" onclick="openSmartAuditorModal()" class="flex-1 min-h-[40px] py-2 px-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-sm border border-sky-400/40 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 text-center" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
-            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
-            <span class="whitespace-nowrap font-bold">تدقيق الجاهزية الذكي ✨</span>
+        <div class="grid grid-cols-2 gap-2.5 w-full">
+          <button type="button" id="btn-smart-readiness-audit" onclick="openSmartAuditorModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sm border border-sky-400/40 active:scale-95 transition cursor-pointer" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300 shrink-0"></i>
+            <span class="truncate font-bold">تدقيق الجاهزية الذكي ✨</span>
           </button>
           
-          <button type="button" id="btn-customize-visit-summary" onclick="openVisitSummaryModal()" class="flex-1 min-h-[40px] py-2 px-3 bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs sm:text-[13px] rounded-xl shadow-sm active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 text-center" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
-            <i data-lucide="list-checks" class="w-4 h-4 text-amber-400"></i>
-            <span class="whitespace-nowrap font-bold">تخصيص ملخص الزيارة ⭐</span>
+          <button type="button" id="btn-customize-visit-summary" onclick="openVisitSummaryModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 shadow-sm active:scale-95 transition cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+            <i data-lucide="list-checks" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span class="truncate font-bold">تخصيص ملخص الزيارة ⭐</span>
           </button>
         </div>
 
@@ -1606,30 +1657,30 @@
   </main>
 
   <!-- ==================== شريط التنقل السفلي للجوال (BOTTOM NAVIGATION) ==================== -->
-  <nav class="no-print md:hidden fixed bottom-0 left-0 right-0 bg-corp-900/95 backdrop-blur-md border-t border-corp-800 px-3 py-2 z-40">
-    <div class="flex items-center justify-around">
+  <nav class="no-print md:hidden fixed bottom-0 left-0 right-0 bg-corp-900/95 backdrop-blur-md border-t border-corp-800 px-2 py-2 z-40">
+    <div class="flex items-center justify-around gap-1">
       
-      <button onclick="switchTab('audit')" id="mobile-nav-audit" class="flex flex-col items-center gap-1 py-1 px-3 text-gold-400 font-bold text-[11px] transition">
+      <button onclick="switchTab('audit')" id="mobile-nav-audit" class="flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-gold-400 font-bold text-[11px] transition">
         <i data-lucide="layers" class="w-5 h-5"></i>
         <span>الأقسام</span>
       </button>
 
-      <button onclick="openEntryModal()" class="flex flex-col items-center gap-1 py-1 px-3.5 text-slate-950 bg-gradient-to-r from-gold-500 to-amber-500 font-black text-[11px] rounded-xl shadow-lg -translate-y-2 active:scale-90 transition whitespace-nowrap">
+      <button onclick="openEntryModal()" class="flex flex-col items-center gap-1 py-1 px-2.5 text-[10.5px] shrink-0 text-slate-950 bg-gradient-to-r from-gold-500 to-amber-500 font-black rounded-xl shadow-lg -translate-y-2 active:scale-90 transition whitespace-nowrap">
         <i data-lucide="plus-circle" class="w-5 h-5"></i>
         <span>+ قسم جديد</span>
       </button>
 
-      <button onclick="switchTab('preview')" id="mobile-nav-preview" class="flex flex-col items-center gap-1 py-1 px-3 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">
+      <button onclick="switchTab('preview')" id="mobile-nav-preview" class="flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">
         <i data-lucide="file-text" class="w-5 h-5"></i>
         <span>التقرير</span>
       </button>
 
-      <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center gap-1 py-1 px-3 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">
+      <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-slate-400 font-medium text-[11px] hover:text-slate-200 transition">
         <i data-lucide="settings" class="w-5 h-5"></i>
         <span>الأدوات</span>
       </button>
 
-      <button onclick="switchTab('team')" id="mobile-nav-team" style="display: none;" class="flex flex-col items-center gap-1 py-1 px-3 text-amber-400 font-medium text-[11px] hover:text-amber-300 transition">
+      <button onclick="switchTab('team')" id="mobile-nav-team" style="display: none;" class="flex flex-col items-center gap-1 py-1 px-1.5 flex-1 min-w-0 text-amber-400 font-medium text-[11px] hover:text-amber-300 transition">
         <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
         <span>الفريق</span>
       </button>
