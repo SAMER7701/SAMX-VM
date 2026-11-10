@@ -4607,6 +4607,8 @@ if (typeof window !== 'undefined') {
   window.parseJustificationNotes = parseJustificationNotes;
   window.aggregateVisitAchievements = aggregateVisitAchievements;
   window.renderVisitSummary = renderVisitSummary;
+  window.importJsonBackup = importJsonBackup;
+  window.updateBrandingModalLogoPreview = updateBrandingModalLogoPreview;
 
   window.bootApp = bootApp;
 }
@@ -4619,7 +4621,20 @@ if (document.readyState === 'loading') {
 }
 
 // ربط عالمي فوري ومباشر لنطاق window لضمان الجاهزية التامة والاستجابة اللحظية للنقرات
-window.openSmartAuditorModal = openSmartAuditorModal;
-window.applySmartAuditorResults = applySmartAuditorResults;
-window.onAuditorScoreSliderChange = onAuditorScoreSliderChange;
-window.closeSmartAuditorModal = closeSmartAuditorModal;
+if (typeof window !== 'undefined') {
+  window.openSmartAuditorModal = openSmartAuditorModal;
+  window.applySmartAuditorResults = applySmartAuditorResults;
+  window.onAuditorScoreSliderChange = onAuditorScoreSliderChange;
+  window.closeSmartAuditorModal = closeSmartAuditorModal;
+  window.openVisitSummaryModal = openVisitSummaryModal;
+  window.closeVisitSummaryModal = closeVisitSummaryModal;
+  window.updateVisitSummaryModalPreview = updateVisitSummaryModalPreview;
+  window.autoGenerateVisitSummaryPrompt = autoGenerateVisitSummaryPrompt;
+  window.clearVisitSummaryToDefault = clearVisitSummaryToDefault;
+  window.saveVisitSummaryFromModal = saveVisitSummaryFromModal;
+  window.updateLiveVisitSummary = updateLiveVisitSummary;
+  window.resetVisitSummaryToAuto = resetVisitSummaryToAuto;
+  window.appendPointToVisitSummary = appendPointToVisitSummary;
+  window.importJsonBackup = importJsonBackup;
+  window.updateBrandingModalLogoPreview = updateBrandingModalLogoPreview;
+}

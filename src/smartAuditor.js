@@ -237,3 +237,9 @@ export function proofreadText(text) {
   if (!text || typeof text !== 'string') return '';
   return text.trim();
 }
+
+// تصدير دوال المدقق الذكي للنافذة العامة (Global Scope Bridge)
+if (typeof window !== 'undefined') {
+  window.analyzeTourWithAI = analyzeTourWithAI;
+  window.proofreadText = proofreadText;
+}

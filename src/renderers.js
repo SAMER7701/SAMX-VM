@@ -2508,4 +2508,12 @@ if (typeof window !== 'undefined') {
   window.renderVisitSummary = renderVisitSummary;
   window.aggregateVisitAchievements = aggregateVisitAchievements;
   window.getEffectiveVisitSummary = getEffectiveVisitSummary;
+  window.parseJustificationNotes = parseJustificationNotes;
+  window.getDynamicJustifications = getDynamicJustifications;
+  window.formatArabicVmAction = formatArabicVmAction;
+  window.cleanSummaryPointText = cleanSummaryPointText;
+  window.formatSummaryPointHtml = formatSummaryPointHtml;
+  window.parseVisitSummaryPoints = parseVisitSummaryPoints;
+  window.sanitizeCorporateText = sanitizeCorporateText;
+  window.getImageTransformStyle = getImageTransformStyle;
 }
