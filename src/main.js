@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.9
+ * Version: 1.7.0
  * Architecture: ES Modules Coordinator
  */
 
@@ -229,7 +229,7 @@ export function syncBiometricStatusUI() {
 
 /**
  * إدارة تكييف لوحة المفاتيح الذكية لشاشة الدخول على أجهزة الجوال
- * (Smart Mobile Keyboard-Focus Adaptation - v1.6.9)
+ * (Smart Mobile Keyboard-Focus Adaptation - v1.7.0)
  * يطوي الترويسة والشعار فقط لتحرير المساحة الرأسية مع إبقاء زر البصمة وتذكرني ظاهراً ومتاحاً بالكامل
  */
 export function initLoginKeyboardAdaptation() {
@@ -314,7 +314,7 @@ export function initLoginKeyboardAdaptation() {
 
 /**
  * إدارة وتفعيل ميزة "تذكرني" لحفظ اسم المستخدم محلياً لتسريع تسجيل الدخول
- * (Remember Me Feature - v1.6.9)
+ * (Remember Me Feature - v1.7.0)
  */
 export function initRememberMe() {
   try {
@@ -3022,6 +3022,85 @@ export function closeLightbox() {
   if (img) img.src = '';
 }
 
+// ==================== معاينة ورقة التقرير الأفقي الغامرة والملاءمة للجوال (LANDSCAPE REPORT LIGHTBOX & FIT ENGINE v1.7.0) ====================
+let isMobileFitMode = true; // نمط الملاءمة للشاشة مفعل افتراضياً لمنع إجهاد التمرير الأفقي
+
+export function openReportLightboxModal() {
+  const source = document.getElementById('print-sheet-wrapper');
+  const target = document.getElementById('report-lightbox-content');
+  if (source && target) {
+    target.innerHTML = source.innerHTML;
+  }
+  showModal('report-lightbox-modal');
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try { lucide.createIcons(); } catch(e){}
+  }
+}
+
+export function closeReportLightbox() {
+  hideModal('report-lightbox-modal');
+  const target = document.getElementById('report-lightbox-content');
+  if (target) {
+    target.innerHTML = '';
+  }
+}
+
+export function updatePreviewScale() {
+  const outer = document.getElementById('report-preview-scale-wrapper');
+  const stage = document.getElementById('report-scale-stage');
+  const sheet = document.getElementById('print-sheet-wrapper');
+  const badge = document.getElementById('preview-fit-badge');
+  const fitLabel = document.getElementById('fit-mode-label');
+  const fitIcon = document.getElementById('fit-mode-icon');
+  
+  if (!outer || !stage || !sheet) return;
+
+  const isMobile = window.innerWidth <= 768;
+  
+  if (!isMobile || !isMobileFitMode) {
+    // وضع العرض الطبيعي بدون تحجيم (Desktop or Full Scroll Mode)
+    stage.style.transform = '';
+    stage.style.transformOrigin = '';
+    stage.style.width = '';
+    outer.style.height = '';
+    outer.style.overflowX = isMobile ? 'auto' : 'visible';
+    if (sheet) {
+      if (isMobile) {
+        sheet.style.minWidth = '860px';
+      } else {
+        sheet.style.minWidth = '';
+      }
+    }
+    if (fitLabel) fitLabel.textContent = 'الحجم الطبيعي';
+    if (fitIcon) fitIcon.textContent = '🔍';
+    if (badge) badge.textContent = isMobile ? 'الحجم الطبيعي 100%' : 'العرض الكامل 100%';
+    return;
+  }
+
+  // وضع ملاءمة الشاشة للجوال (Fit-to-View): تحجيم ورقة الـ A4 الأفقية بنسبة متناسبة لعرض الشاشة دون تمرير أفقي
+  const containerWidth = outer.clientWidth || (window.innerWidth - 24);
+  const baseWidth = 860;
+  const scale = Math.min(1, Math.max(0.28, containerWidth / baseWidth));
+  
+  sheet.style.minWidth = `${baseWidth}px`;
+  stage.style.width = `${baseWidth}px`;
+  stage.style.transformOrigin = 'top center';
+  stage.style.transform = `scale(${scale})`;
+  
+  const sheetHeight = sheet.offsetHeight || 620;
+  outer.style.height = `${Math.ceil(sheetHeight * scale)}px`;
+  outer.style.overflow = 'hidden';
+  
+  if (fitLabel) fitLabel.textContent = 'ملاءمة الشاشة';
+  if (fitIcon) fitIcon.textContent = '📐';
+  if (badge) badge.textContent = `ملاءمة ${Math.round(scale * 100)}%`;
+}
+
+export function toggleMobileFitMode() {
+  isMobileFitMode = !isMobileFitMode;
+  updatePreviewScale();
+}
+
 // التحقق من الجودة قبل الطباعة والتصدير
 export function validateAuditQuality(onProceed) {
   if (!currentAudit.sections || currentAudit.sections.length === 0) {
@@ -3134,6 +3213,9 @@ export function switchTab(tabId) {
   if (tabId === 'preview') {
     renderPrintSections();
     toggleReportFooter();
+    setTimeout(() => {
+      updatePreviewScale();
+    }, 60);
   } else if (tabId === 'settings') {
     renderBulkExportUI();
   } else if (tabId === 'team') {
@@ -4578,6 +4660,21 @@ if (typeof window !== 'undefined') {
   window.initPWAInstallation = initPWAInstallation;
   window.initLoginKeyboardAdaptation = initLoginKeyboardAdaptation;
   window.initRememberMe = initRememberMe;
+  window.openReportLightboxModal = openReportLightboxModal;
+  window.closeReportLightbox = closeReportLightbox;
+  window.updatePreviewScale = updatePreviewScale;
+  window.toggleMobileFitMode = toggleMobileFitMode;
+
+  window.addEventListener('resize', () => {
+    const preview = document.getElementById('view-preview');
+    if (preview && !preview.classList.contains('hidden')) {
+      updatePreviewScale();
+    }
+  }, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(updatePreviewScale, 150);
+  }, { passive: true });
+
   window.bootApp = bootApp;
 }
 
