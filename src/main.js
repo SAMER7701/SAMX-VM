@@ -3657,9 +3657,10 @@ let tempAuditorScore = 90;
 
 export function openSmartAuditorModal() {
   try {
+    // استدعاء محرك التدقيق الذكي من smartAuditor.js
     tempAuditorAnalysis = analyzeTourWithAI(currentAudit) || {};
     
-    // 1. إعداد المؤشر
+    // 1. إعداد مؤشر الجاهزية
     tempAuditorScore = typeof tempAuditorAnalysis.score === 'number' ? tempAuditorAnalysis.score : 90;
     const slider = document.getElementById('ai-auditor-score-slider');
     const sliderVal = document.getElementById('ai-auditor-score-slider-val');
@@ -3724,7 +3725,7 @@ export function openSmartAuditorModal() {
     // 4. تعبئة حقل الصياغة التنفيذية المقترحة لملخص الزيارة
     const rewriteTextarea = document.getElementById('ai-auditor-summary-rewrite');
     if (rewriteTextarea) {
-      const effectivePoints = getEffectiveVisitSummary(currentAudit);
+      const effectivePoints = typeof getEffectiveVisitSummary === 'function' ? getEffectiveVisitSummary(currentAudit) : [];
       rewriteTextarea.value = (currentAudit.visitSummary && currentAudit.visitSummary.trim())
         ? currentAudit.visitSummary.trim()
         : effectivePoints.join('\n');
@@ -3773,19 +3774,19 @@ export function applySmartAuditorResults() {
     // 1. تطبيق مؤشر الجاهزية المعتمد في كائن الجولة
     currentAudit.readinessScore = tempAuditorScore;
 
-    // 2. حفظ الصياغة التنفيذية للملخص إذا كانت موجودة في حقل التدقيق الذكي
+    // 2. حفظ الصياغة التنفيذية للملخص إذا تم تعديلها في حقل التدقيق الذكي
     const rewriteTextarea = document.getElementById('ai-auditor-summary-rewrite');
     if (rewriteTextarea && rewriteTextarea.value.trim()) {
-      currentAudit.visitSummary = proofreadText(rewriteTextarea.value.trim());
+      currentAudit.visitSummary = typeof proofreadText === 'function' ? proofreadText(rewriteTextarea.value.trim()) : rewriteTextarea.value.trim();
     }
 
-    // 3. الحفظ في IndexedDB وتحديث الملخص وترويسة التقرير فوراً
+    // 3. الحفظ في IndexedDB وتحديث الواجهة والتقرير فوراً
     saveAuditToStorage();
-    renderVisitSummary();
+    if (typeof renderVisitSummary === 'function') renderVisitSummary();
     syncQuickDisplays();
 
     closeSmartAuditorModal();
-    showToast(`✅ تم اعتماد وتطبيق مؤشر الجاهزية الذكي (${tempAuditorScore}%) وتحديث الملخص بنجاح!`, 'success');
+    showToast(`✅ تم اعتماد وتطبيق مؤشر الجاهزية الذكي (${tempAuditorScore}%) بنجاح!`, 'success');
   } catch (err) {
     console.error('applySmartAuditorResults error:', err);
     showToast('فشل تطبيق مؤشر الجاهزية', 'error');
