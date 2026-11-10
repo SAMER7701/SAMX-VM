@@ -109,9 +109,9 @@ import {
   closeArchivedAuditPreview,
   cleanSummaryPointText,
   formatSummaryPointHtml,
-  getEffectiveVisitSummary,
   parseJustificationNotes,
   aggregateVisitAchievements,
+  getEffectiveVisitSummary,
   renderVisitSummary
 } from './renderers.js';
 
@@ -3657,10 +3657,10 @@ let tempAuditorScore = 90;
 
 export function openSmartAuditorModal() {
   try {
-    tempAuditorAnalysis = analyzeTourWithAI(currentAudit);
+    tempAuditorAnalysis = analyzeTourWithAI(currentAudit) || {};
     
-    // إعداد المؤشر
-    tempAuditorScore = tempAuditorAnalysis.score || 90;
+    // 1. إعداد المؤشر
+    tempAuditorScore = typeof tempAuditorAnalysis.score === 'number' ? tempAuditorAnalysis.score : 90;
     const slider = document.getElementById('ai-auditor-score-slider');
     const sliderVal = document.getElementById('ai-auditor-score-slider-val');
     const badge = document.getElementById('ai-auditor-score-badge');
@@ -3670,16 +3670,19 @@ export function openSmartAuditorModal() {
     if (sliderVal) sliderVal.innerText = `${tempAuditorScore}%`;
     if (badge) {
       badge.innerText = tempAuditorAnalysis.text || `${tempAuditorScore}%`;
-      badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${tempAuditorAnalysis.badgeClass}`;
+      badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${tempAuditorAnalysis.badgeClass || 'bg-emerald-100 text-emerald-800 border-emerald-300'}`;
     }
     if (statsSummary) {
-      statsSummary.innerText = `${tempAuditorAnalysis.stats.totalSections} أقسام تم فحصها (${tempAuditorAnalysis.stats.fullyResolved} مكتمل، ${tempAuditorAnalysis.stats.beforeAfterCount} مقارنة قبل/بعد)`;
+      const totalSec = tempAuditorAnalysis.stats?.totalSections ?? (currentAudit.sections?.length || 0);
+      const posCount = tempAuditorAnalysis.stats?.positiveCount ?? (tempAuditorAnalysis.positiveFindings?.length || 0);
+      const negCount = tempAuditorAnalysis.stats?.negativeCount ?? (tempAuditorAnalysis.negativeFindings?.length || 0);
+      statsSummary.innerText = `${totalSec} أقسام تم فحصها (${posCount} نقاط قوة، ${negCount} ملاحظات متابعة)`;
     }
 
-    // إعداد قائمة نقاط القوة والإنجازات الميدانية
+    // 2. إعداد قائمة نقاط القوة والإنجازات الميدانية
     const strengthsList = document.getElementById('ai-auditor-strengths-list');
     const strengthsCount = document.getElementById('ai-auditor-strengths-count');
-    const positiveItems = tempAuditorAnalysis.positiveFindings || [];
+    const positiveItems = Array.isArray(tempAuditorAnalysis.positiveFindings) ? tempAuditorAnalysis.positiveFindings : [];
     if (strengthsCount) strengthsCount.innerText = positiveItems.length;
     if (strengthsList) {
       if (positiveItems.length === 0) {
@@ -3689,18 +3692,18 @@ export function openSmartAuditorModal() {
           <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-emerald-500/20">
             <span class="text-emerald-400 font-bold shrink-0">✓</span>
             <div>
-              <strong class="text-emerald-300 block text-[10.5px]">${s.source}</strong>
-              <span class="text-slate-300 text-[10px] leading-relaxed">${s.text}</span>
+              <strong class="text-emerald-300 block text-[10.5px]">${s.source || 'قسم المعرض'}</strong>
+              <span class="text-slate-300 text-[10px] leading-relaxed">${s.text || ''}</span>
             </div>
           </div>
         `).join('');
       }
     }
 
-    // إعداد قائمة البنود المعلقة والملاحظات التشغيلية الحرجة
+    // 3. إعداد قائمة البنود المعلقة والملاحظات التشغيلية الحرجة
     const pendingList = document.getElementById('ai-auditor-pending-list');
     const pendingCount = document.getElementById('ai-auditor-pending-count');
-    const negativeItems = tempAuditorAnalysis.negativeFindings || [];
+    const negativeItems = Array.isArray(tempAuditorAnalysis.negativeFindings) ? tempAuditorAnalysis.negativeFindings : [];
     if (pendingCount) pendingCount.innerText = negativeItems.length;
     if (pendingList) {
       if (negativeItems.length === 0) {
@@ -3710,18 +3713,30 @@ export function openSmartAuditorModal() {
           <div class="flex items-start gap-1.5 bg-slate-900/60 p-1.5 rounded-lg border border-rose-500/30">
             <span class="text-rose-400 font-bold shrink-0">⚠️</span>
             <div>
-              <strong class="text-rose-300 block text-[10.5px]">${p.source}</strong>
-              <span class="text-slate-200 text-[10px] leading-relaxed">${p.text}</span>
+              <strong class="text-rose-300 block text-[10.5px]">${p.source || 'ملاحظة ميدانية'}</strong>
+              <span class="text-slate-200 text-[10px] leading-relaxed">${p.text || ''}</span>
             </div>
           </div>
         `).join('');
       }
     }
 
+    // 4. تعبئة حقل الصياغة التنفيذية المقترحة لملخص الزيارة
+    const rewriteTextarea = document.getElementById('ai-auditor-summary-rewrite');
+    if (rewriteTextarea) {
+      const effectivePoints = getEffectiveVisitSummary(currentAudit);
+      rewriteTextarea.value = (currentAudit.visitSummary && currentAudit.visitSummary.trim())
+        ? currentAudit.visitSummary.trim()
+        : effectivePoints.join('\n');
+    }
+
     showModal('smart-auditor-modal');
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try { window.lucide.createIcons(); } catch (e) {}
+    }
   } catch (err) {
     console.error('openSmartAuditorModal error:', err);
-    showToast('حدث خطأ أثناء تشغيل المدقق الذكي لمؤشر الجاهزية', 'error');
+    showModal('smart-auditor-modal');
   }
 }
 
@@ -3758,14 +3773,19 @@ export function applySmartAuditorResults() {
     // 1. تطبيق مؤشر الجاهزية المعتمد في كائن الجولة
     currentAudit.readinessScore = tempAuditorScore;
 
-    // 2. الحفظ في IndexedDB والمزامنة السحابية
-    saveAuditToStorage();
+    // 2. حفظ الصياغة التنفيذية للملخص إذا كانت موجودة في حقل التدقيق الذكي
+    const rewriteTextarea = document.getElementById('ai-auditor-summary-rewrite');
+    if (rewriteTextarea && rewriteTextarea.value.trim()) {
+      currentAudit.visitSummary = proofreadText(rewriteTextarea.value.trim());
+    }
 
-    // 3. تحديث شارة مؤشر الجاهزية فورياً في ترويسة التقرير
+    // 3. الحفظ في IndexedDB وتحديث الملخص وترويسة التقرير فوراً
+    saveAuditToStorage();
+    renderVisitSummary();
     syncQuickDisplays();
 
     closeSmartAuditorModal();
-    showToast(`✅ تم اعتماد وتطبيق مؤشر الجاهزية الذكي (${tempAuditorScore}%) بنجاح!`, 'success');
+    showToast(`✅ تم اعتماد وتطبيق مؤشر الجاهزية الذكي (${tempAuditorScore}%) وتحديث الملخص بنجاح!`, 'success');
   } catch (err) {
     console.error('applySmartAuditorResults error:', err);
     showToast('فشل تطبيق مؤشر الجاهزية', 'error');
