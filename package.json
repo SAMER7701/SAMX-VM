@@ -1,6 +1,6 @@
 {
   "name": "samx-vm",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "SAMX-VM: Visual Merchandising Audit Tool",
   "type": "module",
   "scripts": {

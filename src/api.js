@@ -1,7 +1,7 @@
 /**
  * SAMX-VM Cloudflare API Client & Sync Layer
  * Architecture: 100% Cloud-First Direct Synchronization (Cloudflare D1 & R2)
- * Version: 1.6.6
+ * Version: 1.6.7
  */
 
 import {

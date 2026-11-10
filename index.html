@@ -520,6 +520,90 @@
     .login-shake {
       animation: loginShake 0.45s ease-in-out;
     }
+
+    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.6.7) ==================== */
+    .brand-box,
+    .login-header-logo,
+    .system-subtitle,
+    .biometric-login-container,
+    .fabric-line,
+    .corner-grid {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .login-portal-card,
+    .login-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (max-width: 768px) {
+      /* عندما يتم تنشيط حقول الدخول وظهور لوحة المفاتيح الافتراضية */
+      body.keyboard-active .splash-screen,
+      .splash-screen.keyboard-active {
+        align-items: flex-start !important;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      body.keyboard-active .splash-content,
+      .splash-screen.keyboard-active .splash-content {
+        margin-top: 0 !important;
+        transform: translateY(0) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* إخفاء الشعار والترويسة العلوية بدقة مع انتقال ناعم */
+      body.keyboard-active .login-header-logo,
+      body.keyboard-active .brand-box,
+      body.keyboard-active .fabric-line,
+      body.keyboard-active .corner-grid,
+      .splash-screen.keyboard-active .login-header-logo,
+      .splash-screen.keyboard-active .brand-box,
+      .splash-screen.keyboard-active .fabric-line,
+      .splash-screen.keyboard-active .corner-grid {
+        opacity: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        transform: scale(0.85) translateY(-15px) !important;
+      }
+
+      body.keyboard-active .system-subtitle,
+      .splash-screen.keyboard-active .system-subtitle {
+        opacity: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      /* إخفاء حاوية زر البصمة السفلي لتوفير المساحة الرأسية للنموذج أعلى لوحة المفاتيح */
+      body.keyboard-active .biometric-login-container,
+      .splash-screen.keyboard-active .biometric-login-container {
+        opacity: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        border-top-width: 0 !important;
+      }
+
+      /* تموضع بطاقة تسجيل الدخول بسلاسة في المساحة المرئية */
+      body.keyboard-active .login-portal-card,
+      body.keyboard-active .login-card,
+      .splash-screen.keyboard-active .login-portal-card,
+      .splash-screen.keyboard-active .login-card {
+        margin-top: 4px !important;
+        padding-top: 14px !important;
+        padding-bottom: 14px !important;
+        transform: translateY(0) scale(1) !important;
+        box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.9), 0 0 25px rgba(217, 119, 6, 0.18) !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-gold-500 selection:text-slate-950 pb-20 md:pb-8">
@@ -533,10 +617,10 @@
       <div class="fabric-line"></div>
       
       <!-- شعار الأداة والترحيب الرسمي -->
-      <div class="brand-box">
+      <div class="brand-box login-header-logo">
         <div class="brand-badge">VISUAL MERCHANDISING</div>
         <h1 class="brand-title">SAMX<span>•VM</span></h1>
-        <p class="brand-sub">نظام التدقيق وضبط الهوية البصرية</p>
+        <p class="brand-sub system-subtitle">نظام التدقيق وضبط الهوية البصرية</p>
       </div>
 
       <!-- شبكة الزوايا الهندسية -->
@@ -544,13 +628,13 @@
       <div class="corner-grid br"></div>
 
       <!-- بطاقة تسجيل الدخول الشفافة ومستشعر البصمة البيومتري (المرحلة الثانية) -->
-      <div id="login-portal-card" class="login-portal-card p-5 text-right" dir="rtl">
+      <div id="login-portal-card" class="login-portal-card login-card p-5 text-right" dir="rtl">
         <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/80">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.6</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.7</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -558,7 +642,7 @@
           <div>
             <label class="block text-[11px] font-bold text-slate-300 mb-1">اسم المستخدم / الحساب:</label>
             <div class="relative w-full">
-              <input type="text" id="login-username" dir="ltr" placeholder="اسم المستخدم (Username)" autocomplete="username" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
+              <input type="text" id="login-username" name="username" dir="ltr" placeholder="اسم المستخدم (Username)" autocomplete="username" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
               <span class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none">👤</span>
             </div>
           </div>
@@ -567,7 +651,7 @@
           <div>
             <label class="block text-[11px] font-bold text-slate-300 mb-1">كلمة المرور:</label>
             <div class="relative w-full">
-              <input type="password" id="login-password" dir="ltr" placeholder="كلمة المرور (Password)" autocomplete="current-password" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
+              <input type="password" id="login-password" name="password" dir="ltr" placeholder="كلمة المرور (Password)" autocomplete="current-password" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
               <span class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none">🔒</span>
             </div>
           </div>
@@ -583,7 +667,7 @@
         </form>
 
         <!-- مستشعر البصمة البيومتري المباشر -->
-        <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-col items-center">
+        <div id="biometric-login-container" class="biometric-login-container mt-4 pt-3 border-t border-slate-800/80 flex flex-col items-center">
           <button type="button" id="biometric-login-btn" onclick="handleBiometricLogin()" class="group flex flex-col items-center gap-1.5 p-1 rounded-2xl hover:bg-slate-900/40 transition cursor-pointer active:scale-95" title="الدخول السريع ببصمة الجهاز">
             <div class="biometric-scanner-ring relative w-14 h-14 rounded-full flex items-center justify-center border border-amber-500/40 bg-slate-950/90 group-hover:border-amber-400 transition-all overflow-hidden">
               <div class="biometric-laser-line"></div>
@@ -625,7 +709,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.6</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.7</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -2807,7 +2891,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.6</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.7</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

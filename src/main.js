@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.6
+ * Version: 1.6.7
  * Architecture: ES Modules Coordinator
  */
 
@@ -227,9 +227,95 @@ export function syncBiometricStatusUI() {
   }
 }
 
+/**
+ * إدارة تكييف لوحة المفاتيح الذكية لشاشة الدخول على أجهزة الجوال
+ * (Smart Mobile Keyboard-Focus Adaptation - v1.6.7)
+ * يخفي ترويسة الشعار وزر البصمة ديناميكياً عند التركيز على حقول الدخول لرفع البطاقة فوق لوحة المفاتيح بسلاسة
+ */
+export function initLoginKeyboardAdaptation() {
+  const loginForm = document.getElementById('login-form');
+  const splash = document.getElementById('samx-splash');
+  const loginCard = document.getElementById('login-portal-card') || document.querySelector('.login-card');
+  if (!loginForm) return;
+
+  if (loginForm._keyboardAdapted) return;
+  loginForm._keyboardAdapted = true;
+
+  let blurTimeout = null;
+
+  const isMobileViewport = () => {
+    return window.innerWidth <= 768 || (window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+  };
+
+  const handleFocusIn = (e) => {
+    if (!isMobileViewport()) return;
+    if (blurTimeout) {
+      clearTimeout(blurTimeout);
+      blurTimeout = null;
+    }
+
+    if (splash) splash.classList.add('keyboard-active');
+    document.body.classList.add('keyboard-active');
+
+    // ضمان ظهور الحقل وبطاقة الدخول في مساحة الرؤية بأريحية دون حاجة للتمرير اليدوي
+    requestAnimationFrame(() => {
+      try {
+        const target = e?.target;
+        if (target && typeof target.scrollIntoView === 'function') {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (loginCard) {
+          loginCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (err) {}
+    });
+  };
+
+  const handleFocusOut = () => {
+    if (!isMobileViewport()) return;
+    if (blurTimeout) clearTimeout(blurTimeout);
+
+    blurTimeout = setTimeout(() => {
+      const activeEl = document.activeElement;
+      // إذا كان التركيز ما زال داخل نموذج الدخول (مثلاً الانتقال من حقل المستخدم لكلمة المرور) نبقي على الوضع
+      if (loginForm && activeEl && loginForm.contains(activeEl)) {
+        return;
+      }
+
+      if (splash) splash.classList.remove('keyboard-active');
+      document.body.classList.remove('keyboard-active');
+    }, 120);
+  };
+
+  // استماع لحدثي focusin و focusout لفقاعة الحدث (Event Bubbling)
+  loginForm.addEventListener('focusin', handleFocusIn);
+  loginForm.addEventListener('focusout', handleFocusOut);
+
+  // ربط صريح بالحقول (#login-username, #login-password, #username, #password)
+  const inputSelectors = ['#login-username', '#login-password', '#username', '#password'];
+  inputSelectors.forEach(sel => {
+    const inp = document.querySelector(sel);
+    if (inp) {
+      inp.addEventListener('focus', handleFocusIn);
+      inp.addEventListener('blur', handleFocusOut);
+    }
+  });
+
+  // استعادة العرض الطبيعي إذا تغيرت أبعاد الشاشة إلى سطح المكتب
+  window.addEventListener('resize', () => {
+    if (!isMobileViewport()) {
+      if (splash) splash.classList.remove('keyboard-active');
+      document.body.classList.remove('keyboard-active');
+    }
+  }, { passive: true });
+}
+
 export function initSplashScreen() {
   const splash = document.getElementById('samx-splash');
   if (!splash) return;
+
+  try {
+    initLoginKeyboardAdaptation();
+  } catch (e) {}
 
   if (splash._dismissTimer) {
     clearTimeout(splash._dismissTimer);
@@ -268,6 +354,8 @@ export function initSplashScreen() {
 
 export function dismissSplashScreen() {
   const splash = document.getElementById('samx-splash');
+  document.body.classList.remove('keyboard-active');
+  if (splash) splash.classList.remove('keyboard-active');
   if (!splash) return;
 
   if (splash._dismissTimer) {
@@ -4456,6 +4544,7 @@ if (typeof window !== 'undefined') {
   window.applySmartAuditorResults = applySmartAuditorResults;
   window.triggerPWAInstall = triggerPWAInstall;
   window.initPWAInstallation = initPWAInstallation;
+  window.initLoginKeyboardAdaptation = initLoginKeyboardAdaptation;
   window.bootApp = bootApp;
 }
 
