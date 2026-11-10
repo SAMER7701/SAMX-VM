@@ -4617,3 +4617,9 @@ if (document.readyState === 'loading') {
 } else {
   bootApp();
 }
+
+// ربط عالمي فوري ومباشر لنطاق window لضمان الجاهزية التامة والاستجابة اللحظية للنقرات
+window.openSmartAuditorModal = openSmartAuditorModal;
+window.applySmartAuditorResults = applySmartAuditorResults;
+window.onAuditorScoreSliderChange = onAuditorScoreSliderChange;
+window.closeSmartAuditorModal = closeSmartAuditorModal;
