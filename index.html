@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <title>SAMX-VM - نظام إدارة وتقارير العرض المرئي</title>
   <meta name="description" content="SAMX-VM: نظام متكامل وميداني لإدارة وتوثيق جولات العرض المرئي (Visual Merchandising) للمتاجر والمعارض، إعداد مقارنات قبل وبعد التعديل، وتصدير التقارير التنفيذية.">
   <meta property="og:title" content="SAMX-VM - نظام إدارة وتقارير العرض المرئي">
@@ -86,7 +86,7 @@
       background: #f59e0b;
     }
 
-    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.0) */
+    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.1) */
     @page {
       size: A4 landscape;
       margin: 8mm;
@@ -304,46 +304,37 @@
       }
     }
 
-    /* ==================== معاينة ورقة التقرير بالعرض الأفقي الصارم والتحجيم الذكي للجوال (Strict Landscape Preview & Fit Engine - v1.7.0) ==================== */
+    /* ==================== معاينة ورقة التقرير بالعرض الأفقي المعتمد (Strict Landscape Preview - v1.7.1) ==================== */
     .report-preview-viewport {
       width: 100%;
-      position: relative;
-    }
-
-    .report-preview-scale-wrapper {
-      width: 100%;
-      max-width: 100%;
-      overflow: hidden;
-      position: relative;
-      margin: 0 auto;
-    }
-
-    .report-scale-stage {
-      width: 100%;
-      margin: 0 auto;
-      transform-origin: top center;
-      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 12px;
     }
 
     #print-sheet-wrapper {
-      width: 100%;
-      max-width: 1260px;
+      width: 1122px;
+      max-width: 100%;
       margin: 0 auto;
       box-sizing: border-box;
       background: #ffffff;
+      transform-origin: top center;
     }
 
     @media screen and (max-width: 768px) {
       .report-preview-viewport {
-        overflow-x: visible;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
-      /* على شاشات الجوال: دعم نمط الملاءمة الذكي الكامل (Fit-to-View) لمنع إجهاد التمرير الأفقي
-         مع إمكانية التكبير الغامر عبر نافذة Lightbox المخصصة */
+      /* على شاشات الجوال: العرض الأفقي الأساسي 1122px مع ضبط الـ zoom ديناميكياً ليملأ كامل عرض الشاشة بسلاسة وتوسيط تام */
       #print-sheet-wrapper {
-        min-width: 860px;
+        width: 1122px !important;
+        max-width: none !important;
+        min-width: 1122px !important;
         padding: 20px 18px !important;
         border-radius: 16px !important;
+        box-sizing: border-box !important;
       }
 
       /* المحافظة على الترويسة الأفقية الفاخرة ثلاثية الأعمدة بالعرض الأفقي المتناسق */
@@ -563,7 +554,7 @@
       animation: loginShake 0.45s ease-in-out;
     }
 
-    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.7.0) ==================== */
+    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.7.1) ==================== */
     .brand-box,
     .login-header-logo,
     .system-subtitle,
@@ -678,7 +669,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.0</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.1</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -762,7 +753,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.0</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.1</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -1051,7 +1042,7 @@
     <!-- ==================== 2. تبويب المعاينة والتقرير التنفيذي (PREVIEW & PRINT) ==================== -->
     <section id="view-preview" class="hidden space-y-4">
       
-      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة مدمجة وأنيقة v1.7.0 بأزرار أفقية متجاورة ومتناسقة) -->
+      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة مدمجة وأنيقة v1.7.1 بأزرار أفقية متجاورة ومتناسقة) -->
       <div class="no-print bg-corp-900 border border-corp-800 p-3 sm:p-4 rounded-2xl space-y-3 shadow-lg">
         
         <!-- الصف الأول: زران مدمجان جانبيان متساويان ونظيفان (📤 تصدير PDF و 🟢 مشاركة واتساب) -->
@@ -1081,65 +1072,41 @@
             </div>
           </summary>
           
-          <div class="p-3 border-t border-corp-850/80 bg-corp-950/40 flex flex-wrap items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
-                <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-                <span>إدراج التوقيعات الرسمية</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
-                <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-                <span>إظهار عبارة الاعتماد السفلية</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء مؤشر جاهزية المعرض في ترويسة التقرير">
-                <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-                <span>إظهار مؤشر الجاهزية (%)</span>
-              </label>
-              <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
-                <span>تدقيق الجاهزية الذكي</span>
-              </button>
-            </div>
-            <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
-              <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>⭐ تخصيص ملخص الزيارة</span>
-            </button>
+          <div class="p-3 border-t border-corp-850/80 bg-corp-950/40 flex items-center gap-2 flex-wrap">
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
+              <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إدراج التوقيعات الرسمية</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
+              <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إظهار عبارة الاعتماد السفلية</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء مؤشر جاهزية المعرض في ترويسة التقرير">
+              <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إظهار مؤشر الجاهزية (%)</span>
+            </label>
           </div>
         </details>
-      </div>
 
-      <!-- حاوية المعاينة المتجاوبة للشاشات الصغيرة والجوال (Strict Landscape Viewport with Fit-to-View & Lightbox) -->
-      <div id="report-preview-viewport" class="report-preview-viewport w-full relative">
-        
-        <!-- شريط تحكم التكبير والملاءمة العلوي (Zoom & Lightbox Bar) -->
-        <div class="no-print flex items-center justify-between pb-2 mb-2 px-1 text-xs text-slate-400">
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-5 h-5 rounded bg-corp-850 text-gold-400 font-bold text-xs">📄</span>
-            <span class="font-bold text-slate-300 text-xs hidden sm:inline">معاينة ورقة التقرير التنفيذي (A4 Landscape)</span>
-            <span class="font-bold text-slate-300 text-[11px] sm:hidden">التقرير (A4 أفقي)</span>
-            <span id="preview-fit-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono">Fit-to-View 100%</span>
-          </div>
+        <!-- الصف الثالث: زران مباشرين ظاهران بجانب بعضهما (✨ تدقيق الجاهزية الذكي و ⭐ تخصيص ملخص الزيارة) -->
+        <div class="flex items-center gap-2.5 sm:gap-3 w-full">
+          <button type="button" id="btn-smart-readiness-audit" onclick="openSmartAuditorModal()" class="flex-1 min-h-[40px] py-2 px-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-[13px] rounded-xl shadow-sm border border-sky-400/40 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 text-center" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+            <span class="whitespace-nowrap font-bold">تدقيق الجاهزية الذكي ✨</span>
+          </button>
           
-          <div class="flex items-center gap-2">
-            <!-- زر تبديل الملاءمة على الجوال (Fit to Screen vs Actual Size) -->
-            <button type="button" onclick="toggleMobileFitMode()" id="btn-toggle-fit" class="md:hidden bg-corp-850 hover:bg-corp-800 text-slate-200 border border-corp-700 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs" title="تبديل بين ملاءمة عرض الجوال والتمرير بالحجم الطبيعي">
-              <span id="fit-mode-icon">📐</span>
-              <span id="fit-mode-label">ملاءمة الشاشة</span>
-            </button>
-
-            <!-- زر المعاينة المكبرة الغامرة (Lightbox Modal) -->
-            <button type="button" onclick="openReportLightboxModal()" id="btn-report-lightbox" class="bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 text-amber-300 border border-amber-500/40 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-lg flex items-center gap-1.5 transition active:scale-95 shadow-xs cursor-pointer" title="فتح التقرير في نافذة تكبير كاملة الشاشة عالية الدقة">
-              <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>تكبير غامر 🔍</span>
-            </button>
-          </div>
+          <button type="button" id="btn-customize-visit-summary" onclick="openVisitSummaryModal()" class="flex-1 min-h-[40px] py-2 px-3 bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs sm:text-[13px] rounded-xl shadow-sm active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 text-center" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+            <i data-lucide="list-checks" class="w-4 h-4 text-amber-400"></i>
+            <span class="whitespace-nowrap font-bold">تخصيص ملخص الزيارة ⭐</span>
+          </button>
         </div>
 
-        <!-- حاوية القياس والاستجابة المحمية (Scaling Wrapper) -->
-        <div id="report-preview-scale-wrapper" class="report-preview-scale-wrapper w-full max-w-full overflow-hidden relative">
-          <div id="report-scale-stage" class="report-scale-stage transition-transform duration-200">
-            <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
-            <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
+      </div>
+
+      <!-- حاوية المعاينة للشاشات الكبيرة والجوال (A4 Landscape Report Preview) -->
+      <div id="report-preview-viewport" class="report-preview-viewport w-full overflow-x-auto py-2">
+        <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
+        <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 mx-auto">
           
           <!-- الحاوية الموحدة للصفحة الأولى: تجمع الترويسة العلوية وبطاقة ملخص الزيارة في صفحة أولى متناسقة -->
           <div id="print-page-1-container" class="print-page-1-wrapper executive-cover-page flex flex-col">
@@ -1288,8 +1255,6 @@
             </div>
           </div>
         </div>
-        </div>
-      </div>
 
         <!-- نص التذييل القانوني المخصص من إعدادات الهوية البصرية -->
         <div id="print-footer-disclaimer-wrapper" class="mt-6 pt-3 border-t border-slate-200 text-center text-[10.5px] text-slate-500 hidden">
@@ -2228,35 +2193,6 @@
       </div>
   </div>
 
-  <!-- ==================== نافذة المعاينة المكبرة الغامرة للتقرير الأفقي (LANDSCAPE REPORT LIGHTBOX v1.7.0) ==================== -->
-  <div id="report-lightbox-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; flex-direction: column; background-color: rgba(7, 13, 30, 0.96); backdrop-filter: blur(10px);" class="p-2 sm:p-4 overflow-hidden" onclick="closeReportLightbox()">
-    <div class="w-full h-full max-w-[1400px] mx-auto flex flex-col bg-slate-900 border border-corp-800 rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-      <!-- ترويسة نافذة التكبير الغامرة -->
-      <div class="flex items-center justify-between px-4 py-3 bg-corp-950 border-b border-corp-800 shrink-0">
-        <div class="flex items-center gap-2.5">
-          <span class="text-amber-400 text-lg">🔍</span>
-          <div>
-            <h4 class="font-black text-sm text-white">معاينة التقرير التنفيذي كامل الشاشة (High-Resolution Landscape View)</h4>
-            <p class="text-[11px] text-slate-400">دقة فائقة بدون قص للأطراف • عرض أفقي كامل (A4 Landscape)</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="printReport()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm">
-            <span>📤</span>
-            <span class="hidden sm:inline">تصدير PDF</span>
-          </button>
-          <button type="button" onclick="closeReportLightbox()" class="bg-corp-850 hover:bg-corp-800 text-slate-300 hover:text-white p-1.5 rounded-xl border border-corp-700 transition cursor-pointer" title="إغلاق المعاينة المكبرة">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- منطقة عرض التقرير المكبر مع شريط تمرير سلس وتكبير -->
-      <div id="report-lightbox-body" class="flex-1 overflow-auto p-4 sm:p-6 bg-slate-950/60 flex justify-center items-start">
-        <div id="report-lightbox-content" class="w-full max-w-[1260px] shadow-2xl rounded-2xl overflow-hidden bg-white"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- ==================== نافذة إدارة الهوية البصرية وشعار الشركة (BRAND IDENTITY MODAL) ==================== -->
   <div id="branding-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px);" onclick="if(event.target === this) closeBrandingModal();" class="p-2 sm:p-4">
@@ -3019,7 +2955,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.0</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.1</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">
