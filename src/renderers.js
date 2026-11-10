@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.6.8
+ * Version: 1.6.9
  * Architecture: Decoupled UI Rendering Routines
  */
 

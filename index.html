@@ -552,7 +552,7 @@
       animation: loginShake 0.45s ease-in-out;
     }
 
-    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.6.8) ==================== */
+    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.6.9) ==================== */
     .brand-box,
     .login-header-logo,
     .system-subtitle,
@@ -667,7 +667,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.8</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.9</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -751,7 +751,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.8</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.9</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -1040,21 +1040,19 @@
     <!-- ==================== 2. تبويب المعاينة والتقرير التنفيذي (PREVIEW & PRINT) ==================== -->
     <section id="view-preview" class="hidden space-y-4">
       
-      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.8 بتصميم مضغوط للجوال وأزرار مربعة) -->
+      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة مدمجة وأنيقة v1.6.9 بأزرار أفقية متجاورة ومتناسقة) -->
       <div class="no-print bg-corp-900 border border-corp-800 p-3 sm:p-4 rounded-2xl space-y-3 shadow-lg">
         
-        <!-- الصف الأول: زران مربعان جانبيان متساويان ونظيفان (📤 تصدير و 🟢 مشاركة) -->
-        <div class="grid grid-cols-2 gap-3 max-w-lg mx-auto sm:max-w-none">
-          <button type="button" onclick="printReport()" id="btn-export-pdf" class="aspect-square max-h-28 sm:max-h-32 w-full mx-auto flex flex-col items-center justify-center gap-1.5 p-3 bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-800 hover:from-emerald-500 hover:to-teal-700 text-white font-black rounded-2xl shadow-lg border border-emerald-400/30 active:scale-95 transition cursor-pointer text-center group" title="تصدير وطباعة تقرير الـ PDF الميداني الرسمي">
-            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">📤</span>
-            <span class="text-xs sm:text-sm font-black tracking-wide">تصدير</span>
-            <span class="text-[9.5px] text-emerald-200/90 font-medium">طباعة كـ PDF</span>
+        <!-- الصف الأول: زران مدمجان جانبيان متساويان ونظيفان (📤 تصدير PDF و 🟢 مشاركة واتساب) -->
+        <div class="flex items-center gap-2.5 sm:gap-3 w-full">
+          <button type="button" onclick="printReport()" id="btn-export-pdf" class="flex-1 min-h-[44px] py-2.5 px-3.5 sm:px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md border border-emerald-400/30 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2 text-center" title="تصدير وطباعة تقرير الـ PDF الميداني الرسمي">
+            <span class="text-base sm:text-lg">📤</span>
+            <span class="whitespace-nowrap font-bold">تصدير PDF</span>
           </button>
           
-          <button type="button" onclick="shareWhatsAppSummary()" id="btn-share-whatsapp" class="aspect-square max-h-28 sm:max-h-32 w-full mx-auto flex flex-col items-center justify-center gap-1.5 p-3 bg-gradient-to-br from-teal-700 via-emerald-800 to-emerald-900 hover:from-teal-600 hover:to-emerald-800 text-white font-black rounded-2xl shadow-lg border border-teal-400/30 active:scale-95 transition cursor-pointer text-center group" title="مشاركة ملخص الجولة ورابط التقرير عبر واتساب">
-            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">🟢</span>
-            <span class="text-xs sm:text-sm font-black tracking-wide">مشاركة</span>
-            <span class="text-[9.5px] text-teal-200/90 font-medium">واتساب</span>
+          <button type="button" onclick="shareWhatsAppSummary()" id="btn-share-whatsapp" class="flex-1 min-h-[44px] py-2.5 px-3.5 sm:px-4 bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-600 hover:to-emerald-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md border border-teal-400/30 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2 text-center" title="مشاركة ملخص الجولة ورابط التقرير عبر واتساب">
+            <span class="text-base sm:text-lg">🟢</span>
+            <span class="whitespace-nowrap font-bold">مشاركة واتساب</span>
           </button>
         </div>
 
@@ -2951,7 +2949,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.8</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.9</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

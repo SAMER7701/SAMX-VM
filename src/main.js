@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.8
+ * Version: 1.6.9
  * Architecture: ES Modules Coordinator
  */
 
@@ -229,7 +229,7 @@ export function syncBiometricStatusUI() {
 
 /**
  * إدارة تكييف لوحة المفاتيح الذكية لشاشة الدخول على أجهزة الجوال
- * (Smart Mobile Keyboard-Focus Adaptation - v1.6.8)
+ * (Smart Mobile Keyboard-Focus Adaptation - v1.6.9)
  * يطوي الترويسة والشعار فقط لتحرير المساحة الرأسية مع إبقاء زر البصمة وتذكرني ظاهراً ومتاحاً بالكامل
  */
 export function initLoginKeyboardAdaptation() {
@@ -314,7 +314,7 @@ export function initLoginKeyboardAdaptation() {
 
 /**
  * إدارة وتفعيل ميزة "تذكرني" لحفظ اسم المستخدم محلياً لتسريع تسجيل الدخول
- * (Remember Me Feature - v1.6.8)
+ * (Remember Me Feature - v1.6.9)
  */
 export function initRememberMe() {
   try {

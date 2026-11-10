@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Smart AI Readiness Auditor Engine (SAMX_ReadinessAuditor)
- * Version: 1.6.8
+ * Version: 1.6.9
  * 
  * Features:
  * - Scans all documented tour section notes, checklist items, and executive summary bullet points.
