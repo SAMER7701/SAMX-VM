@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.6.7
+ * Version: 1.6.8
  * Architecture: ES Modules Coordinator
  */
 
@@ -229,8 +229,8 @@ export function syncBiometricStatusUI() {
 
 /**
  * إدارة تكييف لوحة المفاتيح الذكية لشاشة الدخول على أجهزة الجوال
- * (Smart Mobile Keyboard-Focus Adaptation - v1.6.7)
- * يخفي ترويسة الشعار وزر البصمة ديناميكياً عند التركيز على حقول الدخول لرفع البطاقة فوق لوحة المفاتيح بسلاسة
+ * (Smart Mobile Keyboard-Focus Adaptation - v1.6.8)
+ * يطوي الترويسة والشعار فقط لتحرير المساحة الرأسية مع إبقاء زر البصمة وتذكرني ظاهراً ومتاحاً بالكامل
  */
 export function initLoginKeyboardAdaptation() {
   const loginForm = document.getElementById('login-form');
@@ -249,6 +249,10 @@ export function initLoginKeyboardAdaptation() {
 
   const handleFocusIn = (e) => {
     if (!isMobileViewport()) return;
+    const target = e?.target;
+    // التأكد أن التركيز تم صراحة على حقل نص أو كلمة مرور وليس على عناصر التحكم الأخرى
+    if (target && target.type !== 'text' && target.type !== 'password') return;
+
     if (blurTimeout) {
       clearTimeout(blurTimeout);
       blurTimeout = null;
@@ -260,7 +264,6 @@ export function initLoginKeyboardAdaptation() {
     // ضمان ظهور الحقل وبطاقة الدخول في مساحة الرؤية بأريحية دون حاجة للتمرير اليدوي
     requestAnimationFrame(() => {
       try {
-        const target = e?.target;
         if (target && typeof target.scrollIntoView === 'function') {
           target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else if (loginCard) {
@@ -309,6 +312,28 @@ export function initLoginKeyboardAdaptation() {
   }, { passive: true });
 }
 
+/**
+ * إدارة وتفعيل ميزة "تذكرني" لحفظ اسم المستخدم محلياً لتسريع تسجيل الدخول
+ * (Remember Me Feature - v1.6.8)
+ */
+export function initRememberMe() {
+  try {
+    const rememberMeCheckbox = document.getElementById('login-remember-me');
+    const usernameInput = document.getElementById('login-username');
+    if (!rememberMeCheckbox || !usernameInput) return;
+
+    const isRemembered = localStorage.getItem('samx_remember_me') === 'true';
+    const rememberedUsername = localStorage.getItem('samx_remembered_username') || '';
+
+    rememberMeCheckbox.checked = isRemembered;
+    if (isRemembered && rememberedUsername) {
+      usernameInput.value = rememberedUsername;
+    }
+  } catch (e) {
+    console.warn('initRememberMe error:', e);
+  }
+}
+
 export function initSplashScreen() {
   const splash = document.getElementById('samx-splash');
   if (!splash) return;
@@ -342,13 +367,10 @@ export function initSplashScreen() {
   splash.classList.remove('is-login-mode');
   splash._dismissTimer = setTimeout(() => {
     // المرحلة 2: التحول السلس في نفس الشاشة إلى بوابة تسجيل الدخول والبصمة
+    // إظهار الشاشة بحالتها الكاملة الطبيعية بدون أي تركيز تلقائي مزعج للكيبورد
     splash.classList.add('is-login-mode');
     syncBiometricStatusUI();
-
-    const usernameInp = document.getElementById('login-username');
-    if (usernameInp) {
-      setTimeout(() => usernameInp.focus(), 250);
-    }
+    initRememberMe();
   }, 2000);
 }
 
@@ -406,6 +428,17 @@ export async function handleLoginSubmit() {
   const authResult = await authenticateWithCredentials(username, password);
 
   if (authResult.success) {
+    try {
+      const rememberCheckbox = document.getElementById('login-remember-me');
+      if (rememberCheckbox && rememberCheckbox.checked) {
+        localStorage.setItem('samx_remember_me', 'true');
+        localStorage.setItem('samx_remembered_username', username);
+      } else {
+        localStorage.setItem('samx_remember_me', 'false');
+        localStorage.removeItem('samx_remembered_username');
+      }
+    } catch (e) {}
+
     if (errorMsg) {
       errorMsg.innerText = '';
       errorMsg.classList.add('hidden');
@@ -516,8 +549,7 @@ export function lockOrLogoutSession() {
     if (errorMsg) errorMsg.classList.add('hidden');
 
     syncBiometricStatusUI();
-    const userInp = document.getElementById('login-username');
-    if (userInp) setTimeout(() => userInp.focus(), 250);
+    initRememberMe();
   }
 
   showToast('تم قفل الشاشة بنجاح. بيانات التدقيق محفوظة بأمان 🔒', 'info');
@@ -4545,6 +4577,7 @@ if (typeof window !== 'undefined') {
   window.triggerPWAInstall = triggerPWAInstall;
   window.initPWAInstallation = initPWAInstallation;
   window.initLoginKeyboardAdaptation = initLoginKeyboardAdaptation;
+  window.initRememberMe = initRememberMe;
   window.bootApp = bootApp;
 }
 

@@ -552,7 +552,7 @@
       animation: loginShake 0.45s ease-in-out;
     }
 
-    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.6.7) ==================== */
+    /* ==================== استجابة لوحة المفاتيح الذكية على الجوال (SMART MOBILE KEYBOARD ADAPTATION v1.6.8) ==================== */
     .brand-box,
     .login-header-logo,
     .system-subtitle,
@@ -584,7 +584,7 @@
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      /* إخفاء الشعار والترويسة العلوية بدقة مع انتقال ناعم */
+      /* طي وإخفاء الترويسة والشعار العلوي فقط لتحرير المساحة الرأسية */
       body.keyboard-active .login-header-logo,
       body.keyboard-active .brand-box,
       body.keyboard-active .fabric-line,
@@ -611,16 +611,18 @@
         overflow: hidden !important;
       }
 
-      /* إخفاء حاوية زر البصمة السفلي لتوفير المساحة الرأسية للنموذج أعلى لوحة المفاتيح */
+      /* الحفاظ التام على ظهور وسهولة استخدام زر البصمة ومفتاح تذكرني دون حجب */
       body.keyboard-active .biometric-login-container,
       .splash-screen.keyboard-active .biometric-login-container {
-        opacity: 0 !important;
-        max-height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-        border-top-width: 0 !important;
+        opacity: 1 !important;
+        max-height: none !important;
+        margin-top: 8px !important;
+        padding-top: 6px !important;
+        overflow: visible !important;
+        pointer-events: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
       }
 
       /* تموضع بطاقة تسجيل الدخول بسلاسة في المساحة المرئية */
@@ -665,7 +667,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.7</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.6.8</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -685,6 +687,15 @@
               <input type="password" id="login-password" name="password" dir="ltr" placeholder="كلمة المرور (Password)" autocomplete="current-password" class="w-full bg-slate-950/90 border border-slate-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-xl pr-9 pl-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition font-mono font-bold" />
               <span class="absolute right-3 top-2 text-xs text-slate-400 pointer-events-none">🔒</span>
             </div>
+          </div>
+
+          <!-- خيار تذكرني الأنيق (Remember Me) -->
+          <div class="flex items-center justify-between pt-0.5 px-0.5 select-none" id="remember-me-container">
+            <label class="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" id="login-remember-me" name="remember_me" class="w-4 h-4 rounded border border-slate-700 bg-slate-950 text-gold-500 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-amber-500" />
+              <span class="text-[11px] font-bold text-slate-300 group-hover:text-amber-300 transition">تذكرني على هذا الجهاز</span>
+            </label>
+            <span class="text-[10px] text-slate-400 font-mono">حساب موثوق 🔒</span>
           </div>
 
           <!-- رسالة تنبيه الخطأ -->
@@ -740,7 +751,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.7</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.6.8</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -1029,7 +1040,7 @@
     <!-- ==================== 2. تبويب المعاينة والتقرير التنفيذي (PREVIEW & PRINT) ==================== -->
     <section id="view-preview" class="hidden space-y-4">
       
-      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.7 بتصميم مضغوط للجوال وأزرار مربعة) -->
+      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.8 بتصميم مضغوط للجوال وأزرار مربعة) -->
       <div class="no-print bg-corp-900 border border-corp-800 p-3 sm:p-4 rounded-2xl space-y-3 shadow-lg">
         
         <!-- الصف الأول: زران مربعان جانبيان متساويان ونظيفان (📤 تصدير و 🟢 مشاركة) -->
@@ -2940,7 +2951,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.7</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.6.8</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">
