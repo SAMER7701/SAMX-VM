@@ -87,13 +87,31 @@
     }
 
     /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي (A4 Landscape) */
+    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape) */
     @page {
-      size: A4 landscape;
-      margin: 8mm 10mm;
+      size: A4 landscape !important;
+      size: 297mm 210mm !important;
+      margin: 6mm 8mm;
+    }
+
+    @page :left {
+      size: A4 landscape !important;
+      size: 297mm 210mm !important;
+    }
+
+    @page :right {
+      size: A4 landscape !important;
+      size: 297mm 210mm !important;
     }
 
     @media print {
-      /* 1. Reset all root wrappers so nothing pushes Page 1 down */
+      @page {
+        size: A4 landscape !important;
+        size: 297mm 210mm !important;
+        margin: 6mm 8mm !important;
+      }
+
+      /* 1. Reset all root wrappers so nothing pushes Page 1 down and lock landscape canvas */
       html, body, #app, main, .app-container, .report-wrapper, #print-root, #view-preview, #print-sheet-wrapper, #print-sections-container {
         height: auto !important;
         min-height: 0 !important;
@@ -105,6 +123,14 @@
         overflow: visible !important;
         background-color: #ffffff !important;
         color: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      html, body {
+        width: 297mm !important;
+        min-width: 297mm !important;
+        max-width: 297mm !important;
       }
 
       .no-print, header, nav, #toast-container, .modal-backdrop {
@@ -117,17 +143,20 @@
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
+        width: 297mm !important;
       }
-      #view-audit, #view-settings {
+      #view-audit, #view-settings, #view-team {
         display: none !important;
       }
-      .report-page-container {
+      .report-page-container, #print-sheet-wrapper {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
         margin: 0 !important;
-        max-width: 100% !important;
-        width: 100% !important;
+        max-width: 297mm !important;
+        width: 297mm !important;
+        min-width: 297mm !important;
+        box-sizing: border-box !important;
       }
       .print-break-inside-avoid {
         page-break-inside: avoid !important;
@@ -276,57 +305,59 @@
       }
     }
 
-    /* ==================== معاينة ورقة التقرير التكيفية لشاشات الجوال (Mobile Scale-to-Fit Preview) ==================== */
+    /* ==================== معاينة ورقة التقرير بالعرض الأفقي الصارم (Strict Landscape Preview) ==================== */
+    .report-preview-viewport {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 8px;
+    }
+
+    #print-sheet-wrapper {
+      width: 100%;
+      max-width: 1260px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      background: #ffffff;
+    }
+
     @media screen and (max-width: 768px) {
       .report-preview-viewport {
-        width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
 
+      /* على شاشات الجوال: إبقاء الورقة في وضعها الأفقي الأصلي الواسع (Strict Landscape)
+         لتبقى الخطوط والصور والمحاذاة كبيرة ونقية ومطابقة للطباعة العرضية المتقنة دون قص أو انكماش */
       #print-sheet-wrapper {
-        padding: 14px 12px !important;
+        min-width: 860px !important;
+        padding: 20px 18px !important;
         border-radius: 16px !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
       }
 
-      /* تنسيق مرن لترويسة التقرير يمنع قطع الشعار أو البطاقة بالكامل */
-      #print-main-header {
-        margin-bottom: 12px !important;
-        padding-bottom: 12px !important;
-      }
-
+      /* المحافظة على الترويسة الأفقية الفاخرة ثلاثية الأعمدة بالعرض الأفقي المتناسق */
       #print-main-header > div {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 10px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 14px !important;
       }
 
       #print-header-logo-container {
-        order: -1 !important;
-        width: 100% !important;
-        display: flex !important;
-        justify-content: center !important;
-        padding: 0 0 8px 0 !important;
-        border-bottom: 1px dashed #cbd5e1 !important;
-      }
-
-      #print-header-logo-img {
-        max-height: 42px !important;
-        max-width: 180px !important;
+        order: 0 !important;
+        width: auto !important;
+        flex: 1 1 0% !important;
+        border-bottom: none !important;
+        padding: 0 10px !important;
       }
 
       #print-main-header .min-w-\[220px\] {
-        min-width: 0 !important;
-        width: 100% !important;
+        min-width: 220px !important;
         text-align: right !important;
       }
 
       #print-main-header .min-w-\[195px\] {
-        min-width: 0 !important;
-        width: 100% !important;
+        min-width: 195px !important;
       }
     }
 
@@ -998,49 +1029,67 @@
     <!-- ==================== 2. تبويب المعاينة والتقرير التنفيذي (PREVIEW & PRINT) ==================== -->
     <section id="view-preview" class="hidden space-y-4">
       
-      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.4 بتصميم نظيف من صفين) -->
-      <div class="no-print bg-corp-900 border border-corp-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <!-- الصف الأول: شريط الخيارات والملخص -->
-        <div class="flex flex-wrap items-center justify-between gap-2.5">
-          <div class="flex items-center gap-2 flex-wrap">
-            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
-              <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-              <span>إدراج التوقيعات الرسمية</span>
-            </label>
-            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
-              <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-              <span>إظهار عبارة الاعتماد السفلية</span>
-            </label>
-            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-950 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء مؤشر جاهزية المعرض في ترويسة التقرير">
-              <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
-              <span>إظهار مؤشر الجاهزية (%)</span>
-            </label>
-            <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
-              <span>🔍 تدقيق الذكي لمؤشر الجاهزية</span>
+      <!-- شريط أدوات التصدير والمشاركة التنفيذي (نسخة محدثة v1.6.7 بتصميم مضغوط للجوال وأزرار مربعة) -->
+      <div class="no-print bg-corp-900 border border-corp-800 p-3 sm:p-4 rounded-2xl space-y-3 shadow-lg">
+        
+        <!-- الصف الأول: زران مربعان جانبيان متساويان ونظيفان (📤 تصدير و 🟢 مشاركة) -->
+        <div class="grid grid-cols-2 gap-3 max-w-lg mx-auto sm:max-w-none">
+          <button type="button" onclick="printReport()" id="btn-export-pdf" class="aspect-square max-h-28 sm:max-h-32 w-full mx-auto flex flex-col items-center justify-center gap-1.5 p-3 bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-800 hover:from-emerald-500 hover:to-teal-700 text-white font-black rounded-2xl shadow-lg border border-emerald-400/30 active:scale-95 transition cursor-pointer text-center group" title="تصدير وطباعة تقرير الـ PDF الميداني الرسمي">
+            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">📤</span>
+            <span class="text-xs sm:text-sm font-black tracking-wide">تصدير</span>
+            <span class="text-[9.5px] text-emerald-200/90 font-medium">طباعة كـ PDF</span>
+          </button>
+          
+          <button type="button" onclick="shareWhatsAppSummary()" id="btn-share-whatsapp" class="aspect-square max-h-28 sm:max-h-32 w-full mx-auto flex flex-col items-center justify-center gap-1.5 p-3 bg-gradient-to-br from-teal-700 via-emerald-800 to-emerald-900 hover:from-teal-600 hover:to-emerald-800 text-white font-black rounded-2xl shadow-lg border border-teal-400/30 active:scale-95 transition cursor-pointer text-center group" title="مشاركة ملخص الجولة ورابط التقرير عبر واتساب">
+            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">🟢</span>
+            <span class="text-xs sm:text-sm font-black tracking-wide">مشاركة</span>
+            <span class="text-[9.5px] text-teal-200/90 font-medium">واتساب</span>
+          </button>
+        </div>
+
+        <!-- الصف الثاني: قائمة منسدلة قابلة للطي لخيارات التقرير (Signatures, Approval, Readiness Score) -->
+        <details id="report-options-accordion" class="group bg-corp-950/70 border border-corp-800 rounded-xl overflow-hidden transition">
+          <summary class="flex items-center justify-between px-3.5 py-2 cursor-pointer list-none select-none hover:bg-corp-900/60 transition text-xs font-bold text-slate-300">
+            <div class="flex items-center gap-2">
+              <span class="text-amber-400 text-sm">⚙️</span>
+              <span class="text-xs font-bold text-slate-300">خيارات التقرير (التوقيعات، الاعتماد، الجاهزية)</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[10.5px]">
+              <span class="text-[10px] bg-corp-850 border border-corp-700/60 px-2 py-0.5 rounded text-slate-400 group-open:hidden">تخصيص الخيارات</span>
+              <span class="text-[10px] bg-corp-850 border border-gold-500/30 px-2 py-0.5 rounded text-gold-400 hidden group-open:inline">إغلاق</span>
+              <svg class="w-4 h-4 text-slate-400 group-open:text-gold-400 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </summary>
+          
+          <div class="p-3 border-t border-corp-850/80 bg-corp-950/40 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء محضر التوقيع والختم في التقرير">
+                <input type="checkbox" id="toggleSignatures" data-id="toggle-print-footer" checked onchange="toggleReportFooter(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+                <span>إدراج التوقيعات الرسمية</span>
+              </label>
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="التحكم في ظهور أو إخفاء عبارة الاعتماد أسفل التقرير">
+                <input type="checkbox" id="toggle-print-compliance" checked onchange="toggleFooterCompliance(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+                <span>إظهار عبارة الاعتماد السفلية</span>
+              </label>
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء مؤشر جاهزية المعرض في ترويسة التقرير">
+                <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+                <span>إظهار مؤشر الجاهزية (%)</span>
+              </label>
+              <button type="button" onclick="openSmartAuditorModal()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border border-sky-400/40" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+                <span>تدقيق الجاهزية الذكي</span>
+              </button>
+            </div>
+            <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+              <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>⭐ تخصيص ملخص الزيارة</span>
             </button>
           </div>
-          <button type="button" onclick="openVisitSummaryModal()" class="bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
-            <i data-lucide="list-checks" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span>⭐ تخصيص ملخص الزيارة</span>
-          </button>
-        </div>
-
-        <!-- الصف الثاني: أزرار التصدير والمشاركة الأساسية (زرين عريضين متساويين بنسبة 50/50) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-corp-800/80">
-          <button type="button" onclick="printReport()" id="btn-export-pdf" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs md:text-sm py-2.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer" title="تصدير وطباعة تقرير الـ PDF الميداني الرسمي">
-            <i data-lucide="printer" class="w-4 h-4"></i>
-            <span>🖨️ طباعة وتصدير التقرير (PDF)</span>
-          </button>
-          <button type="button" onclick="shareWhatsAppSummary()" class="w-full bg-emerald-700/80 hover:bg-emerald-600 text-white font-black text-xs md:text-sm py-2.5 px-4 rounded-xl shadow border border-emerald-500/30 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer" title="مشاركة ملخص الجولة ورابط التقرير عبر واتساب">
-            <i data-lucide="share-2" class="w-4 h-4 text-emerald-300"></i>
-            <span>🟢 مشاركة عبر واتساب (PDF)</span>
-          </button>
-        </div>
+        </details>
       </div>
 
-      <!-- حاوية المعاينة المتجاوبة للشاشات الصغيرة والجوال (Scale-to-fit) -->
-      <div class="report-preview-viewport w-full overflow-hidden">
+      <!-- حاوية المعاينة المتجاوبة للشاشات الصغيرة والجوال (Strict Landscape Viewport) -->
+      <div class="report-preview-viewport w-full overflow-x-auto">
         <!-- ورقة التقرير التنفيذي المطبوع (A4 Landscape Print Container) -->
         <div id="print-sheet-wrapper" class="report-page-container bg-white text-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-[1260px] mx-auto">
           
