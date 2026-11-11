@@ -211,6 +211,57 @@ export function wireButtonListeners() {
       addNewSection();
     };
   }
+
+  // ربط زر تدقيق الجاهزية الذكي الصريح
+  const btnSmartAudit = document.getElementById('btn-smart-readiness-audit');
+  if (btnSmartAudit) {
+    btnSmartAudit.onclick = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openSmartAuditorModal();
+    };
+  }
+
+  // ربط زر تخصيص ملخص الزيارة
+  const btnCustomizeSummary = document.getElementById('btn-customize-visit-summary');
+  if (btnCustomizeSummary) {
+    btnCustomizeSummary.onclick = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openVisitSummaryModal();
+    };
+  }
+
+  // ربط صف مؤشر الجاهزية في ترويسة التقرير ليفتح نافذة الضبط الذكي عند النقر
+  const printScoreRow = document.getElementById('print-header-score-row');
+  if (printScoreRow) {
+    printScoreRow.style.cursor = 'pointer';
+    printScoreRow.title = 'انقر لتدقيق وضبط مؤشر الجاهزية ذكياً';
+    printScoreRow.onclick = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openSmartAuditorModal();
+    };
+  }
+
+  const printScoreBadge = document.getElementById('print-header-readiness-score');
+  if (printScoreBadge) {
+    printScoreBadge.style.cursor = 'pointer';
+    printScoreBadge.title = 'انقر لتدقيق وضبط مؤشر الجاهزية ذكياً';
+    printScoreBadge.onclick = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openSmartAuditorModal();
+    };
+  }
 }
 
 // ==================== إدارة بوابة الدخول والترحيب البيومترية المتطورة (Two-Stage Welcome & Biometric Login) ====================
@@ -1195,6 +1246,24 @@ export async function deleteEntity(type = modalState.currentModalTab, target) {
 const handleGlobalManagementClicks = (e) => {
   const target = e.target;
   if (!target) return;
+
+  // تفويض زر تدقيق الجاهزية الذكي وصف مؤشر الجاهزية
+  const smartAuditBtn = (typeof target.closest === 'function') && target.closest('#btn-smart-readiness-audit, [data-action="smart-readiness-audit"], #print-header-score-row, #print-header-readiness-score');
+  if (smartAuditBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openSmartAuditorModal();
+    return;
+  }
+
+  // تفويض زر تخصيص ملخص الزيارة
+  const visitSummaryBtn = (typeof target.closest === 'function') && target.closest('#btn-customize-visit-summary, [data-action="customize-visit-summary"]');
+  if (visitSummaryBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openVisitSummaryModal();
+    return;
+  }
 
   const tabBranchBtn = (typeof target.closest === 'function') && target.closest('#tab-btn-branches');
   if (tabBranchBtn) {
@@ -3138,6 +3207,7 @@ export function switchTab(tabId) {
   if (tabId === 'preview') {
     renderPrintSections();
     toggleReportFooter();
+    wireButtonListeners();
   } else if (tabId === 'settings') {
     renderBulkExportUI();
   } else if (tabId === 'team') {
@@ -3657,11 +3727,19 @@ let tempAuditorScore = 90;
 
 export function openSmartAuditorModal() {
   try {
+    lastModalOpenTime = Date.now();
     // استدعاء محرك التدقيق الذكي من smartAuditor.js
     tempAuditorAnalysis = analyzeTourWithAI(currentAudit) || {};
     
-    // 1. إعداد مؤشر الجاهزية
-    tempAuditorScore = typeof tempAuditorAnalysis.score === 'number' ? tempAuditorAnalysis.score : 90;
+    // 1. إعداد مؤشر الجاهزية مع دعم أي قيمة معتمدة مسبقاً أو محسوبة
+    if (typeof currentAudit?.readinessScore === 'number' && !isNaN(currentAudit.readinessScore) && currentAudit.readinessScore > 0) {
+      tempAuditorScore = currentAudit.readinessScore;
+    } else if (typeof tempAuditorAnalysis.score === 'number' && tempAuditorAnalysis.score > 0) {
+      tempAuditorScore = tempAuditorAnalysis.score;
+    } else {
+      tempAuditorScore = 90;
+    }
+
     const slider = document.getElementById('ai-auditor-score-slider');
     const sliderVal = document.getElementById('ai-auditor-score-slider-val');
     const badge = document.getElementById('ai-auditor-score-badge');
@@ -3670,8 +3748,20 @@ export function openSmartAuditorModal() {
     if (slider) slider.value = tempAuditorScore;
     if (sliderVal) sliderVal.innerText = `${tempAuditorScore}%`;
     if (badge) {
-      badge.innerText = tempAuditorAnalysis.text || `${tempAuditorScore}%`;
-      badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${tempAuditorAnalysis.badgeClass || 'bg-emerald-100 text-emerald-800 border-emerald-300'}`;
+      let label = 'ممتاز ومطابق للمعايير';
+      let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      if (tempAuditorScore >= 88) {
+        label = 'ممتاز ومطابق للمعايير';
+        badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      } else if (tempAuditorScore >= 75) {
+        label = 'جيد مع بنود متابعة';
+        badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+      } else {
+        label = 'يحتاج إجراءات تصحيحية';
+        badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+      }
+      badge.innerText = `${tempAuditorScore}% • ${label}`;
+      badge.className = `font-black text-xs px-2.5 py-1 rounded-lg border ${badgeClass}`;
     }
     if (statsSummary) {
       const totalSec = tempAuditorAnalysis.stats?.totalSections ?? (currentAudit.sections?.length || 0);
@@ -3741,7 +3831,10 @@ export function openSmartAuditorModal() {
   }
 }
 
-export function closeSmartAuditorModal() {
+export function closeSmartAuditorModal(force = false) {
+  if (!force && (Date.now() - lastModalOpenTime < 350)) {
+    return;
+  }
   hideModal('smart-auditor-modal');
 }
 

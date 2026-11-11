@@ -1150,12 +1150,12 @@
 
         <!-- الصف الثالث: زران مباشرين ظاهران بجانب بعضهما (✨ تدقيق الجاهزية الذكي و ⭐ تخصيص ملخص الزيارة) -->
         <div class="grid grid-cols-2 gap-2.5 w-full">
-          <button type="button" id="btn-smart-readiness-audit" onclick="openSmartAuditorModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sm border border-sky-400/40 active:scale-95 transition cursor-pointer" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
+          <button type="button" id="btn-smart-readiness-audit" data-action="smart-readiness-audit" onclick="openSmartAuditorModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sm border border-sky-400/40 active:scale-95 transition cursor-pointer" title="تشغيل المدقق الذكي لمؤشر الجاهزية">
             <i data-lucide="sparkles" class="w-4 h-4 text-amber-300 shrink-0"></i>
             <span class="truncate font-bold">تدقيق الجاهزية الذكي ✨</span>
           </button>
           
-          <button type="button" id="btn-customize-visit-summary" onclick="openVisitSummaryModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 shadow-sm active:scale-95 transition cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
+          <button type="button" id="btn-customize-visit-summary" data-action="customize-visit-summary" onclick="openVisitSummaryModal()" class="w-full min-w-0 min-h-[40px] px-2 py-2 text-[11.5px] sm:text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-center truncate bg-corp-850 hover:bg-corp-800 text-amber-300 border border-amber-500/30 shadow-sm active:scale-95 transition cursor-pointer" title="مراجعة وتعديل ملخص إنجازات وتعديلات الزيارة">
             <i data-lucide="list-checks" class="w-4 h-4 text-amber-400 shrink-0"></i>
             <span class="truncate font-bold">تخصيص ملخص الزيارة ⭐</span>
           </button>
@@ -2522,7 +2522,7 @@
   </div>
 
   <!-- ==================== نافذة المدقق الذكي ومحلل الجاهزية (SMART AI AUDITOR MODAL) ==================== -->
-  <div id="smart-auditor-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);" onclick="if(event.target === this) closeSmartAuditorModal();" class="p-2 sm:p-4">
+  <div id="smart-auditor-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);" onclick="if(event.target === this) closeSmartAuditorModal(false);" class="p-2 sm:p-4">
     <div class="bg-corp-900 border border-corp-700 w-full max-w-2xl rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]" onclick="event.stopPropagation();">
       
       <!-- الرأس -->
@@ -2539,7 +2539,7 @@
             <p class="text-[11px] text-slate-400 mt-0.5">تدقيق لغوي تنفيذي، رصد نقاط القوة والمعلقات، وضبط دقيق لمؤشر الجاهزية</p>
           </div>
         </div>
-        <button type="button" onclick="closeSmartAuditorModal()" class="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-corp-850 transition" title="إغلاق النافذة">
+        <button type="button" onclick="closeSmartAuditorModal(true)" class="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-corp-850 transition" title="إغلاق النافذة">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2633,7 +2633,7 @@
 
       <!-- أزرار الحفظ والإغلاق -->
       <div class="p-4 bg-corp-950 border-t border-corp-800 flex items-center justify-between gap-2.5">
-        <button type="button" onclick="closeSmartAuditorModal()" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-4 py-2.5 rounded-xl border border-corp-700 transition cursor-pointer">
+        <button type="button" onclick="closeSmartAuditorModal(true)" class="bg-corp-800 hover:bg-corp-700 text-slate-300 font-semibold text-xs px-4 py-2.5 rounded-xl border border-corp-700 transition cursor-pointer">
           <span>إلغاء</span>
         </button>
 
