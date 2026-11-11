@@ -3728,13 +3728,37 @@ let tempAuditorScore = 90;
 export function openSmartAuditorModal() {
   try {
     lastModalOpenTime = Date.now();
+
+    // 0. ضمان إظهار النافذة وتطبيق أقصى z-index و display: flex بشكل قطعي وفوري
+    const modal = document.getElementById('smart-auditor-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.position = 'fixed';
+      modal.style.top = '0px';
+      modal.style.left = '0px';
+      modal.style.right = '0px';
+      modal.style.bottom = '0px';
+      modal.style.width = '100vw';
+      modal.style.height = '100vh';
+      modal.style.zIndex = '99999';
+      modal.style.setProperty('z-index', '99999', 'important');
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+      modal.removeAttribute('aria-hidden');
+    }
+
     // استدعاء محرك التدقيق الذكي من smartAuditor.js
-    tempAuditorAnalysis = analyzeTourWithAI(currentAudit) || {};
+    tempAuditorAnalysis = (typeof analyzeTourWithAI === 'function')
+      ? analyzeTourWithAI(currentAudit)
+      : ((typeof window !== 'undefined' && window.analyzeTourWithAI) ? window.analyzeTourWithAI(currentAudit) : {});
     
     // 1. إعداد مؤشر الجاهزية مع دعم أي قيمة معتمدة مسبقاً أو محسوبة
     if (typeof currentAudit?.readinessScore === 'number' && !isNaN(currentAudit.readinessScore) && currentAudit.readinessScore > 0) {
       tempAuditorScore = currentAudit.readinessScore;
-    } else if (typeof tempAuditorAnalysis.score === 'number' && tempAuditorAnalysis.score > 0) {
+    } else if (typeof tempAuditorAnalysis?.score === 'number' && tempAuditorAnalysis.score > 0) {
       tempAuditorScore = tempAuditorAnalysis.score;
     } else {
       tempAuditorScore = 90;
@@ -4730,4 +4754,25 @@ if (typeof window !== 'undefined') {
   window.appendPointToVisitSummary = appendPointToVisitSummary;
   window.importJsonBackup = importJsonBackup;
   window.updateBrandingModalLogoPreview = updateBrandingModalLogoPreview;
+
+  // ربط احتياطي مباشر وفوري بعد تصيير الـ DOM
+  const setupSmartAuditDirectListener = () => {
+    const smartAuditBtn = document.getElementById('btn-smart-readiness-audit') || 
+                          document.querySelector('[data-action="smart-readiness-audit"]');
+    if (smartAuditBtn) {
+      smartAuditBtn.onclick = function(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        openSmartAuditorModal();
+      };
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupSmartAuditDirectListener);
+  } else {
+    setupSmartAuditDirectListener();
+  }
 }
