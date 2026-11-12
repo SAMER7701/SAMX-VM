@@ -304,7 +304,7 @@
         box-shadow: none !important;
       }
 
-      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - 4-Way Centered & Single-Page Lock) */
+      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - Clean Natural Flow) */
       #print-page-2-matrix:not(.is-hidden-print) {
         page-break-before: always !important;
         break-before: page !important;
@@ -312,17 +312,41 @@
         break-after: auto !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        height: 186mm !important;
-        max-height: 186mm !important;
+        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        overflow: hidden !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
-        padding: 2mm 0 !important;
+        padding: 3mm 0 !important;
         background: #ffffff !important;
+      }
+      #print-page-2-matrix:not(.is-hidden-print) * {
+        overflow: visible !important;
+        max-height: none !important;
+      }
+      #print-page-2-matrix table {
+        table-layout: fixed !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      #print-page-2-matrix thead {
+        display: table-header-group !important;
+      }
+      #print-page-2-matrix tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      #matrix-auto-fit-box {
+        zoom: 1 !important;
+        transform: none !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
       }
       #print-page-2-matrix.is-hidden-print {
         display: none !important;

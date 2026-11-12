@@ -2320,45 +2320,55 @@ export function renderExecutiveMatrixPage() {
     }
   });
 
-  // 2. نظام الكثافة التلقائية ثلاثي المستويات (3-Tier Auto-Fit System)
+  // 2. نظام الكثافة التلقائية مع ضمان التفاف النصوص بدون اقتطاع
   const maxRows = Math.max(strengthsList.length, pendingList.length);
-  let cellPadding = 'py-2 px-2.5';
-  let fontSize = 'text-xs';
-  let noteClamp = '';
+  let cellPadding = 'py-2 px-3';
+  let fontSize = 'text-[11px] leading-relaxed';
 
-  if (maxRows > 12) {
-    cellPadding = 'py-1 px-1.5';
-    fontSize = 'text-[9.5px]';
-    noteClamp = 'line-clamp-1 truncate';
-  } else if (maxRows > 6) {
-    cellPadding = 'py-1.5 px-2';
-    fontSize = 'text-[10.5px]';
-    noteClamp = 'line-clamp-1 truncate';
+  if (maxRows > 14) {
+    cellPadding = 'py-1 px-2';
+    fontSize = 'text-[9.5px] leading-tight';
+  } else if (maxRows > 8) {
+    cellPadding = 'py-1.5 px-2.5';
+    fontSize = 'text-[10px] leading-snug';
   } else {
-    cellPadding = 'py-2.5 px-3';
-    fontSize = 'text-[11.5px]';
-    noteClamp = '';
+    cellPadding = 'py-2 px-3';
+    fontSize = 'text-[11px] leading-relaxed';
   }
+
+  // استخراج اسم الفرع وتاريخ التدقيق والأسبوع التنفيذي
+  const branchName = currentAudit?.branchName || 'معرض النخيل مول';
+  const auditDate = currentAudit?.auditDate || new Date().toISOString().split('T')[0];
+  const auditWeek = currentAudit?.auditWeek || (typeof calculateCurrentWeek === 'function' ? calculateCurrentWeek() : '');
 
   // 3. بناء قالب المصفوفة التنفيذية
   matrixContainer.innerHTML = `
-    <div id="matrix-auto-fit-box" class="w-full h-full flex flex-col justify-center my-auto transition-all duration-200" style="margin: auto; width: 100%;">
+    <div id="matrix-auto-fit-box" class="w-full flex flex-col justify-start my-auto transition-all duration-200" style="margin: auto; width: 100%;">
       
-      <!-- الشريط العلوي التنفيذي للمصفوفة -->
-      <div class="flex items-center justify-between pb-2 mb-3 border-b-2 border-slate-900 gap-2 flex-wrap" dir="rtl">
-        <div class="flex items-center gap-2">
-          <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-black shadow-xs">📊</span>
+      <!-- الشريط العلوي التنفيذي للمصفوفة مع بطاقة هوية الفرع وتاريخ التدقيق -->
+      <div class="flex items-center justify-between pb-2.5 mb-3 border-b-2 border-slate-900 gap-2.5 flex-wrap" dir="rtl">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-lg bg-corp-900 text-amber-400 flex items-center justify-center text-sm font-black shadow-xs border border-gold-500/30">📊</span>
           <div>
-            <h3 class="font-black text-slate-900 text-sm md:text-base leading-tight tracking-tight">مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة</h3>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="font-black text-slate-900 text-sm md:text-base leading-tight tracking-tight">مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة</h3>
+              <span class="inline-flex items-center gap-1.5 bg-corp-950 text-gold-300 border border-gold-500/40 px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shadow-2xs">
+                <span class="text-amber-400">📍</span>
+                <span>${branchName}</span>
+                <span class="text-corp-700 font-light">|</span>
+                <span class="text-slate-300">📅 ${auditDate}</span>
+                ${auditWeek ? `<span class="text-corp-700 font-light">|</span><span class="text-gold-400/90">${auditWeek}</span>` : ''}
+              </span>
+            </div>
             <p class="text-[10px] text-slate-500 font-medium mt-0.5">Executive Action Matrix • رصد مقارن متبادل للإنجازات الميدانية وبنود المتابعة والتكليف</p>
           </div>
         </div>
 
         <!-- مؤشرات سريعة كبسولية -->
         <div class="flex items-center gap-1.5 text-[10.5px] font-bold">
-          <span class="bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-0.5 rounded-full">إجمالي الأقسام: ${sections.length}</span>
-          <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full">المكتمل: ${strengthsList.length} ✅</span>
-          <span class="bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full">المعلقات: ${pendingList.length} ⏳</span>
+          <span class="bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-md shadow-2xs">إجمالي الأقسام: ${sections.length}</span>
+          <span class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-md shadow-2xs">المكتمل: ${strengthsList.length} ✓</span>
+          <span class="bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md shadow-2xs">المعلقات: ${pendingList.length} ⏳</span>
         </div>
       </div>
 
@@ -2366,42 +2376,46 @@ export function renderExecutiveMatrixPage() {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 w-full items-start" dir="rtl">
         
         <!-- العمود الأيمن: نقاط القوة والمعايير المكتملة (Emerald Theme) -->
-        <div class="flex flex-col rounded-xl border border-emerald-200 bg-white overflow-hidden shadow-xs">
+        <div class="flex flex-col rounded-xl border border-emerald-300 bg-white shadow-xs w-full">
           <!-- ترويسة العمود الأيمن -->
-          <div class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white px-3 py-2 flex items-center justify-between">
+          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3 py-2 flex items-center justify-between rounded-t-xl border-b border-emerald-700">
             <span class="font-black text-xs flex items-center gap-1.5">
-              <span>✓</span>
+              <span class="text-emerald-300 font-bold">✓</span>
               <span>نقاط القوة والمعايير المكتملة ميدانياً</span>
             </span>
-            <span class="bg-emerald-900/60 text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-700/50">${strengthsList.length} بنود</span>
+            <span class="bg-emerald-950/70 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-emerald-600/60 shadow-2xs">${strengthsList.length} بنود</span>
           </div>
 
           <!-- محتوى الجدول الأيمن -->
-          <div class="overflow-x-auto">
+          <div class="w-full">
             ${strengthsList.length === 0 ? `
               <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1">
                 <span>ℹ️</span>
                 <span>لم تُسجل بنود مكتملة بالكامل حتى الآن في هذه الجولة</span>
               </div>
             ` : `
-              <table class="w-full text-right border-collapse ${fontSize}">
-                <thead>
-                  <tr class="bg-emerald-50/70 border-b border-emerald-100 text-emerald-950 font-black text-[10px]">
-                    <th class="py-1 px-2 w-8 text-center">#</th>
-                    <th class="py-1 px-2 w-1/3">القسم المعتمد</th>
-                    <th class="py-1 px-2">أبرز المعايير والوسوم المنجزة</th>
-                    <th class="py-1 px-2 w-20 text-center">الحالة</th>
+              <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
+                <thead class="bg-emerald-100/90 border-b-2 border-emerald-300 text-emerald-950 font-black text-[10.5px]">
+                  <tr>
+                    <th class="py-1.5 px-2 text-center" style="width: 32px;">#</th>
+                    <th class="py-1.5 px-2.5" style="width: 28%;">القسم المعتمد</th>
+                    <th class="py-1.5 px-2.5" style="width: 52%;">أبرز المعايير والوسوم المنجزة</th>
+                    <th class="py-1.5 px-2 text-center" style="width: 20%;">الحالة</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-emerald-100/60 text-slate-800">
+                <tbody class="divide-y divide-emerald-100 text-slate-800">
                   ${strengthsList.map(item => `
                     <tr class="hover:bg-emerald-50/40 transition">
-                      <td class="${cellPadding} text-center font-bold text-emerald-800">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900">${item.title}</td>
-                      <td class="${cellPadding} text-slate-600 ${noteClamp}">${item.standardsSummary}</td>
-                      <td class="${cellPadding} text-center">
-                        <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
-                          ${item.statusText}
+                      <td class="${cellPadding} text-center font-bold text-emerald-800" style="width: 32px;">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <bdi>${item.title}</bdi>
+                      </td>
+                      <td class="${cellPadding} text-slate-700 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.45;">
+                        ${item.standardsSummary}
+                      </td>
+                      <td class="${cellPadding} text-center" style="width: 20%;">
+                        <span class="inline-flex items-center justify-center gap-1 text-[9.5px] font-bold px-2 py-1 rounded-md border ${item.badgeClass} shadow-2xs whitespace-nowrap">
+                          <span>${item.statusText}</span>
                         </span>
                       </td>
                     </tr>
@@ -2413,42 +2427,60 @@ export function renderExecutiveMatrixPage() {
         </div>
 
         <!-- العمود الأيسر: البنود المعلقة وجدول التكليف والمتابعة (Amber/Rose Theme) -->
-        <div class="flex flex-col rounded-xl border border-amber-200 bg-white overflow-hidden shadow-xs">
+        <div class="flex flex-col rounded-xl border border-amber-300 bg-white shadow-xs w-full">
           <!-- ترويسة العمود الأيسر -->
-          <div class="bg-gradient-to-r from-amber-700 to-rose-700 text-white px-3 py-2 flex items-center justify-between">
+          <div class="bg-gradient-to-r from-corp-900 via-amber-950 to-rose-950 text-white px-3 py-2 flex items-center justify-between rounded-t-xl border-b border-amber-800/80">
             <span class="font-black text-xs flex items-center gap-1.5">
-              <span>⏳</span>
+              <span class="text-amber-400 font-bold">⏳</span>
               <span>البنود المعلقة وجدول التكليف والمتابعة</span>
             </span>
-            <span class="bg-amber-900/60 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-600/50">${pendingList.length} بنود</span>
+            <span class="bg-corp-950/80 text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-amber-500/40 shadow-2xs">${pendingList.length} بنود</span>
           </div>
 
           <!-- محتوى الجدول الأيسر -->
-          <div class="overflow-x-auto">
+          <div class="w-full">
             ${pendingList.length === 0 ? `
               <div class="p-6 text-center text-emerald-700 text-xs font-bold flex flex-col items-center justify-center gap-1.5 bg-emerald-50/50">
                 <span class="text-base">🎉</span>
                 <span>جاهزية ميدانية كاملة 100% — لا توجد بنود معلقة أو ملاحظات تصحيحية حرجة</span>
               </div>
             ` : `
-              <table class="w-full text-right border-collapse ${fontSize}">
-                <thead>
-                  <tr class="bg-amber-50/70 border-b border-amber-100 text-amber-950 font-black text-[10px]">
-                    <th class="py-1 px-2 w-8 text-center">#</th>
-                    <th class="py-1 px-2 w-1/4">القسم</th>
-                    <th class="py-1 px-2">الإجراء والملاحظة</th>
-                    <th class="py-1 px-2 w-24">المسؤول المكلف</th>
-                    <th class="py-1 px-2 w-20 text-center">تاريخ الإنجاز</th>
+              <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
+                <thead class="bg-amber-100/90 border-b-2 border-amber-300 text-amber-950 font-black text-[10.5px]">
+                  <tr>
+                    <th class="py-1.5 px-2 text-center" style="width: 32px;">#</th>
+                    <th class="py-1.5 px-2.5" style="width: 28%;">القسم</th>
+                    <th class="py-1.5 px-2.5" style="width: 52%;">الإجراء والملاحظة</th>
+                    <th class="py-1.5 px-2 text-center" style="width: 20%;">التكليف والحالة</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-amber-100/60 text-slate-800">
+                <tbody class="divide-y divide-amber-100 text-slate-800">
                   ${pendingList.map(item => `
                     <tr class="hover:bg-amber-50/40 transition">
-                      <td class="${cellPadding} text-center font-bold text-amber-800">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900">${item.title}</td>
-                      <td class="${cellPadding} text-rose-900 font-medium ${noteClamp}">${item.actionNotes}</td>
-                      <td class="${cellPadding} text-slate-700 font-bold">${item.assignee}</td>
-                      <td class="${cellPadding} text-center font-bold text-slate-600 whitespace-nowrap text-[9.5px]">${item.dueDate}</td>
+                      <td class="${cellPadding} text-center font-bold text-amber-800" style="width: 32px;">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <bdi>${item.title}</bdi>
+                      </td>
+                      <td class="${cellPadding} text-rose-950 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.45;">
+                        <div class="text-rose-900 font-semibold" style="word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                          ${item.actionNotes}
+                        </div>
+                        <div class="mt-1 flex items-center gap-1.5 flex-wrap text-[9px] font-bold">
+                          <span class="inline-flex items-center gap-0.5 bg-amber-50 text-amber-900 border border-amber-300/80 px-1.5 py-0.5 rounded shadow-2xs">
+                            <span>👤 المكلف:</span>
+                            <span>${item.assignee}</span>
+                          </span>
+                          <span class="inline-flex items-center gap-0.5 bg-slate-100 text-slate-700 border border-slate-300 px-1.5 py-0.5 rounded shadow-2xs">
+                            <span>📅 الموعد:</span>
+                            <span>${item.dueDate}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td class="${cellPadding} text-center" style="width: 20%;">
+                        <span class="inline-flex items-center justify-center gap-1 text-[9.5px] font-bold px-2 py-1 rounded-md border ${item.badgeClass} shadow-2xs whitespace-nowrap">
+                          <span>${item.statusLabel}</span>
+                        </span>
+                      </td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -2472,13 +2504,18 @@ export function renderExecutiveMatrixPage() {
 export function fitMatrixToSinglePage() {
   const box = document.getElementById('matrix-auto-fit-box');
   if (!box) return;
+  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches) {
+    box.style.zoom = '1';
+    box.style.transform = 'none';
+    return;
+  }
   box.style.zoom = '1';
   box.style.transform = 'none';
 
   // الارتفاع الآمن لصفحة A4 Landscape (180mm بما يعادل ~660-680px)
-  const MAX_SAFE_HEIGHT = 660;
+  const MAX_SAFE_HEIGHT = 680;
   if (box.scrollHeight > MAX_SAFE_HEIGHT) {
-    const scaleFactor = Math.max(0.65, Math.min(1, (MAX_SAFE_HEIGHT / box.scrollHeight)));
+    const scaleFactor = Math.max(0.70, Math.min(1, (MAX_SAFE_HEIGHT / box.scrollHeight)));
     box.style.zoom = scaleFactor;
   }
 }
