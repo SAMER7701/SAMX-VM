@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.7.1
+ * Version: 1.7.2
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -1980,6 +1980,254 @@ export function renderPrintSections(customSections = null) {
 
     container.appendChild(item);
   });
+
+  // تحديث مصفوفة التدقيق التنفيذي بالصفحة الثانية تلقائياً
+  renderExecutiveMatrixPage();
+}
+
+/**
+ * =========================================================================
+ * مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة (Executive Action Matrix - Page 2)
+ * مصفوفة مقارنة احترافية موجهة لصفحة A4 ثانية بين ترويسة التقرير وبطاقات الأقسام
+ * تدعم التمركز الرباعي الكامل (4-Way Centered) ونظام التحجيم الذكي ثلاثي المستويات
+ * =========================================================================
+ */
+export function renderExecutiveMatrixPage() {
+  const matrixContainer = document.getElementById('print-page-2-matrix');
+  if (!matrixContainer) return;
+
+  // التحقق من حالة التفعيل من التفضيلات المحلية
+  const isEnabled = (localStorage.getItem('samx_show_matrix_page') !== 'false');
+  const toggleCb = document.getElementById('toggle-matrix-page');
+  if (toggleCb && toggleCb.checked !== isEnabled) {
+    toggleCb.checked = isEnabled;
+  }
+
+  if (!isEnabled) {
+    matrixContainer.classList.add('hidden', 'no-print', 'is-hidden-print');
+    matrixContainer.style.display = 'none';
+    return;
+  } else {
+    matrixContainer.classList.remove('hidden', 'no-print', 'is-hidden-print');
+    matrixContainer.style.display = 'flex';
+  }
+
+  const sections = Array.isArray(currentAudit?.sections) ? currentAudit.sections : [];
+
+  // 1. تصنيف ومسح الأقسام (نقاط القوة vs البنود المعلقة)
+  const strengthsList = [];
+  const pendingList = [];
+
+  sections.forEach((sec, idx) => {
+    const title = sec.title || sec.name || `القسم ${idx + 1}`;
+    const statuses = getSectionStatuses(sec);
+    const isResolved = statuses.includes('resolved') && statuses.length === 1;
+    const isAction = statuses.includes('management_action');
+
+    // تجميع الوسوم والمعايير
+    const tags = Array.isArray(sec.tags) ? sec.tags : [];
+    const standardsSummary = tags.length > 0 
+      ? tags.slice(0, 3).join(' • ') 
+      : 'معايير العرض المرئي مستوفاة بالكامل';
+
+    // الإجراء والملاحظة
+    const notes = (sec.notes || sec.justification || '').trim();
+    const actionNotes = notes.length > 0 ? notes : 'متابعة ميدانية مستمرة لحالة القسم';
+    const assignee = (sec.actionAssignee && sec.actionAssignee.trim()) 
+      ? sec.actionAssignee.trim() 
+      : (isAction ? 'إدارة الصيانة / الإدارة العليا' : 'إدارة المعرض ومشرف القسم');
+    const dueDate = (sec.actionDueDate && sec.actionDueDate.trim()) 
+      ? sec.actionDueDate.trim() 
+      : 'فوري ومستمر';
+
+    if (isResolved) {
+      strengthsList.push({
+        num: idx + 1,
+        title,
+        standardsSummary,
+        statusText: 'منجز ميدانياً ✅',
+        badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+      });
+    } else {
+      let statusLabel = 'متابعة المعرض ⏳';
+      let badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+      if (isAction) {
+        statusLabel = 'طلب صيانة / إدارة ⚠️';
+        badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+      }
+      pendingList.push({
+        num: idx + 1,
+        title,
+        actionNotes,
+        assignee,
+        dueDate,
+        statusLabel,
+        badgeClass
+      });
+    }
+  });
+
+  // 2. نظام الكثافة التلقائية ثلاثي المستويات (3-Tier Auto-Fit System)
+  const maxRows = Math.max(strengthsList.length, pendingList.length);
+  let cellPadding = 'py-2 px-2.5';
+  let fontSize = 'text-xs';
+  let noteClamp = '';
+
+  if (maxRows > 12) {
+    cellPadding = 'py-1 px-1.5';
+    fontSize = 'text-[9.5px]';
+    noteClamp = 'line-clamp-1 truncate';
+  } else if (maxRows > 6) {
+    cellPadding = 'py-1.5 px-2';
+    fontSize = 'text-[10.5px]';
+    noteClamp = 'line-clamp-1 truncate';
+  } else {
+    cellPadding = 'py-2.5 px-3';
+    fontSize = 'text-[11.5px]';
+    noteClamp = '';
+  }
+
+  // 3. بناء قالب المصفوفة التنفيذية
+  matrixContainer.innerHTML = `
+    <div id="matrix-auto-fit-box" class="w-full h-full flex flex-col justify-center my-auto transition-all duration-200" style="margin: auto; width: 100%;">
+      
+      <!-- الشريط العلوي التنفيذي للمصفوفة -->
+      <div class="flex items-center justify-between pb-2 mb-3 border-b-2 border-slate-900 gap-2 flex-wrap" dir="rtl">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-black shadow-xs">📊</span>
+          <div>
+            <h3 class="font-black text-slate-900 text-sm md:text-base leading-tight tracking-tight">مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة</h3>
+            <p class="text-[10px] text-slate-500 font-medium mt-0.5">Executive Action Matrix • رصد مقارن متبادل للإنجازات الميدانية وبنود المتابعة والتكليف</p>
+          </div>
+        </div>
+
+        <!-- مؤشرات سريعة كبسولية -->
+        <div class="flex items-center gap-1.5 text-[10.5px] font-bold">
+          <span class="bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-0.5 rounded-full">إجمالي الأقسام: ${sections.length}</span>
+          <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full">المكتمل: ${strengthsList.length} ✅</span>
+          <span class="bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full">المعلقات: ${pendingList.length} ⏳</span>
+        </div>
+      </div>
+
+      <!-- جدول المقارنة الثنائي جنباً إلى جنب (Side-by-Side Dual Matrix) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 w-full items-start" dir="rtl">
+        
+        <!-- العمود الأيمن: نقاط القوة والمعايير المكتملة (Emerald Theme) -->
+        <div class="flex flex-col rounded-xl border border-emerald-200 bg-white overflow-hidden shadow-xs">
+          <!-- ترويسة العمود الأيمن -->
+          <div class="bg-gradient-to-r from-emerald-800 to-teal-800 text-white px-3 py-2 flex items-center justify-between">
+            <span class="font-black text-xs flex items-center gap-1.5">
+              <span>✓</span>
+              <span>نقاط القوة والمعايير المكتملة ميدانياً</span>
+            </span>
+            <span class="bg-emerald-900/60 text-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-700/50">${strengthsList.length} بنود</span>
+          </div>
+
+          <!-- محتوى الجدول الأيمن -->
+          <div class="overflow-x-auto">
+            ${strengthsList.length === 0 ? `
+              <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1">
+                <span>ℹ️</span>
+                <span>لم تُسجل بنود مكتملة بالكامل حتى الآن في هذه الجولة</span>
+              </div>
+            ` : `
+              <table class="w-full text-right border-collapse ${fontSize}">
+                <thead>
+                  <tr class="bg-emerald-50/70 border-b border-emerald-100 text-emerald-950 font-black text-[10px]">
+                    <th class="py-1 px-2 w-8 text-center">#</th>
+                    <th class="py-1 px-2 w-1/3">القسم المعتمد</th>
+                    <th class="py-1 px-2">أبرز المعايير والوسوم المنجزة</th>
+                    <th class="py-1 px-2 w-20 text-center">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-emerald-100/60 text-slate-800">
+                  ${strengthsList.map(item => `
+                    <tr class="hover:bg-emerald-50/40 transition">
+                      <td class="${cellPadding} text-center font-bold text-emerald-800">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900">${item.title}</td>
+                      <td class="${cellPadding} text-slate-600 ${noteClamp}">${item.standardsSummary}</td>
+                      <td class="${cellPadding} text-center">
+                        <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
+                          ${item.statusText}
+                        </span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+        </div>
+
+        <!-- العمود الأيسر: البنود المعلقة وجدول التكليف والمتابعة (Amber/Rose Theme) -->
+        <div class="flex flex-col rounded-xl border border-amber-200 bg-white overflow-hidden shadow-xs">
+          <!-- ترويسة العمود الأيسر -->
+          <div class="bg-gradient-to-r from-amber-700 to-rose-700 text-white px-3 py-2 flex items-center justify-between">
+            <span class="font-black text-xs flex items-center gap-1.5">
+              <span>⏳</span>
+              <span>البنود المعلقة وجدول التكليف والمتابعة</span>
+            </span>
+            <span class="bg-amber-900/60 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-600/50">${pendingList.length} بنود</span>
+          </div>
+
+          <!-- محتوى الجدول الأيسر -->
+          <div class="overflow-x-auto">
+            ${pendingList.length === 0 ? `
+              <div class="p-6 text-center text-emerald-700 text-xs font-bold flex flex-col items-center justify-center gap-1.5 bg-emerald-50/50">
+                <span class="text-base">🎉</span>
+                <span>جاهزية ميدانية كاملة 100% — لا توجد بنود معلقة أو ملاحظات تصحيحية حرجة</span>
+              </div>
+            ` : `
+              <table class="w-full text-right border-collapse ${fontSize}">
+                <thead>
+                  <tr class="bg-amber-50/70 border-b border-amber-100 text-amber-950 font-black text-[10px]">
+                    <th class="py-1 px-2 w-8 text-center">#</th>
+                    <th class="py-1 px-2 w-1/4">القسم</th>
+                    <th class="py-1 px-2">الإجراء والملاحظة</th>
+                    <th class="py-1 px-2 w-24">المسؤول المكلف</th>
+                    <th class="py-1 px-2 w-20 text-center">تاريخ الإنجاز</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-amber-100/60 text-slate-800">
+                  ${pendingList.map(item => `
+                    <tr class="hover:bg-amber-50/40 transition">
+                      <td class="${cellPadding} text-center font-bold text-amber-800">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900">${item.title}</td>
+                      <td class="${cellPadding} text-rose-900 font-medium ${noteClamp}">${item.actionNotes}</td>
+                      <td class="${cellPadding} text-slate-700 font-bold">${item.assignee}</td>
+                      <td class="${cellPadding} text-center font-bold text-slate-600 whitespace-nowrap text-[9.5px]">${item.dueDate}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  // 4. تطبيق التحجيم الذكي وضمان عدم تجاوز حدود الصفحة الثانية (Single-Page Lock)
+  fitMatrixToSinglePage();
+}
+
+/**
+ * فحص الارتفاع الديناميكي للمصفوفة ومنعها من التجاوز لصفحة ثالثة
+ */
+export function fitMatrixToSinglePage() {
+  const box = document.getElementById('matrix-auto-fit-box');
+  if (!box) return;
+  box.style.zoom = '1';
+  box.style.transform = 'none';
+
+  // الارتفاع الآمن لصفحة A4 Landscape (180mm بما يعادل ~660-680px)
+  const MAX_SAFE_HEIGHT = 660;
+  if (box.scrollHeight > MAX_SAFE_HEIGHT) {
+    const scaleFactor = Math.max(0.65, Math.min(1, (MAX_SAFE_HEIGHT / box.scrollHeight)));
+    box.style.zoom = scaleFactor;
+  }
 }
 
 // ==================== رسم وإدارة واجهة التصدير المجمع (Bulk Export UI Renderer) ====================
@@ -2516,4 +2764,6 @@ if (typeof window !== 'undefined') {
   window.parseVisitSummaryPoints = parseVisitSummaryPoints;
   window.sanitizeCorporateText = sanitizeCorporateText;
   window.getImageTransformStyle = getImageTransformStyle;
+  window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
+  window.fitMatrixToSinglePage = fitMatrixToSinglePage;
 }

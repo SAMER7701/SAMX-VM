@@ -304,6 +304,33 @@
         box-shadow: none !important;
       }
 
+      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - 4-Way Centered & Single-Page Lock) */
+      #print-page-2-matrix:not(.is-hidden-print) {
+        page-break-before: always !important;
+        break-before: page !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        height: 186mm !important;
+        max-height: 186mm !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        padding: 2mm 0 !important;
+        background: #ffffff !important;
+      }
+      #print-page-2-matrix.is-hidden-print {
+        display: none !important;
+        height: 0 !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+      }
+
       #print-sections-container {
         margin-bottom: 0 !important;
         padding-bottom: 0 !important;
@@ -729,7 +756,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.1</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.2</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -813,7 +840,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.1</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.2</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -1145,6 +1172,10 @@
               <input type="checkbox" id="toggle-readiness-score" checked onchange="toggleReadinessScore(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
               <span>إظهار مؤشر الجاهزية (%)</span>
             </label>
+            <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer bg-corp-900 px-3 py-1.5 rounded-xl border border-corp-800 hover:border-corp-700 transition" title="إظهار أو إخفاء جدول نقاط القوة والبنود المعلقة في الصفحة الثانية">
+              <input type="checkbox" id="toggle-matrix-page" checked onchange="toggleMatrixPage(this.checked)" class="rounded text-gold-500 focus:ring-0 cursor-pointer">
+              <span>إدراج مصفوفة القوة والمعلقات (ص2)</span>
+            </label>
           </div>
         </details>
 
@@ -1257,6 +1288,11 @@
           </div>
         </div>
 
+        <!-- الصفحة الثانية: مصفوفة التدقيق التنفيذي لنقاط القوة والبنود المعلقة (Executive Action Matrix - Page 2) -->
+        <div id="print-page-2-matrix" class="print-page-section executive-matrix-page flex flex-col justify-center items-center w-full my-6">
+          <!-- Dynamically populated by renderExecutiveMatrixPage() -->
+        </div>
+
         <!-- محتوى قائمة الأقسام الموثقة (Cards List) -->
         <div id="print-sections-container" class="space-y-6">
           <!-- يتم حقن الأقسام ديناميكياً مع تنسيق الطباعة -->
@@ -1312,7 +1348,6 @@
                 </div>
               </div>
             </div>
-            </div>
           </div>
         </div>
 
@@ -1321,9 +1356,9 @@
           <span id="print-footer-disclaimer"></span>
         </div>
 
-      </div>
-
-    </section>
+      </div> <!-- Closes #print-sheet-wrapper -->
+    </div> <!-- Closes #report-preview-viewport -->
+  </section> <!-- Closes #view-preview -->
 
     <!-- ==================== 3. تبويب الإعدادات والنسخ الاحتياطي (TOOLS & BACKUP) ==================== -->
     <section id="view-settings" class="hidden space-y-4">
@@ -3016,7 +3051,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.1</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.2</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

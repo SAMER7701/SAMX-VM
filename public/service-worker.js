@@ -1,11 +1,11 @@
 /**
  * SAMX-VM Enterprise Service Worker
- * Version: 1.7.1
- * Cache Version: samx-vm-v1.7.1
+ * Version: 1.7.2
+ * Cache Version: samx-vm-v1.7.2
  * Strategy: Cache First for core assets with Network Fallback, IndexedDB offline persistence
  */
 
-const CACHE_NAME = 'samx-vm-v1.7.1';
+const CACHE_NAME = 'samx-vm-v1.7.2';
 
 const CORE_ASSETS = [
   './',

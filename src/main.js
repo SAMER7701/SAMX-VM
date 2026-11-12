@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.7.1
+ * Version: 1.7.2
  * Architecture: ES Modules Coordinator
  */
 
@@ -112,7 +112,9 @@ import {
   parseJustificationNotes,
   aggregateVisitAchievements,
   getEffectiveVisitSummary,
-  renderVisitSummary
+  renderVisitSummary,
+  renderExecutiveMatrixPage,
+  fitMatrixToSinglePage
 } from './renderers.js';
 
 import * as samxApi from './api.js';
@@ -738,6 +740,7 @@ export async function bootApp() {
     refreshSpecialistsUI();
     refreshMainSelects();
     toggleReportFooter();
+    renderExecutiveMatrixPage();
 
     const session = getActiveAuthSession();
     if (session) {
@@ -3599,6 +3602,17 @@ export function toggleReadinessScore(show = null) {
   }
 }
 
+// التحكم في إدراج أو إخفاء صفحة مصفوفة نقاط القوة والبنود المعلقة بالتقرير (Page 2)
+export function toggleMatrixPage(show = null) {
+  const cb = document.getElementById('toggle-matrix-page');
+  const isChecked = (typeof show === 'boolean') ? show : (cb ? cb.checked : true);
+  if (cb && typeof show === 'boolean') cb.checked = isChecked;
+
+  localStorage.setItem('samx_show_matrix_page', isChecked ? 'true' : 'false');
+  renderExecutiveMatrixPage();
+  showToast(isChecked ? 'تم تفعيل صفحة مصفوفة نقاط القوة والبنود المعلقة بالتقرير' : 'تم إخفاء صفحة مصفوفة نقاط القوة والبنود المعلقة', 'info');
+}
+
 // ==================== إدارة وتخصيص ملخص إنجازات وتعديلات الزيارة الميدانية ====================
 
 export function openVisitSummaryModal() {
@@ -3900,6 +3914,7 @@ export function applySmartAuditorResults() {
     // 3. الحفظ في IndexedDB وتحديث الواجهة والتقرير فوراً
     saveAuditToStorage();
     if (typeof renderVisitSummary === 'function') renderVisitSummary();
+    if (typeof renderExecutiveMatrixPage === 'function') renderExecutiveMatrixPage();
     syncQuickDisplays();
 
     closeSmartAuditorModal();
@@ -4726,6 +4741,9 @@ if (typeof window !== 'undefined') {
   window.renderVisitSummary = renderVisitSummary;
   window.importJsonBackup = importJsonBackup;
   window.updateBrandingModalLogoPreview = updateBrandingModalLogoPreview;
+  window.toggleMatrixPage = toggleMatrixPage;
+  window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
+  window.fitMatrixToSinglePage = fitMatrixToSinglePage;
 
   window.bootApp = bootApp;
 }
@@ -4754,6 +4772,9 @@ if (typeof window !== 'undefined') {
   window.appendPointToVisitSummary = appendPointToVisitSummary;
   window.importJsonBackup = importJsonBackup;
   window.updateBrandingModalLogoPreview = updateBrandingModalLogoPreview;
+  window.toggleMatrixPage = toggleMatrixPage;
+  window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
+  window.fitMatrixToSinglePage = fitMatrixToSinglePage;
 
   // ربط احتياطي مباشر وفوري بعد تصيير الـ DOM
   const setupSmartAuditDirectListener = () => {
