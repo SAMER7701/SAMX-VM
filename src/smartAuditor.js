@@ -1,12 +1,10 @@
 /**
  * SAMX-VM Smart AI Readiness Auditor Engine (SAMX_ReadinessAuditor)
- * Version: 1.7.1
+ * Version: 1.7.3
  * 
  * Features:
  * - Scans all documented tour section notes, checklist items, and executive summary bullet points.
- * - Recognizes operational negative triggers:
- *   e.g. "متسخ", "عدم المحافظة", "عدم المحافظة على الشكل العام", "عدم تجهيز القسم", 
- *   "عدم تجهيز القسم للتعديل", "قصور", "تأخير", "فوضى", "تلف", "إهمال", "غير جاهز"
+ * - Context-aware recognition of negative triggers and autocorrection of common typos.
  * - Accurately reduces the Readiness Score percentage when negative operational notes exist.
  * - Recognizes positive achievement keywords to reward compliant sections.
  * - Provides structured breakdown of positive vs. negative field findings for the modal.
@@ -29,13 +27,23 @@ export const OPERATIONAL_NEGATIVE_TRIGGERS = [
   'إهمال',
   'عدم التزام',
   'سوء تنظيم',
+  'سوء التنظيم',
+  'سواء تنظيم',
+  'سواء التنظيم',
+  'سوء العرض',
+  'سواء العرض',
+  'سوء الترتيب',
+  'سوء النظافة',
   'معالجة جزئية',
   'معالجة جزئيه',
   'ملاحظة حرجة',
   'لم يتم الإنجاز',
   'لم يتم التنفيذ',
+  'لم يتم تطبيق',
+  'عدم تطبيق',
   'نقص معروضات',
   'نقص قطع',
+  'عطل في',
   'بانتظار الصيانة'
 ];
 
@@ -233,13 +241,38 @@ export function analyzeTourWithAI(audit) {
   };
 }
 
+/**
+ * التصحيح اللغوي الذكي لمصطلحات وتوصيفات العرض المرئي ومعالجة الأخطاء الشائعة
+ * (مثل تحويل "سواء التنظيم" إلى "سوء التنظيم")
+ */
+export function autocorrectVmText(text) {
+  if (!text || typeof text !== 'string') return '';
+  let str = text;
+
+  // 1. تصحيح خطأ "سواء" الشائع بدلاً من "سوء" عند التوصيف السلبي (مع دعم واو العطف "وسواء")
+  str = str.replace(/(^|[\s\(\[\"\'،؛])(و)?سواء\s+(التنظيم|تنظيم|العرض|عرض|الترتيب|ترتيب|التوزيع|توزيع|النظافة|نظافة|الحالة|حالة|الاستخدام|استخدام|المظهر|مظهر|التخزين|تخزين)/gi, (match, p1, w, target) => {
+    return (p1 || '') + (w ? 'وسوء ' : 'سوء ') + target;
+  });
+  
+  // 2. تصحيحات الأخطاء الإملائية الشائعة في العرض المرئي
+  str = str.replace(/(^|[\s\(\[\"\'،؛])لم\s+[يب][تث][نم](?=[\s\)\]\"\'،؛\.]|$)/g, '$1لم يتم');
+  str = str.replace(/(^|[\s\(\[\"\'،؛])عدو\s+(تطبيق|التزام|توفر|وجود|اكتمال)/g, '$1عدم $2');
+  str = str.replace(/معالج[هة]\s+جزئي[هة]/g, 'معالجة جزئية');
+  str = str.replace(/المانيكان\s*ات/g, 'المانيكانات');
+  str = str.replace(/مانيكان\s*ات/g, 'مانيكانات');
+  str = str.replace(/(^|[\s\(\[\"\'،؛])عطال\s+في/g, '$1عطل في');
+
+  return str;
+}
+
 export function proofreadText(text) {
   if (!text || typeof text !== 'string') return '';
-  return text.trim();
+  return autocorrectVmText(text.trim());
 }
 
 // تصدير دوال المدقق الذكي للنافذة العامة (Global Scope Bridge)
 if (typeof window !== 'undefined') {
   window.analyzeTourWithAI = analyzeTourWithAI;
   window.proofreadText = proofreadText;
+  window.autocorrectVmText = autocorrectVmText;
 }

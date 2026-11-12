@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.7.2
+ * Version: 1.7.3
  * Architecture: ES Modules Coordinator
  */
 
-import { analyzeTourWithAI, proofreadText } from './smartAuditor.js';
+import { analyzeTourWithAI, proofreadText, autocorrectVmText } from './smartAuditor.js';
 
 import {
   APP_VERSION,
@@ -721,6 +721,7 @@ export async function bootApp() {
   try { bindMetaInputs(); } catch(e) {}
   try { syncBrandingUI(); } catch(e) {}
   try { setupBrandingRealtimeListeners(); } catch(e) {}
+  try { setupTextAutocorrectListeners(); } catch(e) {}
   try { renderAuditCards(); } catch(e) {}
   try { setupNetworkStatusListener(); } catch(e) {}
   try { initSpeechRecognition(); } catch(e) {}
@@ -2586,7 +2587,8 @@ export function saveSectionEntry() {
   const typeVal = typeSelect ? typeSelect.value : '';
   const customTitle = document.getElementById('modal-custom-title') ? document.getElementById('modal-custom-title').value.trim() : '';
   const finalTitle = typeVal === '__custom_section__' ? (customTitle || 'قسم مخصص') : typeVal;
-  const notes = document.getElementById('modal-notes') ? document.getElementById('modal-notes').value.trim() : '';
+  const rawNotes = document.getElementById('modal-notes') ? document.getElementById('modal-notes').value.trim() : '';
+  const notes = typeof autocorrectVmText === 'function' ? autocorrectVmText(rawNotes) : rawNotes;
   const layoutInput = document.getElementById('modal-layout-type');
   const layoutType = layoutInput ? layoutInput.value : 'comparison';
   const customPanoTitleInput = document.getElementById('modal-custom-panorama-title');
@@ -3685,7 +3687,8 @@ export function clearVisitSummaryToDefault() {
 
 export function saveVisitSummaryFromModal() {
   const modalTextarea = document.getElementById('visit-summary-textarea');
-  const val = modalTextarea ? modalTextarea.value.trim() : '';
+  const rawVal = modalTextarea ? modalTextarea.value.trim() : '';
+  const val = typeof proofreadText === 'function' ? proofreadText(rawVal) : rawVal;
   currentAudit.visitSummary = val;
   saveAuditToStorage();
   renderVisitSummary();
@@ -3694,7 +3697,8 @@ export function saveVisitSummaryFromModal() {
 }
 
 export function updateLiveVisitSummary(value) {
-  currentAudit.visitSummary = typeof value === 'string' ? value : '';
+  const clean = typeof value === 'string' ? ((typeof autocorrectVmText === 'function') ? autocorrectVmText(value) : value) : '';
+  currentAudit.visitSummary = clean;
   saveAuditToStorage();
   renderVisitSummary();
 }
@@ -4124,6 +4128,39 @@ export function setupBrandingRealtimeListeners() {
     });
   }
 }
+
+// التحديث والتصحيح اللغوي التلقائي أثناء الكتابة في حقول الملاحظات وملخص الزيارة
+export function setupTextAutocorrectListeners() {
+  const fields = ['modal-notes', 'visit-summary-textarea', 'report-visit-summary-input', 'ai-auditor-summary-rewrite'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.autocorrectWired) return;
+    el.dataset.autocorrectWired = 'true';
+
+    // تصحيح عند مغادرة الحقل (blur)
+    el.addEventListener('blur', () => {
+      if (el.value && typeof autocorrectVmText === 'function') {
+        const corrected = autocorrectVmText(el.value);
+        if (corrected !== el.value) {
+          el.value = corrected;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    });
+
+    // تصحيح فوري أثناء الكتابة للكلمات الشائعة مثل "سواء التنظيم" -> "سوء التنظيم"
+    el.addEventListener('input', () => {
+      if (!el.value) return;
+      if (/(^|[\s\(\[\"\'،؛])(و)?سواء\s+(التنظيم|تنظيم|العرض|عرض|الترتيب|ترتيب|التوزيع|توزيع|النظافة|نظافة)/.test(el.value)) {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        el.value = autocorrectVmText(el.value);
+        try { el.setSelectionRange(start, end); } catch(e) {}
+      }
+    });
+  });
+}
+
 
 export function printReport() {
   if (!modalState.isBypassingValidation) {
@@ -4744,6 +4781,8 @@ if (typeof window !== 'undefined') {
   window.toggleMatrixPage = toggleMatrixPage;
   window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
+  window.autocorrectVmText = autocorrectVmText;
+  window.setupTextAutocorrectListeners = setupTextAutocorrectListeners;
 
   window.bootApp = bootApp;
 }
@@ -4775,6 +4814,8 @@ if (typeof window !== 'undefined') {
   window.toggleMatrixPage = toggleMatrixPage;
   window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
+  window.autocorrectVmText = autocorrectVmText;
+  window.setupTextAutocorrectListeners = setupTextAutocorrectListeners;
 
   // ربط احتياطي مباشر وفوري بعد تصيير الـ DOM
   const setupSmartAuditDirectListener = () => {

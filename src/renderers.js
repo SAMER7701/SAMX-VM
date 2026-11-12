@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.7.2
+ * Version: 1.7.3
  * Architecture: Decoupled UI Rendering Routines
  */
 
@@ -28,6 +28,7 @@ import {
 } from './store.js';
 
 import { getActiveAuthSession } from './auth.js';
+import { autocorrectVmText } from './smartAuditor.js';
 
 /**
  * دالة تعقيم وتطهير النصوص المؤسسية لمنع ظهور أي رموز أو نصوص طفيلية مثل sam أو undefined
@@ -186,14 +187,61 @@ export function getDynamicJustifications(sec) {
 }
 
 /**
- * صياغة إنجاز الـ VM الميداني بلغة احترافية وأفعال إنجاز بشرية
+ * فحص ما إذا كان النص أو القسم يمثل رصداً سلبياً أو معياراً غير مكتمل/معلقاً
  */
-export function formatArabicVmAction(actionSnippet) {
+export function isNegativeOrUnappliedFinding(text, section = null) {
+  if (section) {
+    const statuses = getSectionStatuses(section);
+    const hasOnlyResolved = statuses.includes('resolved') && statuses.length === 1;
+    // إذا كانت حالة القسم تتضمن متابعة للمتجر أو طلب صيانة/إدارة دون أن يكون مكتملاً 100%
+    if (!hasOnlyResolved && (statuses.includes('store_followup') || statuses.includes('management_action'))) {
+      return true;
+    }
+  }
+
+  if (!text || typeof text !== 'string') return false;
+  const str = text.toLowerCase();
+
+  const negativeKeyPatterns = [
+    /لم\s+يتم/i,
+    /عدم\s+/i,
+    /سوء\s+/i,
+    /سواء\s+/i,
+    /نقص\s+/i,
+    /عطل/i,
+    /تلف/i,
+    /تالف/i,
+    /قصور/i,
+    /تأخير/i,
+    /فوضى/i,
+    /إهمال/i,
+    /غير\s+مطابق/i,
+    /غير\s+جاهز/i,
+    /غير\s+مكتمل/i,
+    /معالجة\s+جزئية/i,
+    /بحاجة\s+(إلى\s+)?(صيانة|تعديل|إصلاح|تغيير|استكمال)/i,
+    /بانتظار/i,
+    /ملاحظة\s+حرجة/i
+  ];
+
+  return negativeKeyPatterns.some(pattern => pattern.test(str));
+}
+
+/**
+ * صياغة إنجاز أو رصد الـ VM الميداني بسياق ذكي (Context-Aware)
+ * يسقط "تم إنجاز" تلقائياً عند وجود بنود معلقة أو سلبية ويستبدلها بتوصيف ورصد إداري احترافي
+ */
+export function formatArabicVmAction(actionSnippet, section = null) {
   if (!actionSnippet || typeof actionSnippet !== 'string') {
     return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
-  let text = actionSnippet
+  // 1. تطبيق التدقيق اللغوي التلقائي وتصحيح الأخطاء الشائعة (مثل "سواء التنظيم" -> "سوء التنظيم")
+  let text = (typeof autocorrectVmText === 'function') 
+    ? autocorrectVmText(actionSnippet) 
+    : actionSnippet;
+
+  text = text
     .replace(/^[\[\(\s]+|[\]\)\s]+$/g, '')
     .replace(/^إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '')
     .replace(/^التعديل الميداني الفوري\s*[:\-\s]*/g, '')
@@ -206,7 +254,56 @@ export function formatArabicVmAction(actionSnippet) {
     return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
-  // إذا كانت العبارة تبدأ بالفعل بفعل ماضٍ مثل "تم" أو "تمت"
+  // 2. التدقيق السياقي الذكي (Context-Aware Check) لمنع التناقض المنطقي وإسقاط "تم إنجاز"
+  const isNegative = isNegativeOrUnappliedFinding(text, section);
+
+  if (isNegative) {
+    // إسقاط أي بادئة إنجاز خاطئة قد تكون موجودة مسبقاً
+    text = text.replace(/^تم[ت]?\s+(إنجاز|انجاز|تنفيذ|تطبيق)\s+/, '');
+    text = text.replace(/^تم[ت]?\s+/, '');
+
+    if (/^لم\s+يتم\s+/.test(text)) {
+      return 'تم رصد عدم ' + text.replace(/^لم\s+يتم\s+/, '');
+    }
+    if (/^عدم\s+/.test(text)) {
+      return 'تم رصد ' + text;
+    }
+    if (/^سوء\s+/.test(text)) {
+      return 'تم رصد ' + text;
+    }
+    if (/^نقص\s+/.test(text)) {
+      return 'تم رصد ' + text;
+    }
+    if (/^عطل\s+/.test(text)) {
+      return 'تم رصد عطل في ' + text.replace(/^عطل\s+(في\s+)?/, '');
+    }
+    if (/^تلف\s+/.test(text) || /^تالف/.test(text)) {
+      return 'تم رصد تلفيات في ' + text.replace(/^(تلفيات|تلف|تالف)\s+(في\s+)?/, '');
+    }
+    if (/^غير\s+/.test(text)) {
+      return 'تم رصد حالة ' + text;
+    }
+    if (/^قصور\s+/.test(text)) {
+      return 'تم رصد قصور في ' + text.replace(/^قصور\s+(في\s+)?/, '');
+    }
+
+    if (/^تطبيق\s+/.test(text)) {
+      return 'تم رصد عدم تطبيق ' + text.replace(/^تطبيق\s+/, '');
+    }
+    if (/^تنسيق\s+/.test(text)) {
+      return 'تم رصد حاجة لاستكمال تنسيق ' + text.replace(/^تنسيق\s+/, '');
+    }
+    if (/^ترتيب\s+/.test(text)) {
+      return 'تم رصد حاجة لإعادة ترتيب ' + text.replace(/^ترتيب\s+/, '');
+    }
+    if (/^ضبط\s+/.test(text)) {
+      return 'تم رصد حاجة لضبط ' + text.replace(/^ضبط\s+/, '');
+    }
+
+    return 'تم رصد ملحوظة تتطلب المتابعة: ' + text;
+  }
+
+  // 3. في حالة الإنجاز الإيجابي المكتمل (Positive Accomplishment):
   if (/^تم[ت]?\s+/.test(text)) {
     return text;
   }
@@ -278,7 +375,8 @@ export function formatArabicVmAction(actionSnippet) {
  */
 export function cleanSummaryPointText(line) {
   if (!line || typeof line !== 'string') return '';
-  let str = line.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
+  let str = (typeof autocorrectVmText === 'function') ? autocorrectVmText(line) : line;
+  str = str.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
 
   // 1. تنظيف وإزالة عبارة "(معالجة كاملة 100%)" و "(معالجة كاملة)" وكافة لواحقها من الملخص
   str = str.replace(/\s*\(\s*معالجة كاملة(\s*100%?)?\s*\)/g, '');
@@ -348,7 +446,7 @@ export function formatSummaryPointHtml(point) {
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة مع صياغة بشرية ناطقة بالإنجاز الفعلي
+ * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة مع صياغة بشرية سياقية دقيقة
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -369,21 +467,30 @@ export function aggregateVisitAchievements(audit = null) {
 
     const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
     const tags = Array.isArray(sec.tags) ? sec.tags : [];
+    const statuses = getSectionStatuses(sec);
+    const isOnlyResolved = statuses.includes('resolved') && statuses.length === 1;
+
+    const rawNotes = (sec.notes || sec.justification || '').trim();
+    const correctedNotes = (typeof autocorrectVmText === 'function') ? autocorrectVmText(rawNotes) : rawNotes;
 
     let actionSnippet = '';
-    if (checklist.length > 0) {
+    // إذا كانت ملاحظة المستخدم تحوي رصداً سلبياً أو قصوراً صريحاً (مثل "سوء تنظيم" أو "عدم تطبيق")
+    if (correctedNotes && isNegativeOrUnappliedFinding(correctedNotes, sec)) {
+      actionSnippet = correctedNotes;
+    } else if (checklist.length > 0) {
       actionSnippet = checklist[0];
     } else if (tags.length > 0) {
       actionSnippet = tags.join('، ');
+    } else if (correctedNotes) {
+      actionSnippet = correctedNotes;
     } else {
       const justs = getDynamicJustifications(sec);
       actionSnippet = justs.length > 0 ? justs[0] : 'تنسيق وترتيب المعروضات وفق معايير الهوية';
     }
 
-    // صياغة إنجاز الـ VM الميداني بلغة احترافية وأفعال إنجاز بشرية
-    let vmAccomplishment = formatArabicVmAction(actionSnippet);
+    // صياغة إنجاز أو رصد الـ VM الميداني بسياق ذكي (Context-Aware)
+    let vmAccomplishment = formatArabicVmAction(actionSnippet, sec);
 
-    const statuses = getSectionStatuses(sec);
     const rawResolvedSubs = getSectionSubOptions(sec, 'resolved');
     const followupSubs = getSectionSubOptions(sec, 'store_followup');
     const mgmtSubs = getSectionSubOptions(sec, 'management_action');
@@ -391,7 +498,7 @@ export function aggregateVisitAchievements(audit = null) {
     // استبعاد الخيار الافتراضي (معالجة كاملة 100%) نهائياً من أي نص
     const resolvedSubs = rawResolvedSubs.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'));
 
-    if (resolvedSubs.length > 0) {
+    if (resolvedSubs.length > 0 && isOnlyResolved) {
       vmAccomplishment += ` (تنفيذ ميداني - ${resolvedSubs.join('، ')})`;
     }
 
@@ -2766,4 +2873,5 @@ if (typeof window !== 'undefined') {
   window.getImageTransformStyle = getImageTransformStyle;
   window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
+  window.isNegativeOrUnappliedFinding = isNegativeOrUnappliedFinding;
 }
