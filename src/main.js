@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.7.3
+ * Version: 1.7.4
  * Architecture: ES Modules Coordinator
  */
 
@@ -114,7 +114,9 @@ import {
   getEffectiveVisitSummary,
   renderVisitSummary,
   renderExecutiveMatrixPage,
-  fitMatrixToSinglePage
+  fitMatrixToSinglePage,
+  isNegativeOrUnappliedFinding,
+  sanitizeSectionTitle
 } from './renderers.js';
 
 import * as samxApi from './api.js';
@@ -1957,9 +1959,12 @@ export function insertChecklistToNotes() {
   }
   const notesEl = document.getElementById('modal-notes');
   if (!notesEl) return;
-  const bullets = modalState.activeModalChecklist.map(item => `• معيار مؤكد: ${item}`).join('\n');
+  const bullets = modalState.activeModalChecklist.map(item => {
+    const isNeg = isNegativeOrUnappliedFinding(item);
+    return isNeg ? `• ⚠️ ملاحظة غير مطابقة: ${item}` : `• ✓ معيار مؤكد: ${item}`;
+  }).join('\n');
   notesEl.value = (notesEl.value ? notesEl.value.trim() + '\n\n' : '') + bullets;
-  showToast('تم إدراج معايير الـ VM في الملاحظات', 'success');
+  showToast('تم إدراج معايير وملاحظات الـ VM في الملاحظات', 'success');
 }
 
 // ==================== تفاعلات جهات التكليف (Assignees Controller) ====================

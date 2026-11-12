@@ -9,7 +9,7 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { currentAudit, getBrandingSettings, getSectionStatuses, getSectionSubOptions } from './store.js';
-import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText, getEffectiveVisitSummary, formatSummaryPointHtml, cleanSummaryPointText } from './renderers.js';
+import { showToast, renderPrintSections, syncBrandingUI, getDynamicJustifications, sanitizeCorporateText, getEffectiveVisitSummary, formatSummaryPointHtml, cleanSummaryPointText, isNegativeOrUnappliedFinding } from './renderers.js';
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 export { parseJustificationNotes } from './renderers.js';
 
@@ -232,16 +232,27 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
           ${sec.checklist && sec.checklist.length > 0 ? `
             <div>
               <div style="font-weight: 800; color: #334155; font-size: 10px; margin-bottom: 2.5px; display: flex; align-items: center; gap: 4px;">
-                <span style="color: #ca8a04; font-weight: 900;">✓</span>
-                <span>معايير الـ VM المعتمدة المطبقة (${sec.checklist.length}):</span>
+                <span style="color: #ca8a04; font-weight: 900;">📋</span>
+                <span>معايير وملاحظات الـ VM (${sec.checklist.length}):</span>
               </div>
               <div style="display: flex; flex-wrap: wrap; gap: 3.5px;">
-                ${sec.checklist.map(c => `
-                  <span style="display: inline-flex; align-items: center; gap: 3px; background: #fefce8; color: #713f12; border: 1px solid #fde047; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
-                    <span style="color: #ca8a04; font-weight: 900;">✓</span>
-                    <span>${c}</span>
-                  </span>
-                `).join('')}
+                ${sec.checklist.map(c => {
+                  const isNeg = isNegativeOrUnappliedFinding(c, sec);
+                  if (isNeg) {
+                    return `
+                      <span style="display: inline-flex; align-items: center; gap: 3px; background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
+                        <span style="color: #e11d48; font-weight: 900;">⚠️</span>
+                        <span>ملاحظة غير مطابقة: ${c}</span>
+                      </span>
+                    `;
+                  }
+                  return `
+                    <span style="display: inline-flex; align-items: center; gap: 3px; background: #fefce8; color: #713f12; border: 1px solid #fde047; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
+                      <span style="color: #ca8a04; font-weight: 900;">✓</span>
+                      <span>معيار مؤكد: ${c}</span>
+                    </span>
+                  `;
+                }).join('')}
               </div>
             </div>
           ` : ''}

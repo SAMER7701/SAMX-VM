@@ -228,12 +228,13 @@ export function isNegativeOrUnappliedFinding(text, section = null) {
 }
 
 /**
- * صياغة إنجاز أو رصد الـ VM الميداني بسياق ذكي (Context-Aware)
- * يسقط "تم إنجاز" تلقائياً عند وجود بنود معلقة أو سلبية ويستبدلها بتوصيف ورصد إداري احترافي
+ * صياغة إنجاز أو رصد الـ VM الميداني بمرشح النوايا الذكي (Context-Aware Intent Filter)
+ * - يفرز نية التطوير الميداني المنفذ: "تم إنجاز التطوير الميداني — [الإجراء الميداني]"
+ * - يفرز نية القصور والبنود غير المطبقة: "رصد ملحوظة تتطلب المعالجة — [توصيف القصور]"
  */
 export function formatArabicVmAction(actionSnippet, section = null) {
   if (!actionSnippet || typeof actionSnippet !== 'string') {
-    return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
+    return 'تم إنجاز التطوير الميداني — إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
   // 1. تطبيق التدقيق اللغوي التلقائي وتصحيح الأخطاء الشائعة (مثل "سواء التنظيم" -> "سوء التنظيم")
@@ -251,123 +252,192 @@ export function formatArabicVmAction(actionSnippet, section = null) {
     .trim();
 
   if (!text) {
-    return 'تمت إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
+    return 'تم إنجاز التطوير الميداني — إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
-  // 2. التدقيق السياقي الذكي (Context-Aware Check) لمنع التناقض المنطقي وإسقاط "تم إنجاز"
-  const isNegative = isNegativeOrUnappliedFinding(text, section);
+  // 2. مرشح النوايا الذكي (Context-Aware Intent Filter):
+  // فحص ما إذا كان النص نفسه يعبر عن ملاحظة غير مطابقة أو قصور صريح
+  const hasNegativeFinding = isNegativeOrUnappliedFinding(text, null);
+  const isSectionUnresolved = section && isNegativeOrUnappliedFinding(null, section);
 
-  if (isNegative) {
-    // إسقاط أي بادئة إنجاز خاطئة قد تكون موجودة مسبقاً
-    text = text.replace(/^تم[ت]?\s+(إنجاز|انجاز|تنفيذ|تطبيق)\s+/, '');
+  // أ. مسار رصد الملاحظة التي تتطلب المعالجة (Negative / Unapplied Finding Intent)
+  if (hasNegativeFinding || (isSectionUnresolved && (/^(عدم|لم|سوء|سواء|نقص|عطل|تلف|تالف|غير|قصور|ملاحظة)/.test(text)))) {
+    text = text.replace(/^تم[ت]?\s+(إنجاز\s+التطوير\s+الميداني\s*—\s*|إنجاز|انجاز|تنفيذ|تطبيق)\s+/, '');
     text = text.replace(/^تم[ت]?\s+/, '');
+    text = text.replace(/^رصد\s+ملحوظة\s+تتطلب\s+(المعالجة|المتابعة)\s*—\s*/, '');
+    text = text.replace(/^ملاحظة\s+غير\s+مطابقة\s*[:\-\s]*/, '');
 
+    if (/^لم\s+يتم\s+تطبيق\s+/.test(text)) {
+      return 'رصد ملحوظة تتطلب المعالجة — عدم تطبيق ' + text.replace(/^لم\s+يتم\s+تطبيق\s+/, '');
+    }
     if (/^لم\s+يتم\s+/.test(text)) {
-      return 'تم رصد عدم ' + text.replace(/^لم\s+يتم\s+/, '');
+      return 'رصد ملحوظة تتطلب المعالجة — عدم ' + text.replace(/^لم\s+يتم\s+/, '');
     }
     if (/^عدم\s+/.test(text)) {
-      return 'تم رصد ' + text;
+      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
     }
     if (/^سوء\s+/.test(text)) {
-      return 'تم رصد ' + text;
+      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
     }
     if (/^نقص\s+/.test(text)) {
-      return 'تم رصد ' + text;
+      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
     }
     if (/^عطل\s+/.test(text)) {
-      return 'تم رصد عطل في ' + text.replace(/^عطل\s+(في\s+)?/, '');
+      return 'رصد ملحوظة تتطلب المعالجة — عطل في ' + text.replace(/^عطل\s+(في\s+)?/, '');
     }
     if (/^تلف\s+/.test(text) || /^تالف/.test(text)) {
-      return 'تم رصد تلفيات في ' + text.replace(/^(تلفيات|تلف|تالف)\s+(في\s+)?/, '');
+      return 'رصد ملحوظة تتطلب المعالجة — تلفيات في ' + text.replace(/^(تلفيات|تلف|تالف)\s+(في\s+)?/, '');
     }
     if (/^غير\s+/.test(text)) {
-      return 'تم رصد حالة ' + text;
+      return 'رصد ملحوظة تتطلب المعالجة — حالة ' + text;
     }
     if (/^قصور\s+/.test(text)) {
-      return 'تم رصد قصور في ' + text.replace(/^قصور\s+(في\s+)?/, '');
+      return 'رصد ملحوظة تتطلب المعالجة — قصور في ' + text.replace(/^قصور\s+(في\s+)?/, '');
     }
 
-    if (/^تطبيق\s+/.test(text)) {
-      return 'تم رصد عدم تطبيق ' + text.replace(/^تطبيق\s+/, '');
-    }
-    if (/^تنسيق\s+/.test(text)) {
-      return 'تم رصد حاجة لاستكمال تنسيق ' + text.replace(/^تنسيق\s+/, '');
-    }
-    if (/^ترتيب\s+/.test(text)) {
-      return 'تم رصد حاجة لإعادة ترتيب ' + text.replace(/^ترتيب\s+/, '');
-    }
-    if (/^ضبط\s+/.test(text)) {
-      return 'تم رصد حاجة لضبط ' + text.replace(/^ضبط\s+/, '');
-    }
-
-    return 'تم رصد ملحوظة تتطلب المتابعة: ' + text;
+    return 'رصد ملحوظة تتطلب المعالجة — ' + text;
   }
 
-  // 3. في حالة الإنجاز الإيجابي المكتمل (Positive Accomplishment):
-  if (/^تم[ت]?\s+/.test(text)) {
-    return text;
-  }
+  // ب. مسار إنجاز التطوير الميداني (Major Executed Improvement Intent)
+  text = text.replace(/^تم[ت]?\s+(إنجاز\s+التطوير\s+الميداني\s*—\s*|إنجاز|انجاز|تنفيذ)\s+/, '');
+  text = text.replace(/^تم[ت]?\s+/, '');
+  text = text.replace(/^رصد\s+ملحوظة\s+تتطلب\s+(المعالجة|المتابعة)\s*—\s*/, '');
 
-  // تحويل المصادر الشائعة إلى أفعال إنجاز احترافية
   if (/^سلامة\s+ونظافة\s+المانيكان/.test(text)) {
-    return 'تم ضبط ونظافة المانيكانات والتأكد من استقامة الوقفة والتثبيت';
+    return 'تم إنجاز التطوير الميداني — ضبط ونظافة المانيكانات والتأكد من استقامة الوقفة والتثبيت';
   }
   if (/^نظافة\s+وضبط\s+المانيكان/.test(text)) {
-    return 'تم ضبط ونظافة المانيكانات وضبط زوايا التثبيت';
-  }
-  if (/^نقل\s+/.test(text)) {
-    return 'تم نقل وإعادة تهيئة ' + text.replace(/^نقل\s+/, '');
+    return 'تم إنجاز التطوير الميداني — ضبط ونظافة المانيكانات وضبط زوايا التثبيت';
   }
   if (/^إحلال\s+/.test(text)) {
-    return 'تم إحلال وتنسيق ' + text.replace(/^إحلال\s+/, '');
+    return 'تم إنجاز التطوير الميداني — إحلال وتنسيق ' + text.replace(/^إحلال\s+/, '');
+  }
+  if (/^تحرير\s+/.test(text)) {
+    return 'تم إنجاز التطوير الميداني — تحرير مسارات الحركة وانسيابية ' + text.replace(/^تحرير\s+(مسارات\s+|مسار\s+)?/, '');
+  }
+  if (/^تطوير\s+/.test(text)) {
+    return 'تم إنجاز التطوير الميداني — تطوير وتحديث ' + text.replace(/^تطوير\s+/, '');
+  }
+  if (/^نقل\s+/.test(text)) {
+    return 'تم إنجاز التطوير الميداني — نقل وإعادة تهيئة ' + text.replace(/^نقل\s+/, '');
   }
   if (/^توحيد\s+/.test(text)) {
-    return 'تم توحيد فئات وعرض ' + text.replace(/^توحيد\s+/, '');
+    return 'تم إنجاز التطوير الميداني — توحيد فئات وعرض ' + text.replace(/^توحيد\s+/, '');
   }
   if (/^إعادة\s+تنسيق\s+/.test(text)) {
-    return 'تمت إعادة تنسيق وترتيب ' + text.replace(/^إعادة\s+تنسيق\s+/, '');
+    return 'تم إنجاز التطوير الميداني — إعادة تنسيق وترتيب ' + text.replace(/^إعادة\s+تنسيق\s+/, '');
   }
   if (/^إعادة\s+ترتيب\s+/.test(text)) {
-    return 'تمت إعادة ترتيب وتنسيق ' + text.replace(/^إعادة\s+ترتيب\s+/, '');
+    return 'تم إنجاز التطوير الميداني — إعادة ترتيب وتنسيق ' + text.replace(/^إعادة\s+ترتيب\s+/, '');
   }
   if (/^إعادة\s+/.test(text)) {
-    return 'تمت ' + text;
+    return 'تم إنجاز التطوير الميداني — ' + text;
   }
   if (/^تنسيق\s+/.test(text)) {
-    return 'تمت إعادة ترتيب وتنسيق ' + text.replace(/^تنسيق\s+/, '');
+    return 'تم إنجاز التطوير الميداني — إعادة تنسيق وترتيب ' + text.replace(/^تنسيق\s+/, '');
   }
   if (/^ترتيب\s+/.test(text)) {
-    return 'تم ترتيب وتنسيق ' + text.replace(/^ترتيب\s+/, '');
+    return 'تم إنجاز التطوير الميداني — ترتيب وتنسيق ' + text.replace(/^ترتيب\s+/, '');
   }
   if (/^ضبط\s+/.test(text)) {
-    return 'تم ضبط وتحسين ' + text.replace(/^ضبط\s+/, '');
+    return 'تم إنجاز التطوير الميداني — ضبط وتحسين ' + text.replace(/^ضبط\s+/, '');
   }
   if (/^مراجعة\s+/.test(text)) {
-    return 'تمت مراجعة وضبط ' + text.replace(/^مراجعة\s+/, '');
+    return 'تم إنجاز التطوير الميداني — مراجعة وضبط ' + text.replace(/^مراجعة\s+/, '');
   }
   if (/^تطبيق\s+/.test(text)) {
-    return 'تم تطبيق ' + text.replace(/^تطبيق\s+/, '');
+    return 'تم إنجاز التطوير الميداني — تطبيق ' + text.replace(/^تطبيق\s+/, '');
   }
   if (/^معالجة\s+/.test(text)) {
-    return 'تمت معالجة وضبط ' + text.replace(/^معالجة\s+/, '');
+    return 'تم إنجاز التطوير الميداني — معالجة وضبط ' + text.replace(/^معالجة\s+/, '');
   }
   if (/^تعديل\s+/.test(text)) {
-    return 'تم تعديل وتنسيق ' + text.replace(/^تعديل\s+/, '');
+    return 'تم إنجاز التطوير الميداني — تعديل وتنسيق ' + text.replace(/^تعديل\s+/, '');
   }
   if (/^تحسين\s+/.test(text)) {
-    return 'تم تحسين وتطوير ' + text.replace(/^تحسين\s+/, '');
+    return 'تم إنجاز التطوير الميداني — تحسين وتطوير ' + text.replace(/^تحسين\s+/, '');
   }
   if (/^إبراز\s+/.test(text)) {
-    return 'تم إبراز وتنسيق ' + text.replace(/^إبراز\s+/, '');
+    return 'تم إنجاز التطوير الميداني — إبراز وتنسيق ' + text.replace(/^إبراز\s+/, '');
   }
   if (/^تجديد\s+/.test(text)) {
-    return 'تم تجديد وترتيب ' + text.replace(/^تجديد\s+/, '');
+    return 'تم إنجاز التطوير الميداني — تجديد وترتيب ' + text.replace(/^تجديد\s+/, '');
   }
   if (/^توزيع\s+/.test(text)) {
-    return 'تم توزيع وتنظيم ' + text.replace(/^توزيع\s+/, '');
+    return 'تم إنجاز التطوير الميداني — توزيع وتنظيم ' + text.replace(/^توزيع\s+/, '');
   }
 
-  return 'تم إنجاز ' + text;
+  if (isSectionUnresolved) {
+    return 'رصد ملحوظة تتطلب المعالجة — استكمال متطلبات ' + text;
+  }
+
+  return 'تم إنجاز التطوير الميداني — ' + text;
+}
+
+/**
+ * دالة تطهير وتوحيد عناوين الأقسام وإزالة الشوائب المعكوسة الناتجة عن اتجاهات RTL
+ * وتحويل المصطلحات الإنجليزية الشائعة لصيغ عربية أنيقة مع وضع الاسم الإنجليزي بين قوسين
+ */
+export function sanitizeSectionTitle(rawTitle, idx = 0) {
+  if (!rawTitle || typeof rawTitle !== 'string') {
+    return `القسم ${idx + 1}`;
+  }
+
+  let title = rawTitle.trim();
+
+  // 1. إزالة المقاطع المكسورة والبادئات المشوهة المعكوسة من نصوص RTL
+  title = title
+    .replace(/^(لقن\s*مت|مت|لقسم|تم\s*نقل|تم)\s*[:\-\s]*/i, '')
+    .replace(/^[:\.\-\s]+|[:\.\-\s]+$/g, '')
+    .trim();
+
+  // 2. إزالة الأقواس المربعة والبادئات المتكررة
+  title = title.replace(/^\[\s*([^\]]+?)\s*\]$/, '$1').trim();
+  title = title.replace(/^(قسم\s+)+/i, 'قسم ').trim();
+  title = title.replace(/^(SECTION\s+)+/i, 'SECTION ').trim();
+
+  // 3. تطبيع العناوين الإنجليزية الشائعة وتحويلها لصيغة عربية أنيقة مع وضع الاسم الإنجليزي بين قوسين
+  const englishSectionMap = [
+    { pattern: /^(branch\s+entrance|entrance|main\s+entrance)$/i, arabic: 'مدخل المعرض (Branch Entrance)' },
+    { pattern: /^(section\s+men[’']?s|men[’']?s\s+section|men[’']?s|men)$/i, arabic: 'قسم الملابس الرجالية (Men’s Section)' },
+    { pattern: /^(section\s+women[’']?s|women[’']?s\s+section|women[’']?s|women)$/i, arabic: 'قسم الملابس النسائية (Women’s Section)' },
+    { pattern: /^(section\s+kids?|kids?\s+section|kids?|children)$/i, arabic: 'قسم الأطفال (Kids Section)' },
+    { pattern: /^(footwear|shoes\s+section|shoes)$/i, arabic: 'قسم الأحذية (Footwear)' },
+    { pattern: /^(perfumes?|fragrances?)$/i, arabic: 'قسم العطور والتجميل (Perfumes)' },
+    { pattern: /^(accessories|accessory)$/i, arabic: 'قسم الإكسسوارات (Accessories)' },
+    { pattern: /^(headgear|ghutra|shemagh)$/i, arabic: 'قسم الأشمغة والغتر (Shemagh & Ghutra)' },
+    { pattern: /^(cashier\s+area|cashier|pos)$/i, arabic: 'منطقة المحاسبة والكاشير (Cashier Area)' },
+    { pattern: /^(window\s+display|display\s+window|facade)$/i, arabic: 'واجهة المعرض الرئيسية (Facade Display)' },
+    { pattern: /^(fitting\s+rooms?|fitting\s+room)$/i, arabic: 'غرف القياس (Fitting Rooms)' },
+    { pattern: /^(warehouse|stock\s*room|backstore)$/i, arabic: 'المستودع والمخزن (Stock Room)' },
+  ];
+
+  for (const item of englishSectionMap) {
+    if (item.pattern.test(title)) {
+      return item.arabic;
+    }
+  }
+
+  // 4. إذا كان الاسم يحتوي على "SECTION Foo"
+  if (/^SECTION\s+/i.test(title)) {
+    const term = title.replace(/^SECTION\s+/i, '').trim();
+    for (const item of englishSectionMap) {
+      if (item.pattern.test(term)) {
+        return item.arabic;
+      }
+    }
+    return `قسم ${term} (${term})`;
+  }
+
+  // 5. إذا كان الاسم نقيًا وإنجليزيًا بالكامل (أحرف لاتينية فقط)
+  if (/^[a-zA-Z0-9\s’'\-]+$/.test(title) && title.length > 2) {
+    return `قسم ${title} (${title})`;
+  }
+
+  // 6. تنظيف أي أقواس مكسورة أو زيادات
+  title = title.replace(/[:\.\s]+$/, '').trim();
+
+  return title || `القسم ${idx + 1}`;
 }
 
 /**
@@ -377,6 +447,10 @@ export function cleanSummaryPointText(line) {
   if (!line || typeof line !== 'string') return '';
   let str = (typeof autocorrectVmText === 'function') ? autocorrectVmText(line) : line;
   str = str.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
+
+  // تنظيف البادئات المعكوسة أو المكسورة
+  str = str.replace(/^(لقن\s*مت|مت|لقسم)\s*:\s*/i, '');
+  str = str.replace(/^:+[\s\-]*/, '');
 
   // 1. تنظيف وإزالة عبارة "(معالجة كاملة 100%)" و "(معالجة كاملة)" وكافة لواحقها من الملخص
   str = str.replace(/\s*\(\s*معالجة كاملة(\s*100%?)?\s*\)/g, '');
@@ -416,29 +490,48 @@ export function cleanSummaryPointText(line) {
 
 /**
  * دالة لتنسيق نقطة الملخص كعنصر HTML يبرز اسم القسم والتكليفات الموجهة للفرع/الصيانة
+ * مع عزل الاتجاه ثنائي اللغة (<bdi> & &lrm;) لضمان عدم انقلاب الترقيم أو الكولون
  */
 export function formatSummaryPointHtml(point) {
   const cleaned = cleanSummaryPointText(point);
-  const colonIdx = cleaned.indexOf(':');
+
+  let colonIdx = -1;
+  const matchAction = cleaned.match(/:\s*(تم إنجاز التطوير الميداني|رصد ملحوظة تتطلب المعالجة|تم إنجاز|رصد ملحوظة|إعادة|تنسيق|ترتيب|ضبط|مراجعة|تطبيق|إحلال|تحرير|تطوير|نقل|توحيد|تكليف|طلب)/);
+  if (matchAction && matchAction.index !== undefined) {
+    colonIdx = matchAction.index;
+  } else {
+    colonIdx = cleaned.indexOf(':');
+  }
   
   let titleHtml = '';
   let body = cleaned;
 
-  if (colonIdx > 0 && colonIdx < 60) {
-    let title = cleaned.substring(0, colonIdx).trim();
+  if (colonIdx > 0 && colonIdx < 80) {
+    let rawTitle = cleaned.substring(0, colonIdx).trim();
+    let title = sanitizeSectionTitle(rawTitle);
     title = title.replace(/[:\.\s]+$/, '');
-    titleHtml = `<strong class="font-black text-slate-950">${title}:</strong> `;
+    titleHtml = `<bdi class="font-black text-slate-950">${title}:</bdi>&lrm; `;
     body = cleaned.substring(colonIdx + 1).trim();
+  }
+
+  // تمييز شارة إنجاز التطوير الميداني المنفذ بكبسولة زمرّدية أنيقة
+  if (body.includes('تم إنجاز التطوير الميداني — ')) {
+    body = body.replace('تم إنجاز التطوير الميداني — ', '<span class="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200/90 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">✓ تم إنجاز التطوير الميداني</span> ');
+  }
+
+  // تمييز شارة رصد الملحوظة التي تتطلب المعالجة بكبسولة وردية/تحذيرية أنيقة
+  if (body.includes('رصد ملحوظة تتطلب المعالجة — ')) {
+    body = body.replace('رصد ملحوظة تتطلب المعالجة — ', '<span class="inline-flex items-center gap-1 text-rose-800 bg-rose-50 border border-rose-200/90 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">⚠️ رصد ملحوظة تتطلب المعالجة</span> ');
   }
 
   // تحويل تكليفات المتابعة للفرع إلى كبسولة مميزة وأنيقة
   body = body.replace(/—\s*\[(تكليف متابعة[^\]]+)\]/g, (match, content) => {
-    return `<span class="inline-block text-amber-900 bg-amber-50/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-xs">${content}</span>`;
+    return `<span class="inline-block text-amber-900 bg-amber-50/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">${content}</span>`;
   });
 
   // تحويل طلبات الصيانة والإدارة إلى كبسولة مميزة وأنيقة
   body = body.replace(/—\s*\[(طلب صيانة[^\]]+)\]/g, (match, content) => {
-    return `<span class="inline-block text-rose-900 bg-rose-50/90 border border-rose-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-xs">${content}</span>`;
+    return `<span class="inline-block text-rose-900 bg-rose-50/90 border border-rose-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">${content}</span>`;
   });
 
   return `${titleHtml}<span class="font-medium text-slate-800">${body}</span>`;
@@ -446,7 +539,7 @@ export function formatSummaryPointHtml(point) {
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مرقمة مع صياغة بشرية سياقية دقيقة
+ * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مع إزالة تكرار التوجيهات العامة وحفظ التكليفات المحددة
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -454,16 +547,23 @@ export function aggregateVisitAchievements(audit = null) {
 
   if (sections.length === 0) {
     return [
-      'الواجهات ونقاط الجذب: تمت مراجعة جاهزية الواجهات الرئيسية وتطبيق معايير الهوية البصرية المعتمدة.',
-      'التنسيق التجاري: تم توحيد فئات العرض وضبط اتساق وتوزيع نقاط الجذب وفق الأدلة المعتمدة.'
+      'الواجهات ونقاط الجذب: تم إنجاز التطوير الميداني — مراجعة جاهزية الواجهات الرئيسية وتطبيق معايير الهوية البصرية المعتمدة.',
+      'التنسيق التجاري: تم إنجاز التطوير الميداني — توحيد فئات العرض وضبط اتساق وتوزيع نقاط الجذب وفق الأدلة المعتمدة.'
     ];
   }
 
   const points = [];
+  const seenGenericDirectives = new Set();
+  const genericDirectivePatterns = [
+    'استكمال الجاهزية والنواقص',
+    'المحافظة على الشكل العام',
+    'الالتزام بالمعايير اليومية',
+    'متابعة المعايير والتوجيهات',
+    'متابعة الصيانة والتوريد'
+  ];
 
   sections.forEach((sec, idx) => {
-    let cleanTitle = sec.title ? sec.title.replace(/\s*\([^)]*\)/g, '').trim() : `القسم ${idx + 1}`;
-    cleanTitle = cleanTitle.replace(/^[\[\(\s]+|[\]\)\:\.\s]+$/g, '').trim();
+    let cleanTitle = sanitizeSectionTitle(sec.title || '', idx);
 
     const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
     const tags = Array.isArray(sec.tags) ? sec.tags : [];
@@ -502,18 +602,43 @@ export function aggregateVisitAchievements(audit = null) {
       vmAccomplishment += ` (تنفيذ ميداني - ${resolvedSubs.join('، ')})`;
     }
 
-    // بناء تكليفات المتابعة لإدارة المعرض وطلبات الصيانة بوضوح تام يفصل إنجاز الـ VM عن مهام الفرع
+    // بناء تكليفات المتابعة لإدارة المعرض وطلبات الصيانة مع إزالة التكرار النمطي للتوجيهات العامة
     let branchClause = '';
     if (statuses.includes('store_followup')) {
-      const followupDetail = followupSubs.length > 0 ? followupSubs.join('، ') : 'استكمال الجاهزية والنواقص';
       const assignee = (sec.actionAssignee && sec.actionAssignee.trim()) ? sec.actionAssignee.trim() : 'إدارة المعرض';
-      branchClause = ` — [تكليف متابعة لـ ${assignee}: ${followupDetail}]`;
+      const dueDate = (sec.actionDueDate && sec.actionDueDate.trim()) ? ` - الموعد: ${sec.actionDueDate.trim()}` : '';
+      
+      let rawFollowup = followupSubs.length > 0 ? followupSubs.join('، ') : 'استكمال الجاهزية والنواقص';
+      const isGeneric = genericDirectivePatterns.some(p => rawFollowup.includes(p));
+
+      if (isGeneric) {
+        if (!seenGenericDirectives.has(rawFollowup)) {
+          seenGenericDirectives.add(rawFollowup);
+          branchClause = ` — [تكليف متابعة لـ ${assignee}: ${rawFollowup}${dueDate}]`;
+        } else {
+          // الحفاظ على التكليف المحدد والمسؤول دون تكرار العبارة العامة ذاتها
+          branchClause = ` — [تكليف متابعة لـ ${assignee}${dueDate}]`;
+        }
+      } else {
+        branchClause = ` — [تكليف متابعة لـ ${assignee}: ${rawFollowup}${dueDate}]`;
+      }
     }
 
     let mgmtClause = '';
     if (statuses.includes('management_action')) {
-      const mgmtDetail = mgmtSubs.length > 0 ? mgmtSubs.join('، ') : 'متابعة الصيانة والتوريد';
-      mgmtClause = ` — [طلب صيانة/إدارة: ${mgmtDetail}]`;
+      let rawMgmt = mgmtSubs.length > 0 ? mgmtSubs.join('، ') : 'متابعة الصيانة والتوريد';
+      const isGenericMgmt = genericDirectivePatterns.some(p => rawMgmt.includes(p));
+
+      if (isGenericMgmt) {
+        if (!seenGenericDirectives.has(rawMgmt)) {
+          seenGenericDirectives.add(rawMgmt);
+          mgmtClause = ` — [طلب صيانة/إدارة: ${rawMgmt}]`;
+        } else {
+          mgmtClause = ` — [طلب صيانة/إدارة: معالجة فورية]`;
+        }
+      } else {
+        mgmtClause = ` — [طلب صيانة/إدارة: ${rawMgmt}]`;
+      }
     }
 
     const fullPoint = `${cleanTitle}: ${vmAccomplishment}${branchClause}${mgmtClause}.`;
@@ -1828,20 +1953,31 @@ export function renderAuditCards(customSections = null) {
         </div>
       `)))}
 
-      <!-- بنود معايير الـ VM المؤكدة -->
+      <!-- بنود معايير وملاحظات الـ VM للقسم -->
       ${sec.checklist && sec.checklist.length > 0 ? `
         <div class="mb-3 bg-corp-950/70 p-2.5 rounded-xl border border-corp-800">
           <span class="text-[11px] font-bold text-gold-400 block mb-1.5 flex items-center gap-1.5">
             <i data-lucide="check-check" class="w-3.5 h-3.5 text-gold-500"></i>
-            <span>معايير الـ VM المؤكدة للقسم (${sec.checklist.length}):</span>
+            <span>معايير وملاحظات الـ VM بالقسم (${sec.checklist.length}):</span>
           </span>
           <div class="flex flex-wrap gap-1.5">
-            ${sec.checklist.map(c => `
-              <span class="bg-gold-500/10 text-gold-300 border border-gold-500/20 text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
-                <span class="text-gold-400 font-bold">✓</span>
-                <span>${c}</span>
-              </span>
-            `).join('')}
+            ${sec.checklist.map(c => {
+              const isNeg = isNegativeOrUnappliedFinding(c, sec);
+              if (isNeg) {
+                return `
+                  <span class="bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
+                    <span class="text-rose-400 font-bold">⚠️</span>
+                    <span>ملاحظة غير مطابقة: ${c}</span>
+                  </span>
+                `;
+              }
+              return `
+                <span class="bg-gold-500/10 text-gold-300 border border-gold-500/20 text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
+                  <span class="text-gold-400 font-bold">✓</span>
+                  <span>معيار مؤكد: ${c}</span>
+                </span>
+              `;
+            }).join('')}
           </div>
         </div>
       ` : ''}
@@ -2026,19 +2162,29 @@ export function renderPrintSections(customSections = null) {
       <div class="grid grid-cols-12 gap-[14mm] pt-[4mm] border-t border-slate-200 mt-auto shrink-0 w-full text-[11px] leading-snug" dir="rtl">
         <!-- العمود الأيمن (42% / 5 أعمدة): معايير الـ VM والتكليف الرسمي -->
         <div class="col-span-5 space-y-1">
-          <!-- معايير الـ VM المعتمدة المطبقة -->
+          <!-- معايير وملاحظات الـ VM للقسم -->
           ${sec.checklist && sec.checklist.length > 0 ? `
             <div>
               <span class="text-[9.5px] font-bold text-slate-700 block mb-0.5 flex items-center gap-1">
-                <span class="text-amber-600 font-bold">✓</span>
-                <span>معايير الـ VM المطبقة (${sec.checklist.length}):</span>
+                <span class="text-amber-600 font-bold">📋</span>
+                <span>معايير وملاحظات الـ VM (${sec.checklist.length}):</span>
               </span>
               <div class="flex flex-wrap gap-1">
-                ${sec.checklist.map(c => `
-                  <span class="bg-amber-50/80 text-amber-900 border border-amber-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium">
-                    ✓ ${c}
-                  </span>
-                `).join('')}
+                ${sec.checklist.map(c => {
+                  const isNeg = isNegativeOrUnappliedFinding(c, sec);
+                  if (isNeg) {
+                    return `
+                      <span class="bg-rose-50/90 text-rose-900 border border-rose-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium">
+                        ⚠️ ملاحظة غير مطابقة: ${c}
+                      </span>
+                    `;
+                  }
+                  return `
+                    <span class="bg-amber-50/80 text-amber-900 border border-amber-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium">
+                      ✓ معيار مؤكد: ${c}
+                    </span>
+                  `;
+                }).join('')}
               </div>
             </div>
           ` : ''}
@@ -2874,4 +3020,5 @@ if (typeof window !== 'undefined') {
   window.renderExecutiveMatrixPage = renderExecutiveMatrixPage;
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
   window.isNegativeOrUnappliedFinding = isNegativeOrUnappliedFinding;
+  window.sanitizeSectionTitle = sanitizeSectionTitle;
 }
