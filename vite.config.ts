@@ -81,7 +81,7 @@ function cloudflareD1ApiPlugin(): Plugin {
           return res.end(JSON.stringify({
             status: 'healthy',
             app: 'SAMX-VM',
-            version: '1.7.4',
+            version: '1.7.5',
             hasD1: true,
             hasR2: true,
             timestamp: new Date().toISOString()

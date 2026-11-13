@@ -237,12 +237,12 @@ function renderPdfSectionCardHtml(sec, globalIndex, isSingleOnPage = true, hasSi
               </div>
               <div style="display: flex; flex-wrap: wrap; gap: 3.5px;">
                 ${sec.checklist.map(c => {
-                  const isNeg = isNegativeOrUnappliedFinding(c, sec);
+                  const isNeg = isNegativeOrUnappliedFinding(c, null);
                   if (isNeg) {
                     return `
-                      <span style="display: inline-flex; align-items: center; gap: 3px; background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
-                        <span style="color: #e11d48; font-weight: 900;">⚠️</span>
-                        <span>ملاحظة غير مطابقة: ${c}</span>
+                      <span style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; padding: 1.5px 7px; border-radius: 5px; font-size: 9px; font-weight: 700;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #e11d48; flex-shrink: 0;"></span>
+                        <span>عدم التزام بـ: ${c}</span>
                       </span>
                     `;
                   }
@@ -504,8 +504,9 @@ export async function exportAuditToPdf() {
                 <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #0f172a; color: #facc15; font-size: 11px; font-weight: 900;">⭐</span>
                 <span>ملخص إنجازات وتعديلات الزيارة الميدانية (Field Visit Summary):</span>
               </div>
-              <span style="font-size: 9.5px; color: #15803d; font-weight: 800; background: #dcfce7; border: 1px solid #86efac; padding: 2.5px 9px; border-radius: 9999px;">
-                ${visitSummaryPoints.length} إنجازات موثقة ✅
+              <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 9.5px; color: #15803d; font-weight: 800; background: #dcfce7; border: 1px solid #86efac; padding: 2.5px 9px; border-radius: 9999px;">
+                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #16a34a; flex-shrink: 0;"></span>
+                <span>${visitSummaryPoints.length} إنجازات موثقة</span>
               </span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px;">

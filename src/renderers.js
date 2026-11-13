@@ -1,7 +1,7 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.7.3
- * Architecture: Decoupled UI Rendering Routines
+ * Version: 1.7.5
+ * Architecture: Decoupled UI Rendering Routines + Smart Semantic Engine
  */
 
 import {
@@ -175,7 +175,7 @@ export function getDynamicJustifications(sec) {
 
   // 3. إضافة بند متعلق بالإجراء أو التكليف
   if (sec?.status === 'store_followup') {
-    result.push(`تكليف إدارة المعرض (${sec.actionAssignee || 'مدير المعرض'}) بمتابعة استكمال متطلبات القسم في الموعد المحدد.`);
+    result.push(`تكليف إدارة المعرض (${sec.actionAssignee || 'مدير المعرض'}) بمتابعة تنفيذ التوجيهات التشغيلية للقسم في الموعد المحدد.`);
   } else if (sec?.status === 'management_action') {
     result.push(`رفع طلب الصيانة والتدخل الإداري (${sec.actionAssignee || 'فريق الصيانة والتشغيل'}) لمعالجة الملاحظة فورياً.`);
   } else if (result.length < 2) {
@@ -184,6 +184,43 @@ export function getDynamicJustifications(sec) {
 
   const unique = Array.from(new Set(result));
   return unique.slice(0, 3);
+}
+
+/**
+ * تنظيف وإصلاح شوائب الاتجاه ثنائي اللغة (BiDi) والأقواس المكسورة والأحرف التائهة في النصوص
+ */
+export function fixBrokenBidiText(str) {
+  if (!str || typeof str !== 'string') return '';
+  let out = str;
+
+  // 1. إزالة عبارة "استكمال متطلبات" وبقايا البادئات التائهة
+  out = out.replace(/استكمال\s+متطلبات\s*/g, '');
+  out = out.replace(/(^|\s)[لافي]\s+(?=رصد\s+(?:قصور|ملحوظة)|تم\s+إنجاز)/g, '$1');
+  out = out.replace(/(^|\s)\/\s*(?=تم\s+إنجاز|رصد\s+)/g, '$1');
+
+  // 2. إصلاح الأقواس الفارغة أو المعكوسة حول المصطلحات الإنجليزية (مثل ()POSM أو :)Perfumes & Sunglasses)
+  out = out.replace(/\(\)\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])/g, '($1)');
+  out = out.replace(/([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])\s*\(\)/g, '($1)');
+  out = out.replace(/[:;]\s*\)\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])/g, ' ($1)');
+  out = out.replace(/\(\s*:\s*/g, '(');
+  out = out.replace(/:\s*\)/g, '');
+  out = out.replace(/(^|[\u0600-\u06FF\s])\)\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])(?!\))/g, '$1($2)');
+  out = out.replace(/\(\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])\s*\(/g, '($1)');
+
+  return out.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
+ * عزل المقاطع الإنجليزية والأقواس اللاتينية داخل <bdi dir="ltr"> للعرض الآمن داخل سياق RTL
+ */
+export function wrapEnglishBidiHtml(str) {
+  if (!str || typeof str !== 'string') return '';
+  const cleaned = fixBrokenBidiText(str);
+  // تغليف الأقواس الإنجليزية مثل (POSM) و (Men’s Section) و (Perfumes & Sunglasses)
+  let html = cleaned.replace(/\(([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*)\)/g, '<bdi dir="ltr">($1)</bdi>');
+  // تغليف الاختصارات الإنجليزية المستقلة مثل VM / POSM إذا لم تكن داخل bdi أو تاج HTML
+  html = html.replace(/(^|[\s،:])([A-Z]{2,}(?:\/[A-Z]{2,})?)(?=[\s،:\.]|$)/g, '$1<bdi dir="ltr">$2</bdi>');
+  return html;
 }
 
 /**
@@ -207,18 +244,24 @@ export function isNegativeOrUnappliedFinding(text, section = null) {
     /عدم\s+/i,
     /سوء\s+/i,
     /سواء\s+/i,
-    /نقص\s+/i,
-    /عطل/i,
+    /نقص(?:\s|$)/i,
+    /عطل|عطال/i,
     /تلف/i,
     /تالف/i,
+    /غياب/i,
+    /لا\s+يوجد/i,
     /قصور/i,
     /تأخير/i,
     /فوضى/i,
     /إهمال/i,
     /غير\s+مطابق/i,
+    /غير\s+مطبق/i,
     /غير\s+جاهز/i,
     /غير\s+مكتمل/i,
     /معالجة\s+جزئية/i,
+    /متابعة\s+طلب/i,
+    /العمل\s+على\s+إزالة/i,
+    /تعديل\s+التسعير/i,
     /بحاجة\s+(إلى\s+)?(صيانة|تعديل|إصلاح|تغيير|استكمال)/i,
     /بانتظار/i,
     /ملاحظة\s+حرجة/i
@@ -227,20 +270,218 @@ export function isNegativeOrUnappliedFinding(text, section = null) {
   return negativeKeyPatterns.some(pattern => pattern.test(str));
 }
 
+const ACHIEVEMENT_VERB_REGEX = /(تم\s+(?:إنجاز|انجاز|تنفيذ|تطبيق)|إحلال|تطوير|تنسيق|إعادة\s+(?:تخطيط|ترتيب|تنسيق|توزيع|توجيه)|نقل|تهيئة|تحرير(?:\s+مسارات)?|ترتيب|تنظيم|ضبط|توحيد|تحسين|إبراز|تثبيت|توزيع|فرز|معالجة\s+تامة|تجهيز)/i;
+const PENDING_DIRECTIVE_REGEX = /(متابعة\s+طلب|العمل\s+على\s+إزالة|تعديل\s+التسعير|تكليف|مطلوب|يرجى|يجب|توفير|رفع\s+طلب|صيانة|إصلاح|استكمال\s+النواقص|تغيير\s+الإضاءة|بانتظار)/i;
+
+/**
+ * المحلل الدلالي الموحد للأقسام (Smart Semantic Engine)
+ * يفصل القسم إلى:
+ * 1) executedAchievements: الإنجازات والتطويرات الميدانية المنفذة فعلياً
+ * 2) pendingDirectives: التكليفات المعلقة والقصور التشغيلي والمعايير غير المطبقة
+ * مع منع تسمية أي بند سلبي بعبارة "معيار مؤكد" أو "تم إنجاز" (Antonym Blocker).
+ */
+export function analyzeSectionSemantics(section, idx = 0) {
+  const cleanTitle = fixBrokenBidiText(sanitizeSectionTitle(section?.title || section?.name || '', idx));
+  const statuses = getSectionStatuses(section);
+  const isFollowup = statuses.includes('store_followup');
+  const isAction = statuses.includes('management_action');
+  const isOnlyResolved = statuses.includes('resolved') && statuses.length === 1;
+
+  const rawNotes = (section?.notes || section?.note || section?.justification || '').trim();
+  const correctedNotes = fixBrokenBidiText(
+    typeof autocorrectVmText === 'function' ? autocorrectVmText(rawNotes) : rawNotes
+  );
+  const rawActionNotes = (section?.actionNotes || section?.actionRequired || '').trim();
+  const correctedActionNotes = fixBrokenBidiText(
+    typeof autocorrectVmText === 'function' ? autocorrectVmText(rawActionNotes) : rawActionNotes
+  );
+
+  const checklist = Array.isArray(section?.checklist) ? section.checklist : [];
+  const tags = Array.isArray(section?.tags) ? section.tags : [];
+
+  const executedAchievements = [];
+  const pendingDirectives = [];
+
+  const stripLegacyPrefixes = (clause) => {
+    return fixBrokenBidiText(
+      clause
+        .replace(/^[\s•\-\*✓▪✔⚠️🚨\d\.\)\-–—]+/, '')
+        .replace(/^(معيار\s+مؤكد|ملاحظة\s+غير\s+مطابقة|عدم\s+التزام\s+بـ)\s*[:\-\s]*/i, '')
+        .replace(/^تم\s+إنجاز\s+التطوير\s+الميداني\s*—\s*/i, '')
+        .replace(/^رصد\s+(?:ملحوظة|قصور)\s+تتطلب\s+المعالجة\s*—\s*/i, '')
+        .trim()
+    );
+  };
+
+  // تفكيك الملاحظات إلى عبارات مستقلة للفرز الدلالي الدقيق
+  const splitNoteClauses = (txt) => {
+    if (!txt) return [];
+    const lines = txt.split(/\n+|\||؛/).map(l => l.trim()).filter(Boolean);
+    const clauses = [];
+    lines.forEach(line => {
+      // تقسيم الجمل المفصولة بنقطة ومسافة أو بفاصلة عند تداخل إنجاز وتكليف
+      const subParts = line
+        .split(/\.\s+(?=[\u0600-\u06FF])/)
+        .flatMap(p => {
+          const cleanP = p.trim();
+          // إذا احتوت الجملة على فاصلة ثم محفز تكليف/متابعة، افصل التكليف عن الإنجاز
+          if (cleanP.includes('،') && /(?:،\s*)(متابعة\s+طلب|العمل\s+على|تعديل\s+التسعير|مع\s+ضرورة|يرجى|مطلوب|لم\s+يتم|عدم\s+|سوء\s+|نقص\s+|عطل|تلف|غياب)/.test(cleanP)) {
+            return cleanP.split(/،\s+(?=متابعة\s+طلب|العمل\s+على|تعديل\s+التسعير|مع\s+ضرورة|يرجى|مطلوب|لم\s+يتم|عدم\s+|سوء\s+|نقص\s+|عطل|تلف|غياب)/);
+          }
+          return [cleanP];
+        })
+        .map(stripLegacyPrefixes)
+        .filter(c => c.length > 2);
+      clauses.push(...subParts);
+    });
+    return clauses;
+  };
+
+  const noteClauses = splitNoteClauses(correctedNotes);
+  const isGenericBoilerplate = !correctedNotes ||
+    correctedNotes.includes('تم التنفيذ والتعديل الميداني وفق المعايير المعتمدة بدليل العرض والتنسيق التجاري') ||
+    correctedNotes.includes('التأكد من سلامة وتناسق واجهات العرض وتركيز الإضاءة وزوايا التوجيه');
+
+  if (!isGenericBoilerplate) {
+    noteClauses.forEach(clause => {
+      if (!clause || /معالجة\s+كاملة|100%/.test(clause)) return;
+      const isNeg = isNegativeOrUnappliedFinding(clause, null);
+      const isPendingDir = PENDING_DIRECTIVE_REGEX.test(clause);
+      const hasAchVerb = ACHIEVEMENT_VERB_REGEX.test(clause);
+
+      if (isNeg || (isPendingDir && !hasAchVerb)) {
+        pendingDirectives.push(clause);
+      } else if (isPendingDir && hasAchVerb) {
+        // إذا وُجد فعل إنجاز وتكليف بنفس العبارة القصيرة بدون فاصل، صنفه كتكليف إذا بدأ به، أو إنجاز
+        if (/^(متابعة|العمل\s+على|تعديل\s+التسعير|مطلوب|يرجى|تكليف)/.test(clause)) {
+          pendingDirectives.push(clause);
+        } else {
+          executedAchievements.push(clause);
+        }
+      } else {
+        executedAchievements.push(clause);
+      }
+    });
+  }
+
+  // معالجة actionNotes / actionRequired إن وُجدت
+  if (correctedActionNotes) {
+    splitNoteClauses(correctedActionNotes).forEach(clause => {
+      if (clause && !pendingDirectives.includes(clause)) {
+        pendingDirectives.unshift(clause);
+      }
+    });
+  }
+
+  // فحص بنود الـ Checklist بشكل فردي مستقل عن حالة القسم (Antonym Blocker)
+  checklist.forEach(rawItem => {
+    const item = stripLegacyPrefixes(typeof autocorrectVmText === 'function' ? autocorrectVmText(rawItem) : rawItem);
+    if (!item || /معالجة\s+كاملة|100%/.test(item)) return;
+    if (isNegativeOrUnappliedFinding(item, null)) {
+      pendingDirectives.push(`عدم التزام بـ: ${item}`);
+    } else if (executedAchievements.length === 0) {
+      executedAchievements.push(item);
+    }
+  });
+
+  // استخدام الخيارات الفرعية لحالتي المتابعة والصيانة
+  const rawResolvedSubs = getSectionSubOptions(section, 'resolved').filter(
+    s => s && s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%')
+  );
+  const followupSubs = getSectionSubOptions(section, 'store_followup').map(fixBrokenBidiText).filter(Boolean);
+  const mgmtSubs = getSectionSubOptions(section, 'management_action').map(fixBrokenBidiText).filter(Boolean);
+
+  if (isFollowup) {
+    followupSubs.forEach(sub => {
+      if (!pendingDirectives.some(d => d.includes(sub))) {
+        pendingDirectives.push(sub);
+      }
+    });
+  }
+  if (isAction) {
+    mgmtSubs.forEach(sub => {
+      if (!pendingDirectives.some(d => d.includes(sub))) {
+        pendingDirectives.push(sub);
+      }
+    });
+  }
+
+  // استكمال احتياطي من الوسوم أو المبررات إذا خلا السجل من النصوص
+  if (executedAchievements.length === 0 && pendingDirectives.length === 0) {
+    if (tags.length > 0) {
+      executedAchievements.push(tags.slice(0, 3).join('، '));
+    } else if (!isFollowup && !isAction) {
+      const justs = getDynamicJustifications(section);
+      if (justs.length > 0) executedAchievements.push(fixBrokenBidiText(justs[0]));
+    }
+  }
+
+  if ((isFollowup || isAction) && pendingDirectives.length === 0) {
+    pendingDirectives.push(
+      isAction ? 'طلب صيانة ومعالجة تشغيلية فورية بالقسم' : 'متابعة المعايير اليومية والتشغيلية بالقسم'
+    );
+  }
+
+  const dedup = (arr) => Array.from(new Set(arr.map(s => s.replace(/[.\s]+$/, '').trim()).filter(Boolean)));
+  const finalAchievements = dedup(executedAchievements);
+  const finalPending = dedup(pendingDirectives);
+
+  let nature = 'achievement';
+  if (finalAchievements.length > 0 && (finalPending.length > 0 || isFollowup || isAction)) {
+    nature = 'dual';
+  } else if (finalPending.length > 0 || isFollowup || isAction) {
+    nature = 'negative';
+  }
+
+  const primaryAchievement = finalAchievements.length > 0
+    ? finalAchievements.slice(0, 2).join('، ')
+    : (tags.length > 0 ? tags.slice(0, 3).join('، ') : '');
+
+  const primaryPending = finalPending.length > 0
+    ? finalPending.slice(0, 2).join(' • ')
+    : '';
+
+  const assignee = (section?.actionAssignee && section.actionAssignee.trim())
+    ? section.actionAssignee.trim()
+    : (isAction ? 'إدارة الصيانة / الإدارة العليا' : 'إدارة المعرض');
+  const dueDate = (section?.actionDueDate && section.actionDueDate.trim())
+    ? section.actionDueDate.trim()
+    : ((isFollowup || isAction) ? 'خلال أسبوع' : '');
+
+  return {
+    nature,
+    cleanTitle,
+    executedAchievements: finalAchievements,
+    pendingDirectives: finalPending,
+    primaryAchievement,
+    primaryPending,
+    resolvedSubs: rawResolvedSubs,
+    followupSubs,
+    mgmtSubs,
+    tags,
+    assignee,
+    dueDate,
+    isOnlyResolved,
+    isFollowup,
+    isAction
+  };
+}
+
 /**
  * صياغة إنجاز أو رصد الـ VM الميداني بمرشح النوايا الذكي (Context-Aware Intent Filter)
  * - يفرز نية التطوير الميداني المنفذ: "تم إنجاز التطوير الميداني — [الإجراء الميداني]"
- * - يفرز نية القصور والبنود غير المطبقة: "رصد ملحوظة تتطلب المعالجة — [توصيف القصور]"
+ * - يفرز نية القصور والبنود غير المطبقة: "رصد قصور يتطلب المعالجة — [توصيف القصور]"
  */
 export function formatArabicVmAction(actionSnippet, section = null) {
   if (!actionSnippet || typeof actionSnippet !== 'string') {
     return 'تم إنجاز التطوير الميداني — إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
-  // 1. تطبيق التدقيق اللغوي التلقائي وتصحيح الأخطاء الشائعة (مثل "سواء التنظيم" -> "سوء التنظيم")
+  // 1. تطبيق التدقيق اللغوي التلقائي وتصحيح الأخطاء الشائعة
   let text = (typeof autocorrectVmText === 'function') 
     ? autocorrectVmText(actionSnippet) 
     : actionSnippet;
+  text = fixBrokenBidiText(text);
 
   text = text
     .replace(/^[\[\(\s]+|[\]\)\s]+$/g, '')
@@ -255,59 +496,56 @@ export function formatArabicVmAction(actionSnippet, section = null) {
     return 'تم إنجاز التطوير الميداني — إعادة ترتيب وتنسيق المعروضات وفق معايير الهوية البصرية';
   }
 
-  // 2. مرشح النوايا الذكي (Context-Aware Intent Filter):
-  // فحص ما إذا كان النص نفسه يعبر عن ملاحظة غير مطابقة أو قصور صريح
+  // 2. مرشح النوايا الذكي (Context-Aware Intent Filter)
   const hasNegativeFinding = isNegativeOrUnappliedFinding(text, null);
   const isSectionUnresolved = section && isNegativeOrUnappliedFinding(null, section);
 
-  // أ. مسار رصد الملاحظة التي تتطلب المعالجة (Negative / Unapplied Finding Intent)
-  if (hasNegativeFinding || (isSectionUnresolved && (/^(عدم|لم|سوء|سواء|نقص|عطل|تلف|تالف|غير|قصور|ملاحظة)/.test(text)))) {
+  // أ. مسار رصد القصور الذي يتطلب المعالجة (Negative / Unapplied Finding Intent)
+  if (hasNegativeFinding || (isSectionUnresolved && (/^(عدم|لم|سوء|سواء|نقص|عطل|عطال|تلف|تالف|غياب|غير|قصور|ملاحظة)/.test(text)))) {
     text = text.replace(/^تم[ت]?\s+(إنجاز\s+التطوير\s+الميداني\s*—\s*|إنجاز|انجاز|تنفيذ|تطبيق)\s+/, '');
     text = text.replace(/^تم[ت]?\s+/, '');
-    text = text.replace(/^رصد\s+ملحوظة\s+تتطلب\s+(المعالجة|المتابعة)\s*—\s*/, '');
-    text = text.replace(/^ملاحظة\s+غير\s+مطابقة\s*[:\-\s]*/, '');
+    text = text.replace(/^رصد\s+(?:ملحوظة|قصور)\s+تتطلب\s+(?:المعالجة|المتابعة)\s*—\s*/, '');
+    text = text.replace(/^رصد\s+قصور\s+يتطلب\s+المعالجة\s*—\s*/, '');
+    text = text.replace(/^(?:ملاحظة\s+غير\s+مطابقة|عدم\s+التزام\s+بـ)\s*[:\-\s]*/, '');
 
     if (/^لم\s+يتم\s+تطبيق\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — عدم تطبيق ' + text.replace(/^لم\s+يتم\s+تطبيق\s+/, '');
+      return 'رصد قصور يتطلب المعالجة — عدم تطبيق ' + text.replace(/^لم\s+يتم\s+تطبيق\s+/, '');
     }
     if (/^لم\s+يتم\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — عدم ' + text.replace(/^لم\s+يتم\s+/, '');
+      return 'رصد قصور يتطلب المعالجة — عدم ' + text.replace(/^لم\s+يتم\s+/, '');
     }
-    if (/^عدم\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
+    if (/^(عدم|سوء|نقص|غياب)\s+/.test(text)) {
+      return 'رصد قصور يتطلب المعالجة — ' + text;
     }
-    if (/^سوء\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
-    }
-    if (/^نقص\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — ' + text;
-    }
-    if (/^عطل\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — عطل في ' + text.replace(/^عطل\s+(في\s+)?/, '');
+    if (/^(عطل|عطال)\s+/.test(text)) {
+      return 'رصد قصور يتطلب المعالجة — عطل في ' + text.replace(/^(عطل|عطال)\s+(في\s+)?/, '');
     }
     if (/^تلف\s+/.test(text) || /^تالف/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — تلفيات في ' + text.replace(/^(تلفيات|تلف|تالف)\s+(في\s+)?/, '');
+      return 'رصد قصور يتطلب المعالجة — تلفيات في ' + text.replace(/^(تلفيات|تلف|تالف)\s+(في\s+)?/, '');
     }
     if (/^غير\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — حالة ' + text;
+      return 'رصد قصور يتطلب المعالجة — حالة ' + text;
     }
     if (/^قصور\s+/.test(text)) {
-      return 'رصد ملحوظة تتطلب المعالجة — قصور في ' + text.replace(/^قصور\s+(في\s+)?/, '');
+      return 'رصد قصور يتطلب المعالجة — قصور في ' + text.replace(/^قصور\s+(في\s+)?/, '');
     }
 
-    return 'رصد ملحوظة تتطلب المعالجة — ' + text;
+    return 'رصد قصور يتطلب المعالجة — ' + text;
   }
 
   // ب. مسار إنجاز التطوير الميداني (Major Executed Improvement Intent)
   text = text.replace(/^تم[ت]?\s+(إنجاز\s+التطوير\s+الميداني\s*—\s*|إنجاز|انجاز|تنفيذ)\s+/, '');
   text = text.replace(/^تم[ت]?\s+/, '');
-  text = text.replace(/^رصد\s+ملحوظة\s+تتطلب\s+(المعالجة|المتابعة)\s*—\s*/, '');
+  text = text.replace(/^رصد\s+(?:ملحوظة|قصور)\s+(?:تتطلب|يتطلب)\s+(?:المعالجة|المتابعة)\s*—\s*/, '');
 
   if (/^سلامة\s+ونظافة\s+المانيكان/.test(text)) {
     return 'تم إنجاز التطوير الميداني — ضبط ونظافة المانيكانات والتأكد من استقامة الوقفة والتثبيت';
   }
   if (/^نظافة\s+وضبط\s+المانيكان/.test(text)) {
     return 'تم إنجاز التطوير الميداني — ضبط ونظافة المانيكانات وضبط زوايا التثبيت';
+  }
+  if (/^(إحلال|تحرير|تطوير|نقل|توحيد|إعادة|تنسيق|ترتيب|ضبط|مراجعة|تطبيق|معالجة|تعديل|تحسين|إبراز|تجديد|توزيع)\s+و/.test(text)) {
+    return 'تم إنجاز التطوير الميداني — ' + text;
   }
   if (/^إحلال\s+/.test(text)) {
     return 'تم إنجاز التطوير الميداني — إحلال وتنسيق ' + text.replace(/^إحلال\s+/, '');
@@ -368,7 +606,7 @@ export function formatArabicVmAction(actionSnippet, section = null) {
   }
 
   if (isSectionUnresolved) {
-    return 'رصد ملحوظة تتطلب المعالجة — استكمال متطلبات ' + text;
+    return 'رصد قصور يتطلب المعالجة — ' + text;
   }
 
   return 'تم إنجاز التطوير الميداني — ' + text;
@@ -383,7 +621,7 @@ export function sanitizeSectionTitle(rawTitle, idx = 0) {
     return `القسم ${idx + 1}`;
   }
 
-  let title = rawTitle.trim();
+  let title = fixBrokenBidiText(rawTitle.trim());
 
   // 1. إزالة المقاطع المكسورة والبادئات المشوهة المعكوسة من نصوص RTL
   title = title
@@ -403,7 +641,7 @@ export function sanitizeSectionTitle(rawTitle, idx = 0) {
     { pattern: /^(section\s+women[’']?s|women[’']?s\s+section|women[’']?s|women)$/i, arabic: 'قسم الملابس النسائية (Women’s Section)' },
     { pattern: /^(section\s+kids?|kids?\s+section|kids?|children)$/i, arabic: 'قسم الأطفال (Kids Section)' },
     { pattern: /^(footwear|shoes\s+section|shoes)$/i, arabic: 'قسم الأحذية (Footwear)' },
-    { pattern: /^(perfumes?|fragrances?)$/i, arabic: 'قسم العطور والتجميل (Perfumes)' },
+    { pattern: /^(perfumes?|fragrances?|perfumes?\s*&\s*sunglasses)$/i, arabic: 'قسم العطور والنظارات (Perfumes & Sunglasses)' },
     { pattern: /^(accessories|accessory)$/i, arabic: 'قسم الإكسسوارات (Accessories)' },
     { pattern: /^(headgear|ghutra|shemagh)$/i, arabic: 'قسم الأشمغة والغتر (Shemagh & Ghutra)' },
     { pattern: /^(cashier\s+area|cashier|pos)$/i, arabic: 'منطقة المحاسبة والكاشير (Cashier Area)' },
@@ -430,12 +668,12 @@ export function sanitizeSectionTitle(rawTitle, idx = 0) {
   }
 
   // 5. إذا كان الاسم نقيًا وإنجليزيًا بالكامل (أحرف لاتينية فقط)
-  if (/^[a-zA-Z0-9\s’'\-]+$/.test(title) && title.length > 2) {
+  if (/^[a-zA-Z0-9\s’'\-&]+$/.test(title) && title.length > 2) {
     return `قسم ${title} (${title})`;
   }
 
   // 6. تنظيف أي أقواس مكسورة أو زيادات
-  title = title.replace(/[:\.\s]+$/, '').trim();
+  title = fixBrokenBidiText(title.replace(/[:\.\s]+$/, '').trim());
 
   return title || `القسم ${idx + 1}`;
 }
@@ -446,6 +684,7 @@ export function sanitizeSectionTitle(rawTitle, idx = 0) {
 export function cleanSummaryPointText(line) {
   if (!line || typeof line !== 'string') return '';
   let str = (typeof autocorrectVmText === 'function') ? autocorrectVmText(line) : line;
+  str = fixBrokenBidiText(str);
   str = str.replace(/^[\s•\-\*✓▪\d\.\)\-–—\s]+/, '').trim();
 
   // تنظيف البادئات المعكوسة أو المكسورة
@@ -458,11 +697,12 @@ export function cleanSummaryPointText(line) {
   str = str.replace(/\(\s*([^\)]*?)\s*\(\s*([^)]*?)\s*\)\s*([^\)]*?)\)/g, '($1 $2 $3)');
   str = str.replace(/\(\s*([^()]*?)\s*\(\s*(\d+%?)\s*\)\s*([^()]*?)\)/g, '($1 $2 $3)');
 
-  // 2. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري"
+  // 2. إزالة العبارات التكرارية والنمطية مثل "إنجاز التعديل الميداني الفوري" و"استكمال متطلبات"
   str = str.replace(/إنجاز التعديل الميداني الفوري\s*[:\-\s]*/g, '');
   str = str.replace(/التعديل الميداني الفوري\s*[:\-\s]*/g, '');
   str = str.replace(/\s*واعتماد التنسيق النهائي للموقع(\s*بصورة معتمدة)?\s*\.?/g, '');
   str = str.replace(/\s*واعتماد التنسيق\s*\.?$/g, '');
+  str = str.replace(/استكمال\s+متطلبات\s*/g, '');
 
   // 3. إزالة الأقواس المربعة حول اسم القسم في البداية وتنظيف النقطتين والرموز
   str = str.replace(/^\[\s*([^\]:]+?)\s*[:\s]*\]\s*[:\s]*/, '$1: ');
@@ -470,16 +710,13 @@ export function cleanSummaryPointText(line) {
   str = str.replace(/^([^:]+?)\s*[:\.]+\s*:\s*/, '$1: ');
   str = str.replace(/:\s*\./g, ':');
 
-  // 4. إزالة الأقواس الدائرية حول وصف الإجراء العام في النهاية (مثل (الإجراء.))
-  str = str.replace(/\(\s*([^\)]+?)\s*\)\s*\.?$/, '$1.');
-
-  // 5. إزالة تكرار النقطتين أو النقاط أو الفواصل الزائدة
+  // 4. إزالة تكرار النقطتين أو النقاط أو الفواصل الزائدة مع الحفاظ على فاصل الأنبوب |
   str = str.replace(/:\s*:\s*/g, ': ');
-  str = str.replace(/\s*:\s*/g, ': ');
   str = str.replace(/\.{2,}/g, '.');
+  str = str.replace(/\s*\|\s*/g, ' | ');
   str = str.replace(/\s+/g, ' ');
 
-  // 6. ضبط النقطة الختامية
+  // 5. ضبط النقطة الختامية
   str = str.replace(/\s*\.\s*$/, '').trim();
   if (str) {
     str = str + '.';
@@ -490,13 +727,13 @@ export function cleanSummaryPointText(line) {
 
 /**
  * دالة لتنسيق نقطة الملخص كعنصر HTML يبرز اسم القسم والتكليفات الموجهة للفرع/الصيانة
- * مع عزل الاتجاه ثنائي اللغة (<bdi> & &lrm;) لضمان عدم انقلاب الترقيم أو الكولون
+ * مع دعم التنسيق ثنائي الطبيعة (Inline Pipe |) وعزل الاتجاه ثنائي اللغة (<bdi>)
  */
 export function formatSummaryPointHtml(point) {
   const cleaned = cleanSummaryPointText(point);
 
   let colonIdx = -1;
-  const matchAction = cleaned.match(/:\s*(تم إنجاز التطوير الميداني|رصد ملحوظة تتطلب المعالجة|تم إنجاز|رصد ملحوظة|إعادة|تنسيق|ترتيب|ضبط|مراجعة|تطبيق|إحلال|تحرير|تطوير|نقل|توحيد|تكليف|طلب)/);
+  const matchAction = cleaned.match(/:\s*(تم إنجاز التطوير الميداني|رصد قصور يتطلب المعالجة|رصد ملحوظة تتطلب المعالجة|تم إنجاز|رصد قصور|رصد ملحوظة|إعادة|تنسيق|ترتيب|ضبط|مراجعة|تطبيق|إحلال|تحرير|تطوير|نقل|توحيد|تكليف|طلب)/);
   if (matchAction && matchAction.index !== undefined) {
     colonIdx = matchAction.index;
   } else {
@@ -506,40 +743,81 @@ export function formatSummaryPointHtml(point) {
   let titleHtml = '';
   let body = cleaned;
 
-  if (colonIdx > 0 && colonIdx < 80) {
+  if (colonIdx > 0 && colonIdx < 90) {
     let rawTitle = cleaned.substring(0, colonIdx).trim();
     let title = sanitizeSectionTitle(rawTitle);
     title = title.replace(/[:\.\s]+$/, '');
-    titleHtml = `<bdi class="font-black text-slate-950">${title}:</bdi>&lrm; `;
+    titleHtml = `<bdi class="font-black text-slate-950">${wrapEnglishBidiHtml(title)}:</bdi>&lrm; `;
     body = cleaned.substring(colonIdx + 1).trim();
   }
 
-  // تمييز شارة إنجاز التطوير الميداني المنفذ بكبسولة زمرّدية أنيقة
-  if (body.includes('تم إنجاز التطوير الميداني — ')) {
-    body = body.replace('تم إنجاز التطوير الميداني — ', '<span class="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200/90 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">✓ تم إنجاز التطوير الميداني</span> ');
-  }
+  // تقسيم الأجزاء المفصولة بـ | لعرض كل جزء بنظافة وتنسيق كبسولة مستقل
+  const segments = body.split(/\s*\|\s*/).filter(Boolean);
+  const formattedSegments = segments.map((seg, segIdx) => {
+    let part = wrapEnglishBidiHtml(seg);
 
-  // تمييز شارة رصد الملحوظة التي تتطلب المعالجة بكبسولة وردية/تحذيرية أنيقة
-  if (body.includes('رصد ملحوظة تتطلب المعالجة — ')) {
-    body = body.replace('رصد ملحوظة تتطلب المعالجة — ', '<span class="inline-flex items-center gap-1 text-rose-800 bg-rose-50 border border-rose-200/90 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">⚠️ رصد ملحوظة تتطلب المعالجة</span> ');
-  }
+    // 1. شارة إنجاز التطوير الميداني (Emerald Pill)
+    if (part.includes('تم إنجاز التطوير الميداني — ')) {
+      part = part.replace(
+        'تم إنجاز التطوير الميداني — ',
+        '<span class="inline-flex items-center gap-1 text-emerald-800 bg-emerald-50 border border-emerald-200/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold ml-1 align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span><span>تم إنجاز التطوير الميداني</span></span> '
+      );
+    }
 
-  // تحويل تكليفات المتابعة للفرع إلى كبسولة مميزة وأنيقة
-  body = body.replace(/—\s*\[(تكليف متابعة[^\]]+)\]/g, (match, content) => {
-    return `<span class="inline-block text-amber-900 bg-amber-50/90 border border-amber-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">${content}</span>`;
+    // 2. شارة رصد القصور الذي يتطلب المعالجة (Rose Pill)
+    if (part.includes('رصد قصور يتطلب المعالجة — ')) {
+      part = part.replace(
+        'رصد قصور يتطلب المعالجة — ',
+        '<span class="inline-flex items-center gap-1 text-rose-800 bg-rose-50 border border-rose-200/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold ml-1 align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span><span>رصد قصور يتطلب المعالجة</span></span> '
+      );
+    }
+    if (part.includes('رصد ملحوظة تتطلب المعالجة — ')) {
+      part = part.replace(
+        'رصد ملحوظة تتطلب المعالجة — ',
+        '<span class="inline-flex items-center gap-1 text-rose-800 bg-rose-50 border border-rose-200/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold ml-1 align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span><span>رصد قصور يتطلب المعالجة</span></span> '
+      );
+    }
+
+    // 3. شارة تكليف المتابعة / التكليف العاجل / طلب الصيانة بعد فاصل |
+    if (/^تكليف متابعة/.test(seg.trim())) {
+      const colonPos = part.indexOf(':');
+      if (colonPos > 0) {
+        const pillLabel = part.substring(0, colonPos).trim();
+        const pillBody = part.substring(colonPos + 1).trim();
+        part = `<span class="inline-flex items-center gap-1 text-amber-900 bg-amber-50 border border-amber-300/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold ml-1 align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span><span>${pillLabel}</span></span> <span class="text-amber-950 font-semibold">${pillBody}</span>`;
+      } else {
+        part = `<span class="inline-flex items-center gap-1 text-amber-900 bg-amber-50 border border-amber-300/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span><span>${part}</span></span>`;
+      }
+    } else if (/^(تكليف عاجل|طلب صيانة)/.test(seg.trim())) {
+      const colonPos = part.indexOf(':');
+      if (colonPos > 0) {
+        const pillLabel = part.substring(0, colonPos).trim();
+        const pillBody = part.substring(colonPos + 1).trim();
+        part = `<span class="inline-flex items-center gap-1 text-rose-900 bg-rose-50 border border-rose-300/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold ml-1 align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span><span>${pillLabel}</span></span> <span class="text-rose-950 font-semibold">${pillBody}</span>`;
+      } else {
+        part = `<span class="inline-flex items-center gap-1 text-rose-900 bg-rose-50 border border-rose-300/90 px-1.5 py-0.5 rounded text-[0.86em] font-bold align-baseline"><span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span><span>${part}</span></span>`;
+      }
+    }
+
+    // توافق خلفي مع الصيغة القديمة داخل نفس المقطع إن وجدت
+    part = part.replace(/—\s*\[(تكليف متابعة[^\]]+)\]/g, (match, content) => {
+      return `<span class="inline-flex items-center gap-1 text-amber-900 bg-amber-50 border border-amber-300/80 px-1.5 py-0.5 rounded text-[0.86em] font-bold mx-1 align-baseline">${content}</span>`;
+    });
+    part = part.replace(/—\s*\[(طلب صيانة[^\]]+)\]/g, (match, content) => {
+      return `<span class="inline-flex items-center gap-1 text-rose-900 bg-rose-50 border border-rose-300/80 px-1.5 py-0.5 rounded text-[0.86em] font-bold mx-1 align-baseline">${content}</span>`;
+    });
+
+    return part;
   });
 
-  // تحويل طلبات الصيانة والإدارة إلى كبسولة مميزة وأنيقة
-  body = body.replace(/—\s*\[(طلب صيانة[^\]]+)\]/g, (match, content) => {
-    return `<span class="inline-block text-rose-900 bg-rose-50/90 border border-rose-300/80 px-1.5 py-0.5 rounded text-[0.88em] font-bold mr-1 align-baseline shadow-2xs">${content}</span>`;
-  });
-
-  return `${titleHtml}<span class="font-medium text-slate-800">${body}</span>`;
+  const joinedBody = formattedSegments.join(' <span class="mx-1.5 text-slate-400 font-black select-none">|</span> ');
+  return `${titleHtml}<span class="font-medium text-slate-800">${joinedBody}</span>`;
 }
 
 /**
  * دالة ذكية لتجميع ملخص إنجازات وتعديلات الزيارة الميدانية تلقائياً من أقسام الجولة الموثقة
- * تدمج الحالات المتعددة لنفس القسم في نقطة واحدة مع إزالة تكرار التوجيهات العامة وحفظ التكليفات المحددة
+ * تعتمد على المحلل الدلالي analyzeSectionSemantics لفصل الأقسام ثنائية الطبيعة (Dual-Nature)
+ * ومنع خلط الإنجازات المنفذة مع التكليفات المعلقة أو القصورات التشغيلية.
  */
 export function aggregateVisitAchievements(audit = null) {
   const activeAudit = audit || currentAudit;
@@ -563,86 +841,60 @@ export function aggregateVisitAchievements(audit = null) {
   ];
 
   sections.forEach((sec, idx) => {
-    let cleanTitle = sanitizeSectionTitle(sec.title || '', idx);
+    const sem = analyzeSectionSemantics(sec, idx);
+    const dueClause = sem.dueDate ? ` (الموعد: ${sem.dueDate})` : '';
 
-    const checklist = Array.isArray(sec.checklist) ? sec.checklist : [];
-    const tags = Array.isArray(sec.tags) ? sec.tags : [];
-    const statuses = getSectionStatuses(sec);
-    const isOnlyResolved = statuses.includes('resolved') && statuses.length === 1;
-
-    const rawNotes = (sec.notes || sec.justification || '').trim();
-    const correctedNotes = (typeof autocorrectVmText === 'function') ? autocorrectVmText(rawNotes) : rawNotes;
-
-    let actionSnippet = '';
-    // إذا كانت ملاحظة المستخدم تحوي رصداً سلبياً أو قصوراً صريحاً (مثل "سوء تنظيم" أو "عدم تطبيق")
-    if (correctedNotes && isNegativeOrUnappliedFinding(correctedNotes, sec)) {
-      actionSnippet = correctedNotes;
-    } else if (checklist.length > 0) {
-      actionSnippet = checklist[0];
-    } else if (tags.length > 0) {
-      actionSnippet = tags.join('، ');
-    } else if (correctedNotes) {
-      actionSnippet = correctedNotes;
-    } else {
-      const justs = getDynamicJustifications(sec);
-      actionSnippet = justs.length > 0 ? justs[0] : 'تنسيق وترتيب المعروضات وفق معايير الهوية';
+    if (sem.nature === 'achievement') {
+      // قاعدة أ: قسم إنجاز صرف (Pure Achievement)
+      let achBody = formatArabicVmAction(sem.primaryAchievement || 'تنسيق وترتيب المعروضات وفق معايير الهوية', null);
+      if (sem.resolvedSubs.length > 0 && sem.isOnlyResolved) {
+        achBody += ` (${sem.resolvedSubs.join('، ')})`;
+      }
+      points.push(cleanSummaryPointText(`${sem.cleanTitle}: ${achBody}.`));
+      return;
     }
 
-    // صياغة إنجاز أو رصد الـ VM الميداني بسياق ذكي (Context-Aware)
-    let vmAccomplishment = formatArabicVmAction(actionSnippet, sec);
+    if (sem.nature === 'dual') {
+      // قاعدة ب: قسم ثنائي الطبيعة (Dual-Nature: إنجاز منفذ + تكليف متابعة)
+      const achBody = formatArabicVmAction(sem.primaryAchievement, null);
 
-    const rawResolvedSubs = getSectionSubOptions(sec, 'resolved');
-    const followupSubs = getSectionSubOptions(sec, 'store_followup');
-    const mgmtSubs = getSectionSubOptions(sec, 'management_action');
-
-    // استبعاد الخيار الافتراضي (معالجة كاملة 100%) نهائياً من أي نص
-    const resolvedSubs = rawResolvedSubs.filter(s => s !== 'معالجة كاملة 100%' && s !== 'معالجة كاملة' && !s.includes('100%'));
-
-    if (resolvedSubs.length > 0 && isOnlyResolved) {
-      vmAccomplishment += ` (تنفيذ ميداني - ${resolvedSubs.join('، ')})`;
-    }
-
-    // بناء تكليفات المتابعة لإدارة المعرض وطلبات الصيانة مع إزالة التكرار النمطي للتوجيهات العامة
-    let branchClause = '';
-    if (statuses.includes('store_followup')) {
-      const assignee = (sec.actionAssignee && sec.actionAssignee.trim()) ? sec.actionAssignee.trim() : 'إدارة المعرض';
-      const dueDate = (sec.actionDueDate && sec.actionDueDate.trim()) ? ` - الموعد: ${sec.actionDueDate.trim()}` : '';
-      
-      let rawFollowup = followupSubs.length > 0 ? followupSubs.join('، ') : 'استكمال الجاهزية والنواقص';
-      const isGeneric = genericDirectivePatterns.some(p => rawFollowup.includes(p));
-
+      let rawDirective = sem.primaryPending || 'متابعة المعايير اليومية والتشغيلية';
+      const isGeneric = genericDirectivePatterns.some(p => rawDirective.includes(p));
       if (isGeneric) {
-        if (!seenGenericDirectives.has(rawFollowup)) {
-          seenGenericDirectives.add(rawFollowup);
-          branchClause = ` — [تكليف متابعة لـ ${assignee}: ${rawFollowup}${dueDate}]`;
+        if (seenGenericDirectives.has(rawDirective)) {
+          rawDirective = sem.isAction ? 'معالجة فورية للصيانة والتشغيل' : 'متابعة تنفيذ التوجيهات التشغيلية';
         } else {
-          // الحفاظ على التكليف المحدد والمسؤول دون تكرار العبارة العامة ذاتها
-          branchClause = ` — [تكليف متابعة لـ ${assignee}${dueDate}]`;
+          seenGenericDirectives.add(rawDirective);
         }
-      } else {
-        branchClause = ` — [تكليف متابعة لـ ${assignee}: ${rawFollowup}${dueDate}]`;
       }
+
+      const directiveLabel = sem.isAction ? 'طلب صيانة/إدارة' : 'تكليف متابعة';
+      const fullDual = `${sem.cleanTitle}: ${achBody}. | ${directiveLabel} لـ (${sem.assignee}): ${rawDirective}${dueClause}.`;
+      points.push(cleanSummaryPointText(fullDual));
+      return;
     }
 
-    let mgmtClause = '';
-    if (statuses.includes('management_action')) {
-      let rawMgmt = mgmtSubs.length > 0 ? mgmtSubs.join('، ') : 'متابعة الصيانة والتوريد';
-      const isGenericMgmt = genericDirectivePatterns.some(p => rawMgmt.includes(p));
-
-      if (isGenericMgmt) {
-        if (!seenGenericDirectives.has(rawMgmt)) {
-          seenGenericDirectives.add(rawMgmt);
-          mgmtClause = ` — [طلب صيانة/إدارة: ${rawMgmt}]`;
-        } else {
-          mgmtClause = ` — [طلب صيانة/إدارة: معالجة فورية]`;
-        }
-      } else {
-        mgmtClause = ` — [طلب صيانة/إدارة: ${rawMgmt}]`;
-      }
+    // قاعدة ج: قسم قصور سلبي صرف (Pure Negative Finding)
+    const rawNeg = sem.pendingDirectives[0] || sem.primaryPending || 'قصور في تطبيق المعايير التشغيلية';
+    let negBody = formatArabicVmAction(rawNeg, sec);
+    if (!negBody.startsWith('رصد قصور يتطلب المعالجة')) {
+      negBody = `رصد قصور يتطلب المعالجة — ${negBody.replace(/^تم إنجاز التطوير الميداني\s*—\s*/, '')}`;
     }
 
-    const fullPoint = `${cleanTitle}: ${vmAccomplishment}${branchClause}${mgmtClause}.`;
-    points.push(cleanSummaryPointText(fullPoint));
+    let actionDirective = sem.pendingDirectives.length > 1
+      ? sem.pendingDirectives.slice(1).join('، ')
+      : (sem.isAction ? 'معالجة وإصلاح العطل فوراً' : 'معالجة الملاحظة وتصحيح الوضع');
+
+    const isGenericNeg = genericDirectivePatterns.some(p => actionDirective.includes(p));
+    if (isGenericNeg && seenGenericDirectives.has(actionDirective)) {
+      actionDirective = 'تصحيح الملاحظة فوراً';
+    } else if (isGenericNeg) {
+      seenGenericDirectives.add(actionDirective);
+    }
+
+    const negLabel = sem.isAction ? 'طلب صيانة/إدارة' : 'تكليف عاجل';
+    const fullNeg = `${sem.cleanTitle}: ${negBody}. | ${negLabel} لـ (${sem.assignee}): ${actionDirective}${dueClause}.`;
+    points.push(cleanSummaryPointText(fullNeg));
   });
 
   return points;
@@ -1962,12 +2214,12 @@ export function renderAuditCards(customSections = null) {
           </span>
           <div class="flex flex-wrap gap-1.5">
             ${sec.checklist.map(c => {
-              const isNeg = isNegativeOrUnappliedFinding(c, sec);
+              const isNeg = isNegativeOrUnappliedFinding(c, null);
               if (isNeg) {
                 return `
                   <span class="bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium">
-                    <span class="text-rose-400 font-bold">⚠️</span>
-                    <span>ملاحظة غير مطابقة: ${c}</span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0"></span>
+                    <span>عدم التزام بـ: ${c}</span>
                   </span>
                 `;
               }
@@ -2171,11 +2423,12 @@ export function renderPrintSections(customSections = null) {
               </span>
               <div class="flex flex-wrap gap-1">
                 ${sec.checklist.map(c => {
-                  const isNeg = isNegativeOrUnappliedFinding(c, sec);
+                  const isNeg = isNegativeOrUnappliedFinding(c, null);
                   if (isNeg) {
                     return `
-                      <span class="bg-rose-50/90 text-rose-900 border border-rose-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium">
-                        ⚠️ ملاحظة غير مطابقة: ${c}
+                      <span class="bg-rose-50/90 text-rose-900 border border-rose-300/80 text-[9px] px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1">
+                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0"></span>
+                        <span>عدم التزام بـ: ${c}</span>
                       </span>
                     `;
                   }
@@ -2242,7 +2495,7 @@ export function renderPrintSections(customSections = null) {
  * =========================================================================
  * مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة (Executive Action Matrix - Page 2)
  * مصفوفة مقارنة احترافية موجهة لصفحة A4 ثانية بين ترويسة التقرير وبطاقات الأقسام
- * تدعم التمركز الرباعي الكامل (4-Way Centered) ونظام التحجيم الذكي ثلاثي المستويات
+ * تدعم الأقسام ثنائية الطبيعة (Dual-Nature)، والتحجيم المتكيف، والجدولين المتجاورين بالطباعة
  * =========================================================================
  */
 export function renderExecutiveMatrixPage() {
@@ -2267,154 +2520,166 @@ export function renderExecutiveMatrixPage() {
 
   const sections = Array.isArray(currentAudit?.sections) ? currentAudit.sections : [];
 
-  // 1. تصنيف ومسح الأقسام (نقاط القوة vs البنود المعلقة)
+  // 1. تصنيف ومسح الأقسام عبر المحلل الدلالي (نقاط القوة vs البنود المعلقة)
   const strengthsList = [];
   const pendingList = [];
 
   sections.forEach((sec, idx) => {
-    const title = sec.title || sec.name || `القسم ${idx + 1}`;
-    const statuses = getSectionStatuses(sec);
-    const isResolved = statuses.includes('resolved') && statuses.length === 1;
-    const isAction = statuses.includes('management_action');
+    const sem = analyzeSectionSemantics(sec, idx);
 
-    // تجميع الوسوم والمعايير
-    const tags = Array.isArray(sec.tags) ? sec.tags : [];
-    const standardsSummary = tags.length > 0 
-      ? tags.slice(0, 3).join(' • ') 
-      : 'معايير العرض المرئي مستوفاة بالكامل';
+    // أ. إدراج الإنجازات المنفذة في جدول نقاط القوة (بما في ذلك الجزء المنفذ للأقسام ثنائية الطبيعة)
+    if (sem.executedAchievements.length > 0 && sem.nature !== 'negative') {
+      const achSummary = sem.executedAchievements.slice(0, 2).join(' • ');
+      const tagsLine = sem.tags.length > 0 ? sem.tags.slice(0, 3).join(' • ') : '';
+      const displaySummary = achSummary || tagsLine || 'معايير العرض المرئي مستوفاة بالكامل';
+      const isDual = sem.nature === 'dual';
 
-    // الإجراء والملاحظة
-    const notes = (sec.notes || sec.justification || '').trim();
-    const actionNotes = notes.length > 0 ? notes : 'متابعة ميدانية مستمرة لحالة القسم';
-    const assignee = (sec.actionAssignee && sec.actionAssignee.trim()) 
-      ? sec.actionAssignee.trim() 
-      : (isAction ? 'إدارة الصيانة / الإدارة العليا' : 'إدارة المعرض ومشرف القسم');
-    const dueDate = (sec.actionDueDate && sec.actionDueDate.trim()) 
-      ? sec.actionDueDate.trim() 
-      : 'فوري ومستمر';
-
-    if (isResolved) {
       strengthsList.push({
         num: idx + 1,
-        title,
-        standardsSummary,
-        statusText: 'منجز ميدانياً ✅',
-        badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+        title: sem.cleanTitle,
+        standardsSummary: displaySummary,
+        statusText: isDual ? 'منجز + متابعة' : 'منجز ميدانياً',
+        dotClass: isDual ? 'bg-teal-600' : 'bg-emerald-600',
+        badgeClass: isDual
+          ? 'bg-teal-50 text-teal-900 border-teal-300'
+          : 'bg-emerald-50 text-emerald-900 border-emerald-300'
       });
-    } else {
-      let statusLabel = 'متابعة المعرض ⏳';
-      let badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
-      if (isAction) {
-        statusLabel = 'طلب صيانة / إدارة ⚠️';
-        badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
-      }
+    }
+
+    // ب. إدراج البنود المعلقة / القصور فقط في جدول المتابعة (دون نسخ مقال الإنجازات!)
+    if (sem.nature === 'dual' || sem.nature === 'negative') {
+      const statusLabel = sem.isAction ? 'طلب صيانة / إدارة' : 'متابعة المعرض';
+      const dotClass = sem.isAction ? 'bg-rose-600' : 'bg-amber-500';
+      const badgeClass = sem.isAction
+        ? 'bg-rose-50 text-rose-900 border-rose-300'
+        : 'bg-amber-50 text-amber-900 border-amber-300';
+
       pendingList.push({
         num: idx + 1,
-        title,
-        actionNotes,
-        assignee,
-        dueDate,
+        title: sem.cleanTitle,
+        actionNotes: sem.primaryPending || 'متابعة المعايير اليومية والتشغيلية بالقسم',
+        assignee: sem.assignee,
+        dueDate: sem.dueDate || 'خلال أسبوع',
         statusLabel,
+        dotClass,
         badgeClass
       });
     }
   });
 
-  // 2. نظام الكثافة التلقائية مع ضمان التفاف النصوص بدون اقتطاع
+  // 2. نظام الكثافة التلقائية رباعي المستويات مع تغليف النصوص وحد أقصى سطرين للملاحظة
   const maxRows = Math.max(strengthsList.length, pendingList.length);
-  let cellPadding = 'py-2 px-3';
-  let fontSize = 'text-[11px] leading-relaxed';
+  let cellPadding = 'py-1.5 px-2';
+  let fontSize = 'text-[10.5px] leading-snug';
+  let headerTextSize = 'text-[10px]';
 
   if (maxRows > 14) {
+    cellPadding = 'py-0.5 px-1';
+    fontSize = 'text-[8px] leading-tight';
+    headerTextSize = 'text-[8.5px]';
+  } else if (maxRows > 10) {
+    cellPadding = 'py-0.5 px-1.5';
+    fontSize = 'text-[8.8px] leading-tight';
+    headerTextSize = 'text-[9px]';
+  } else if (maxRows > 6) {
     cellPadding = 'py-1 px-2';
     fontSize = 'text-[9.5px] leading-tight';
-  } else if (maxRows > 8) {
-    cellPadding = 'py-1.5 px-2.5';
-    fontSize = 'text-[10px] leading-snug';
-  } else {
-    cellPadding = 'py-2 px-3';
-    fontSize = 'text-[11px] leading-relaxed';
+    headerTextSize = 'text-[9.5px]';
   }
 
   // استخراج اسم الفرع وتاريخ التدقيق والأسبوع التنفيذي
-  const branchName = currentAudit?.branchName || 'معرض النخيل مول';
+  const branchName = sanitizeCorporateText(currentAudit?.branchName, 'معرض النخيل مول');
   const auditDate = currentAudit?.auditDate || new Date().toISOString().split('T')[0];
   const auditWeek = currentAudit?.auditWeek || (typeof calculateCurrentWeek === 'function' ? calculateCurrentWeek() : '');
 
-  // 3. بناء قالب المصفوفة التنفيذية
+  // 3. بناء قالب المصفوفة التنفيذية مع نقاط CSS ملونة بدل الرموز Unicode لمنع اختلال الأرقام في PDF
   matrixContainer.innerHTML = `
     <div id="matrix-auto-fit-box" class="w-full flex flex-col justify-start my-auto transition-all duration-200" style="margin: auto; width: 100%;">
       
       <!-- الشريط العلوي التنفيذي للمصفوفة مع بطاقة هوية الفرع وتاريخ التدقيق -->
-      <div class="flex items-center justify-between pb-2.5 mb-3 border-b-2 border-slate-900 gap-2.5 flex-wrap" dir="rtl">
-        <div class="flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-lg bg-corp-900 text-amber-400 flex items-center justify-center text-sm font-black shadow-xs border border-gold-500/30">📊</span>
-          <div>
+      <div class="flex items-center justify-between pb-2 mb-2.5 border-b-2 border-slate-900 gap-2 flex-wrap" dir="rtl">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-black shrink-0 border border-amber-500/40">M2</span>
+          <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 class="font-black text-slate-900 text-sm md:text-base leading-tight tracking-tight">مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة</h3>
-              <span class="inline-flex items-center gap-1.5 bg-corp-950 text-gold-300 border border-gold-500/40 px-2.5 py-0.5 rounded-md text-[10.5px] font-bold shadow-2xs">
-                <span class="text-amber-400">📍</span>
+              <h3 class="font-black text-slate-900 text-xs md:text-sm leading-tight tracking-tight m-0">مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة</h3>
+              <span class="inline-flex items-center gap-1.5 bg-slate-900 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
                 <span>${branchName}</span>
-                <span class="text-corp-700 font-light">|</span>
-                <span class="text-slate-300">📅 ${auditDate}</span>
-                ${auditWeek ? `<span class="text-corp-700 font-light">|</span><span class="text-gold-400/90">${auditWeek}</span>` : ''}
+                <span class="text-slate-500 font-light">|</span>
+                <span class="text-slate-200 tabular-nums">${auditDate}</span>
+                ${auditWeek ? `<span class="text-slate-500 font-light">|</span><span class="text-amber-300">${auditWeek}</span>` : ''}
               </span>
             </div>
-            <p class="text-[10px] text-slate-500 font-medium mt-0.5">Executive Action Matrix • رصد مقارن متبادل للإنجازات الميدانية وبنود المتابعة والتكليف</p>
+            <p class="text-[9.5px] text-slate-500 font-medium mt-0.5 m-0">
+              <bdi dir="ltr">Executive Action Matrix</bdi> • مقارنة متوازنة للإنجازات الميدانية المعتمدة وبنود المتابعة والتكليف
+            </p>
           </div>
         </div>
 
-        <!-- مؤشرات سريعة كبسولية -->
-        <div class="flex items-center gap-1.5 text-[10.5px] font-bold">
-          <span class="bg-slate-100 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-md shadow-2xs">إجمالي الأقسام: ${sections.length}</span>
-          <span class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-md shadow-2xs">المكتمل: ${strengthsList.length} ✓</span>
-          <span class="bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md shadow-2xs">المعلقات: ${pendingList.length} ⏳</span>
+        <!-- مؤشرات سريعة بنقاط CSS ملونة وأرقام ثابتة (tabular-nums) خالية من رموز Unicode المعكوسة -->
+        <div class="flex items-center gap-1.5 text-[10px] font-bold shrink-0">
+          <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-800 border border-slate-300 px-2.5 py-1 rounded-md">
+            <span class="inline-block w-2 h-2 rounded-full bg-slate-600 shrink-0"></span>
+            <span>إجمالي الأقسام:</span>
+            <strong class="tabular-nums font-black">${sections.length}</strong>
+          </span>
+          <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-900 border border-emerald-300 px-2.5 py-1 rounded-md">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
+            <span>المكتمل:</span>
+            <strong class="tabular-nums font-black">${strengthsList.length}</strong>
+          </span>
+          <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md">
+            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            <span>المعلقات:</span>
+            <strong class="tabular-nums font-black">${pendingList.length}</strong>
+          </span>
         </div>
       </div>
 
-      <!-- جدول المقارنة الثنائي جنباً إلى جنب (Side-by-Side Dual Matrix) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 w-full items-start" dir="rtl">
+      <!-- جدول المقارنة الثنائي جنباً إلى جنب (True Side-by-Side Dual Matrix in Screen & Print) -->
+      <div class="matrix-dual-grid grid grid-cols-1 md:grid-cols-2 gap-3 w-full items-start" dir="rtl">
         
         <!-- العمود الأيمن: نقاط القوة والمعايير المكتملة (Emerald Theme) -->
-        <div class="flex flex-col rounded-xl border border-emerald-300 bg-white shadow-xs w-full">
+        <div class="flex flex-col rounded-xl border border-emerald-300 bg-white w-full overflow-hidden">
           <!-- ترويسة العمود الأيمن -->
-          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3 py-2 flex items-center justify-between rounded-t-xl border-b border-emerald-700">
-            <span class="font-black text-xs flex items-center gap-1.5">
-              <span class="text-emerald-300 font-bold">✓</span>
-              <span>نقاط القوة والمعايير المكتملة ميدانياً</span>
+          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-emerald-700">
+            <span class="font-black text-[11px] flex items-center gap-1.5">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-300 shrink-0"></span>
+              <span>نقاط القوة والإنجازات الميدانية</span>
             </span>
-            <span class="bg-emerald-950/70 text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-emerald-600/60 shadow-2xs">${strengthsList.length} بنود</span>
+            <span class="bg-emerald-950/75 text-emerald-200 text-[9.5px] font-bold px-2 py-0.5 rounded border border-emerald-600/60 tabular-nums">${strengthsList.length} بنود</span>
           </div>
 
           <!-- محتوى الجدول الأيمن -->
           <div class="w-full">
             ${strengthsList.length === 0 ? `
-              <div class="p-6 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1">
-                <span>ℹ️</span>
-                <span>لم تُسجل بنود مكتملة بالكامل حتى الآن في هذه الجولة</span>
+              <div class="p-5 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-1">
+                <span>لم تُسجل بنود إنجاز ميداني مكتملة حتى الآن في هذه الجولة</span>
               </div>
             ` : `
               <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
-                <thead class="bg-emerald-100/90 border-b-2 border-emerald-300 text-emerald-950 font-black text-[10.5px]">
+                <thead class="bg-emerald-100/95 border-b-2 border-emerald-300 text-emerald-950 font-black ${headerTextSize}">
                   <tr>
-                    <th class="py-1.5 px-2 text-center" style="width: 32px;">#</th>
-                    <th class="py-1.5 px-2.5" style="width: 28%;">القسم المعتمد</th>
-                    <th class="py-1.5 px-2.5" style="width: 52%;">أبرز المعايير والوسوم المنجزة</th>
-                    <th class="py-1.5 px-2 text-center" style="width: 20%;">الحالة</th>
+                    <th class="py-1 px-1 text-center" style="width: 28px;">#</th>
+                    <th class="py-1 px-2 text-right" style="width: 26%;">القسم</th>
+                    <th class="py-1 px-2 text-right" style="width: 52%;">أبرز الإنجازات والمعايير</th>
+                    <th class="py-1 px-1.5 text-center" style="width: 22%;">الحالة</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-emerald-100 text-slate-800">
                   ${strengthsList.map(item => `
-                    <tr class="hover:bg-emerald-50/40 transition">
-                      <td class="${cellPadding} text-center font-bold text-emerald-800" style="width: 32px;">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <bdi>${item.title}</bdi>
+                    <tr class="hover:bg-emerald-50/40 align-middle">
+                      <td class="${cellPadding} text-center font-bold text-emerald-800 tabular-nums" style="width: 28px;">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900" style="width: 26%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <bdi>${wrapEnglishBidiHtml(item.title)}</bdi>
                       </td>
-                      <td class="${cellPadding} text-slate-700 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.45;">
-                        ${item.standardsSummary}
+                      <td class="${cellPadding} text-slate-700 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <div class="matrix-note-clamp">${wrapEnglishBidiHtml(item.standardsSummary)}</div>
                       </td>
-                      <td class="${cellPadding} text-center" style="width: 20%;">
-                        <span class="inline-flex items-center justify-center gap-1 text-[9.5px] font-bold px-2 py-1 rounded-md border ${item.badgeClass} shadow-2xs whitespace-nowrap">
+                      <td class="${cellPadding} text-center" style="width: 22%;">
+                        <span class="inline-flex items-center justify-center gap-1 text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
+                          <span class="inline-block w-1.5 h-1.5 rounded-full ${item.dotClass} shrink-0"></span>
                           <span>${item.statusText}</span>
                         </span>
                       </td>
@@ -2427,59 +2692,51 @@ export function renderExecutiveMatrixPage() {
         </div>
 
         <!-- العمود الأيسر: البنود المعلقة وجدول التكليف والمتابعة (Amber/Rose Theme) -->
-        <div class="flex flex-col rounded-xl border border-amber-300 bg-white shadow-xs w-full">
+        <div class="flex flex-col rounded-xl border border-amber-300 bg-white w-full overflow-hidden">
           <!-- ترويسة العمود الأيسر -->
-          <div class="bg-gradient-to-r from-corp-900 via-amber-950 to-rose-950 text-white px-3 py-2 flex items-center justify-between rounded-t-xl border-b border-amber-800/80">
-            <span class="font-black text-xs flex items-center gap-1.5">
-              <span class="text-amber-400 font-bold">⏳</span>
+          <div class="bg-gradient-to-r from-slate-900 via-amber-950 to-rose-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-amber-800/80">
+            <span class="font-black text-[11px] flex items-center gap-1.5">
+              <span class="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
               <span>البنود المعلقة وجدول التكليف والمتابعة</span>
             </span>
-            <span class="bg-corp-950/80 text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-amber-500/40 shadow-2xs">${pendingList.length} بنود</span>
+            <span class="bg-slate-950/80 text-amber-300 text-[9.5px] font-bold px-2 py-0.5 rounded border border-amber-500/40 tabular-nums">${pendingList.length} بنود</span>
           </div>
 
           <!-- محتوى الجدول الأيسر -->
           <div class="w-full">
             ${pendingList.length === 0 ? `
-              <div class="p-6 text-center text-emerald-700 text-xs font-bold flex flex-col items-center justify-center gap-1.5 bg-emerald-50/50">
-                <span class="text-base">🎉</span>
+              <div class="p-5 text-center text-emerald-700 text-xs font-bold flex flex-col items-center justify-center gap-1 bg-emerald-50/50">
                 <span>جاهزية ميدانية كاملة 100% — لا توجد بنود معلقة أو ملاحظات تصحيحية حرجة</span>
               </div>
             ` : `
               <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
-                <thead class="bg-amber-100/90 border-b-2 border-amber-300 text-amber-950 font-black text-[10.5px]">
+                <thead class="bg-amber-100/95 border-b-2 border-amber-300 text-amber-950 font-black ${headerTextSize}">
                   <tr>
-                    <th class="py-1.5 px-2 text-center" style="width: 32px;">#</th>
-                    <th class="py-1.5 px-2.5" style="width: 28%;">القسم</th>
-                    <th class="py-1.5 px-2.5" style="width: 52%;">الإجراء والملاحظة</th>
-                    <th class="py-1.5 px-2 text-center" style="width: 20%;">التكليف والحالة</th>
+                    <th class="py-1 px-1 text-center" style="width: 28px;">#</th>
+                    <th class="py-1 px-2 text-right" style="width: 24%;">القسم</th>
+                    <th class="py-1 px-2 text-right" style="width: 48%;">الإجراء والملاحظة المطلوبة</th>
+                    <th class="py-1 px-1.5 text-center" style="width: 28%;">التكليف والموعد</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-amber-100 text-slate-800">
                   ${pendingList.map(item => `
-                    <tr class="hover:bg-amber-50/40 transition">
-                      <td class="${cellPadding} text-center font-bold text-amber-800" style="width: 32px;">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <bdi>${item.title}</bdi>
+                    <tr class="hover:bg-amber-50/40 align-middle">
+                      <td class="${cellPadding} text-center font-bold text-amber-800 tabular-nums" style="width: 28px;">${item.num}</td>
+                      <td class="${cellPadding} font-black text-slate-900" style="width: 24%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <bdi>${wrapEnglishBidiHtml(item.title)}</bdi>
                       </td>
-                      <td class="${cellPadding} text-rose-950 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.45;">
-                        <div class="text-rose-900 font-semibold" style="word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                          ${item.actionNotes}
-                        </div>
-                        <div class="mt-1 flex items-center gap-1.5 flex-wrap text-[9px] font-bold">
-                          <span class="inline-flex items-center gap-0.5 bg-amber-50 text-amber-900 border border-amber-300/80 px-1.5 py-0.5 rounded shadow-2xs">
-                            <span>👤 المكلف:</span>
-                            <span>${item.assignee}</span>
-                          </span>
-                          <span class="inline-flex items-center gap-0.5 bg-slate-100 text-slate-700 border border-slate-300 px-1.5 py-0.5 rounded shadow-2xs">
-                            <span>📅 الموعد:</span>
-                            <span>${item.dueDate}</span>
-                          </span>
-                        </div>
+                      <td class="${cellPadding} text-rose-950 font-semibold" style="width: 48%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <div class="matrix-note-clamp text-rose-900">${wrapEnglishBidiHtml(item.actionNotes)}</div>
                       </td>
-                      <td class="${cellPadding} text-center" style="width: 20%;">
-                        <span class="inline-flex items-center justify-center gap-1 text-[9.5px] font-bold px-2 py-1 rounded-md border ${item.badgeClass} shadow-2xs whitespace-nowrap">
-                          <span>${item.statusLabel}</span>
-                        </span>
+                      <td class="${cellPadding} text-center" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                        <div class="flex flex-col items-center gap-0.5">
+                          <span class="inline-flex items-center justify-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full ${item.dotClass} shrink-0"></span>
+                            <span>${item.statusLabel}</span>
+                          </span>
+                          <span class="text-[8.5px] font-bold text-slate-800 leading-tight">${item.assignee}</span>
+                          <span class="text-[8px] font-medium text-slate-500 tabular-nums leading-tight">${item.dueDate}</span>
+                        </div>
                       </td>
                     </tr>
                   `).join('')}
@@ -2504,19 +2761,22 @@ export function renderExecutiveMatrixPage() {
 export function fitMatrixToSinglePage() {
   const box = document.getElementById('matrix-auto-fit-box');
   if (!box) return;
-  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches) {
-    box.style.zoom = '1';
-    box.style.transform = 'none';
-    return;
-  }
   box.style.zoom = '1';
   box.style.transform = 'none';
 
-  // الارتفاع الآمن لصفحة A4 Landscape (180mm بما يعادل ~660-680px)
-  const MAX_SAFE_HEIGHT = 680;
+  // الارتفاع الآمن لصفحة A4 Landscape (186mm بما يعادل ~680px)
+  const MAX_SAFE_HEIGHT = 670;
+  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches) {
+    if (box.scrollHeight > MAX_SAFE_HEIGHT) {
+      const scaleFactor = Math.max(0.72, Math.min(1, MAX_SAFE_HEIGHT / box.scrollHeight));
+      box.style.zoom = String(scaleFactor);
+    }
+    return;
+  }
+
   if (box.scrollHeight > MAX_SAFE_HEIGHT) {
-    const scaleFactor = Math.max(0.70, Math.min(1, (MAX_SAFE_HEIGHT / box.scrollHeight)));
-    box.style.zoom = scaleFactor;
+    const scaleFactor = Math.max(0.72, Math.min(1, MAX_SAFE_HEIGHT / box.scrollHeight));
+    box.style.zoom = String(scaleFactor);
   }
 }
 
@@ -3058,4 +3318,7 @@ if (typeof window !== 'undefined') {
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
   window.isNegativeOrUnappliedFinding = isNegativeOrUnappliedFinding;
   window.sanitizeSectionTitle = sanitizeSectionTitle;
+  window.analyzeSectionSemantics = analyzeSectionSemantics;
+  window.fixBrokenBidiText = fixBrokenBidiText;
+  window.wrapEnglishBidiHtml = wrapEnglishBidiHtml;
 }

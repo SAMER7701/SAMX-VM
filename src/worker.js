@@ -192,7 +192,7 @@ async function handleApiRequest(pathname, method, request, env) {
     return jsonResponse({
       status: 'healthy',
       app: 'SAMX-VM',
-      version: '1.7.4',
+      version: '1.7.5',
       hasD1: Boolean(env.DB),
       hasR2: Boolean(env.STORAGE_BUCKET),
       timestamp: new Date().toISOString(),

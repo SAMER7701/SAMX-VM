@@ -126,7 +126,19 @@
       background: #f59e0b;
     }
 
-    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.1) */
+    /* ضبط أقصى طول للملاحظات في مصفوفة الصفحة الثانية (حد أقصى سطران مع التفاف نظيف) */
+    .matrix-note-clamp {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.5) */
     @page {
       size: A4 landscape;
       margin: 8mm;
@@ -304,7 +316,7 @@
         box-shadow: none !important;
       }
 
-      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - Clean Natural Flow) */
+      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - Strict Single-Page 186mm + 2-Col Side-by-Side) */
       #print-page-2-matrix:not(.is-hidden-print) {
         page-break-before: always !important;
         break-before: page !important;
@@ -312,22 +324,35 @@
         break-after: auto !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        min-height: auto !important;
         height: auto !important;
-        max-height: none !important;
+        min-height: 0 !important;
+        max-height: 186mm !important;
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
         align-items: stretch !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         box-sizing: border-box !important;
-        padding: 3mm 0 !important;
+        padding: 2mm 0 !important;
         background: #ffffff !important;
       }
-      #print-page-2-matrix:not(.is-hidden-print) * {
+      #print-page-2-matrix:not(.is-hidden-print) *:not(.matrix-note-clamp) {
         overflow: visible !important;
         max-height: none !important;
+      }
+      #print-page-2-matrix .matrix-dual-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+        width: 100% !important;
+      }
+      #print-page-2-matrix .matrix-note-clamp {
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
       }
       #print-page-2-matrix table {
         table-layout: fixed !important;
@@ -345,8 +370,8 @@
         zoom: 1 !important;
         transform: none !important;
         height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
+        max-height: 182mm !important;
+        overflow: hidden !important;
       }
       #print-page-2-matrix.is-hidden-print {
         display: none !important;
@@ -780,7 +805,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.4</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.5</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -864,7 +889,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.4</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.5</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -1269,11 +1294,11 @@
           <!-- ملخص إنجازات وتعديلات الزيارة الميدانية (Executive Summary Section - In-Place Interactive Editor) -->
           <div id="print-visit-summary-wrapper" class="print-break-inside-avoid mb-6 p-4 rounded-xl border border-slate-300 bg-white shadow-sm border-t-4 border-t-slate-900 transition-all">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 mb-3 border-b border-slate-200 gap-2">
-              <div class="flex items-center gap-2 font-black text-slate-900 text-sm">
-                <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs">⭐</span>
+              <div class="flex items-center gap-2 flex-wrap font-black text-slate-900 text-sm">
+                <span class="w-6 h-6 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-bold shadow-xs shrink-0">⭐</span>
                 <span>ملخص إنجازات وتعديلات الزيارة الميدانية</span>
-                <span class="text-xs text-slate-400 font-normal">(Executive Visit Summary)</span>
-                <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">0 نقاط</span>
+                <bdi dir="ltr" class="text-xs text-slate-500 font-normal whitespace-nowrap shrink-0 px-0.5">(Executive Visit Summary)</bdi>
+                <span id="visit-summary-live-count" class="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">0 نقاط</span>
               </div>
               <div class="no-print flex items-center gap-1.5 flex-wrap">
                 <button type="button" onclick="resetVisitSummaryToAuto()" class="text-xs bg-slate-100 hover:bg-slate-200 text-amber-800 hover:text-amber-900 px-2.5 py-1 rounded-lg font-bold border border-slate-300 transition flex items-center gap-1 shadow-xs cursor-pointer" title="إعادة استخراج وتجميع النقاط تلقائياً من الأقسام الموثقة">
@@ -3075,7 +3100,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.4</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.5</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">

@@ -1,6 +1,6 @@
 /**
  * SAMX-VM Main Controller & Boot Layer
- * Version: 1.7.4
+ * Version: 1.7.5
  * Architecture: ES Modules Coordinator
  */
 
@@ -116,7 +116,8 @@ import {
   renderExecutiveMatrixPage,
   fitMatrixToSinglePage,
   isNegativeOrUnappliedFinding,
-  sanitizeSectionTitle
+  sanitizeSectionTitle,
+  analyzeSectionSemantics
 } from './renderers.js';
 
 import * as samxApi from './api.js';
@@ -1960,8 +1961,8 @@ export function insertChecklistToNotes() {
   const notesEl = document.getElementById('modal-notes');
   if (!notesEl) return;
   const bullets = modalState.activeModalChecklist.map(item => {
-    const isNeg = isNegativeOrUnappliedFinding(item);
-    return isNeg ? `• ⚠️ ملاحظة غير مطابقة: ${item}` : `• ✓ معيار مؤكد: ${item}`;
+    const isNeg = isNegativeOrUnappliedFinding(item, null);
+    return isNeg ? `• عدم التزام بـ: ${item}` : `• ✓ معيار مؤكد: ${item}`;
   }).join('\n');
   notesEl.value = (notesEl.value ? notesEl.value.trim() + '\n\n' : '') + bullets;
   showToast('تم إدراج معايير وملاحظات الـ VM في الملاحظات', 'success');
@@ -4821,6 +4822,7 @@ if (typeof window !== 'undefined') {
   window.fitMatrixToSinglePage = fitMatrixToSinglePage;
   window.autocorrectVmText = autocorrectVmText;
   window.setupTextAutocorrectListeners = setupTextAutocorrectListeners;
+  window.analyzeSectionSemantics = analyzeSectionSemantics;
 
   // ربط احتياطي مباشر وفوري بعد تصيير الـ DOM
   const setupSmartAuditDirectListener = () => {
