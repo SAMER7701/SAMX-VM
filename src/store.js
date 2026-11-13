@@ -1,10 +1,10 @@
 /**
  * SAMX-VM Core Data & State Store
- * Version: 1.7.5
+ * Version: 1.7.6
  * Architecture: IndexedDB-First + Memory Cache + R2 Cloud Sync
  */
 
-export const APP_VERSION = '1.7.5';
+export const APP_VERSION = '1.7.6';
 
 import { ALSHIAK_LOGO_BASE64 } from './logo.js';
 import {

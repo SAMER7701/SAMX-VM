@@ -1,6 +1,6 @@
 /**
  * SAMX-VM UI Renderers Layer
- * Version: 1.7.5
+ * Version: 1.7.6
  * Architecture: Decoupled UI Rendering Routines + Smart Semantic Engine
  */
 
@@ -187,7 +187,7 @@ export function getDynamicJustifications(sec) {
 }
 
 /**
- * تنظيف وإصلاح شوائب الاتجاه ثنائي اللغة (BiDi) والأقواس المكسورة والأحرف التائهة في النصوص
+ * تنظيف وإصلاح شوائب الاتجاه ثنائي اللغة (BiDi) والأقواس المكسورة والأحرف التائهة وتصحيح ترتيب العبارات الإنجليزية المعكوسة
  */
 export function fixBrokenBidiText(str) {
   if (!str || typeof str !== 'string') return '';
@@ -207,19 +207,55 @@ export function fixBrokenBidiText(str) {
   out = out.replace(/(^|[\u0600-\u06FF\s])\)\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])(?!\))/g, '$1($2)');
   out = out.replace(/\(\s*([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*[A-Za-z0-9])\s*\(/g, '($1)');
 
+  // 3. تطبيع وتصحيح ترتيب الكلمات الإنجليزية المعكوسة في مسميات الأقسام المختلطة
+  const reversedEnglishFixes = [
+    { pattern: /\(\s*\b(?:AREA\s+CASHIER|CASHIER\s+AREA|AREA\s+CASH|CASH\s+AREA)\b\s*\)|\b(?:AREA\s+CASHIER|CASHIER\s+AREA|AREA\s+CASH|CASH\s+AREA)\b/gi, replacement: '(Cash Area)' },
+    { pattern: /\(\s*\b(?:SECTION\s+MEN['’]?S|MEN['’]?S\s+SECTION)\b\s*\)|\b(?:SECTION\s+MEN['’]?S|MEN['’]?S\s+SECTION)\b/gi, replacement: '(Men’s Section)' },
+    { pattern: /\(\s*\b(?:SECTION\s+WOMEN['’]?S|WOMEN['’]?S\s+SECTION)\b\s*\)|\b(?:SECTION\s+WOMEN['’]?S|WOMEN['’]?S\s+SECTION)\b/gi, replacement: '(Women’s Section)' },
+    { pattern: /\(\s*\b(?:SECTION\s+KIDS?|KIDS?\s+SECTION)\b\s*\)|\b(?:SECTION\s+KIDS?|KIDS?\s+SECTION)\b/gi, replacement: '(Kids Section)' },
+    { pattern: /\(\s*\b(?:ENTRANCE\s+BRANCH|BRANCH\s+ENTRANCE)\b\s*\)|\b(?:ENTRANCE\s+BRANCH|BRANCH\s+ENTRANCE)\b/gi, replacement: '(Branch Entrance)' },
+    { pattern: /\(\s*\b(?:ROOM\s+STOCK|STOCK\s+ROOM)\b\s*\)|\b(?:ROOM\s+STOCK|STOCK\s+ROOM)\b/gi, replacement: '(Stock Room)' },
+    { pattern: /\(\s*\b(?:ROOMS?\s+FITTING|FITTING\s+ROOMS?)\b\s*\)|\b(?:ROOMS?\s+FITTING|FITTING\s+ROOMS?)\b/gi, replacement: '(Fitting Rooms)' },
+    { pattern: /\(\s*\b(?:DISPLAY\s+FACADE|FACADE\s+DISPLAY)\b\s*\)|\b(?:DISPLAY\s+FACADE|FACADE\s+DISPLAY)\b/gi, replacement: '(Facade Display)' },
+    { pattern: /\(\s*\b(?:DISPLAY\s+WINDOW|WINDOW\s+DISPLAY)\b\s*\)|\b(?:DISPLAY\s+WINDOW|WINDOW\s+DISPLAY)\b/gi, replacement: '(Window Display)' },
+    { pattern: /\(\s*\b(?:SUNGLASSES\s*&\s*PERFUMES|PERFUMES\s*&\s*SUNGLASSES)\b\s*\)|\b(?:SUNGLASSES\s*&\s*PERFUMES|PERFUMES\s*&\s*SUNGLASSES)\b/gi, replacement: '(Perfumes & Sunglasses)' }
+  ];
+  reversedEnglishFixes.forEach(({ pattern, replacement }) => {
+    out = out.replace(pattern, (match) => {
+      // الحفاظ على Cashier Area كما هي إذا كانت مقصودة صراحةً
+      if (/cashier\s+area/i.test(match)) return '(Cashier Area)';
+      return replacement;
+    });
+  });
+
+  // إزالة الأقواس المضاعفة وضمان وجود مسافة فاصلة قبل القوس الإنجليزي بعد النص العربي
+  out = out.replace(/\(\(\s*([^()]+?)\s*\)\)/g, '($1)');
+  out = out.replace(/([\u0600-\u06FF])(\([A-Za-z])/g, '$1 $2');
+
   return out.replace(/\s{2,}/g, ' ').trim();
 }
 
 /**
- * عزل المقاطع الإنجليزية والأقواس اللاتينية داخل <bdi dir="ltr"> للعرض الآمن داخل سياق RTL
+ * عزل المقاطع الإنجليزية الكاملة والأقواس اللاتينية داخل عنصر واحد <bdi dir="ltr"> للعرض الآمن داخل سياق RTL
+ * مع ضمان عدم تجزئة العبارات متعددة الكلمات إلى عدة وسوم bdi منفصلة
  */
 export function wrapEnglishBidiHtml(str) {
   if (!str || typeof str !== 'string') return '';
   const cleaned = fixBrokenBidiText(str);
-  // تغليف الأقواس الإنجليزية مثل (POSM) و (Men’s Section) و (Perfumes & Sunglasses)
+
+  // 1. تغليف أي عبارة إنجليزية بين قوسين مثل (Cash Area) أو (Men’s Section) أو (POSM) ككتلة LTR واحدة
   let html = cleaned.replace(/\(([A-Za-z][A-Za-z0-9\s&’'\-\/\.]*)\)/g, '<bdi dir="ltr">($1)</bdi>');
-  // تغليف الاختصارات الإنجليزية المستقلة مثل VM / POSM إذا لم تكن داخل bdi أو تاج HTML
-  html = html.replace(/(^|[\s،:])([A-Z]{2,}(?:\/[A-Z]{2,})?)(?=[\s،:\.]|$)/g, '$1<bdi dir="ltr">$2</bdi>');
+
+  // 2. تغليف أي عبارة إنجليزية متصلة خارج وسوم <bdi> (كلمة متعددة الأحرف أو عدة كلمات إنجليزية متتالية)
+  const parts = html.split(/(<bdi\b[^>]*>.*?<\/bdi>)/gi);
+  html = parts.map(part => {
+    if (/^<bdi\b/i.test(part)) return part;
+    return part.replace(
+      /(^|[\s،:])([A-Za-z]{2,}(?:[’'][A-Za-z]+)?(?:(?:\s+|\/|&)[A-Za-z0-9]+(?:[’'][A-Za-z]+)?)*)(?=[\s،:\.]|$)/g,
+      '$1<bdi dir="ltr">$2</bdi>'
+    );
+  }).join('');
+
   return html;
 }
 
@@ -422,7 +458,51 @@ export function analyzeSectionSemantics(section, idx = 0) {
     );
   }
 
-  const dedup = (arr) => Array.from(new Set(arr.map(s => s.replace(/[.\s]+$/, '').trim()).filter(Boolean)));
+  // إزالة التكرار المعياري والتطابق الجزئي بين العبارات السلبية والإنجازات (يمنع تكرار الصف 12)
+  const normalizePhraseForDedup = (s) => s
+    .replace(/^(?:عدم\s+التزام\s+بـ|ملاحظة\s+غير\s+مطابقة|رصد\s+قصور\s+يتطلب\s+المعالجة\s*—|تمت\s+معالجة\s+وإنهاء\s+ملاحظة)\s*[:\-\s]*/i, '')
+    .replace(/[•\.\،,:\-\s]+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+  const dedup = (arr) => {
+    const result = [];
+    const resultNorms = [];
+    arr.forEach(raw => {
+      const cleaned = raw.replace(/[.\s]+$/, '').trim();
+      if (!cleaned) return;
+      const norm = normalizePhraseForDedup(cleaned);
+      if (!norm) return;
+
+      const isPrefixedDuplicate = /^(?:عدم\s+التزام\s+بـ|ملاحظة\s+غير\s+مطابقة)\s*:/i.test(cleaned);
+      let shouldSkip = false;
+      for (let i = 0; i < resultNorms.length; i++) {
+        const existingNorm = resultNorms[i];
+        if (existingNorm === norm || existingNorm.includes(norm)) {
+          shouldSkip = true;
+          break;
+        }
+        if (norm.includes(existingNorm)) {
+          // إذا كانت العبارة الجديدة مجرد تكرار ببادئة "عدم التزام بـ:" على نفس النص الموجود، تخطّاها
+          if (isPrefixedDuplicate) {
+            shouldSkip = true;
+            break;
+          }
+          // وإلا فالعبارة الجديدة أغنى بدون بادئة تكرارية؛ نستبدل الأقدم المختصرة بالأغنى
+          result[i] = cleaned;
+          resultNorms[i] = norm;
+          shouldSkip = true;
+          break;
+        }
+      }
+      if (!shouldSkip) {
+        result.push(cleaned);
+        resultNorms.push(norm);
+      }
+    });
+    return result;
+  };
+
   const finalAchievements = dedup(executedAchievements);
   const finalPending = dedup(pendingDirectives);
 
@@ -441,6 +521,14 @@ export function analyzeSectionSemantics(section, idx = 0) {
     ? finalPending.slice(0, 2).join(' • ')
     : '';
 
+  const fullAchievementsText = finalAchievements.length > 0
+    ? finalAchievements.join(' • ')
+    : (tags.length > 0 ? tags.join(' • ') : '');
+
+  const fullPendingText = finalPending.length > 0
+    ? finalPending.join(' • ')
+    : '';
+
   const assignee = (section?.actionAssignee && section.actionAssignee.trim())
     ? section.actionAssignee.trim()
     : (isAction ? 'إدارة الصيانة / الإدارة العليا' : 'إدارة المعرض');
@@ -455,6 +543,8 @@ export function analyzeSectionSemantics(section, idx = 0) {
     pendingDirectives: finalPending,
     primaryAchievement,
     primaryPending,
+    fullAchievementsText,
+    fullPendingText,
     resolvedSubs: rawResolvedSubs,
     followupSubs,
     mgmtSubs,
@@ -2494,8 +2584,8 @@ export function renderPrintSections(customSections = null) {
 /**
  * =========================================================================
  * مصفوفة التدقيق التنفيذي: نقاط القوة والبنود المعلقة (Executive Action Matrix - Page 2)
- * مصفوفة مقارنة احترافية موجهة لصفحة A4 ثانية بين ترويسة التقرير وبطاقات الأقسام
- * تدعم الأقسام ثنائية الطبيعة (Dual-Nature)، والتحجيم المتكيف، والجدولين المتجاورين بالطباعة
+ * عرض النصوص الكاملة بنسبة 100% دون اقتصاص، مع استغلال كامل ارتفاع صفحة A4 الأفقية (188mm)
+ * والتحجيم الذكي ثنائي المرحلة (تضييق الهوامش أولاً ثم التصغير المجهري فقط عند تجاوز 188mm)
  * =========================================================================
  */
 export function renderExecutiveMatrixPage() {
@@ -2520,17 +2610,32 @@ export function renderExecutiveMatrixPage() {
 
   const sections = Array.isArray(currentAudit?.sections) ? currentAudit.sections : [];
 
-  // 1. تصنيف ومسح الأقسام عبر المحلل الدلالي (نقاط القوة vs البنود المعلقة)
+  // صياغة العبارات الإيجابية للملاحظات التي تمت معالجتها في جدول نقاط القوة بالصفحة الثانية فقط (Row 5 Fix)
+  const RESOLVED_FLAW_PREFIX_REGEX = /^(تداخل|عشوائية|تكدس|خاطئة|ازدحام|تبعثر|تراكم|فوضى|اختلاط|عدم\s+ترتيب|سوء\s+تنظيم)(?:\s|$)/i;
+  const formatResolvedStrengthClause = (clause) => {
+    const cleanClause = (clause || '').trim();
+    if (!cleanClause) return '';
+    if (/^(?:تمت\s+معالجة|تم\s+إنجاز|تمت\s+إزالة|معالجة\s+وإنهاء)/i.test(cleanClause)) {
+      return cleanClause;
+    }
+    if (RESOLVED_FLAW_PREFIX_REGEX.test(cleanClause)) {
+      return `تمت معالجة وإنهاء ملاحظة: ${cleanClause}`;
+    }
+    return cleanClause;
+  };
+
+  // 1. تصنيف ومسح الأقسام عبر المحلل الدلالي مع إبقاء النصوص كاملة 100% (صفر اقتصاص)
   const strengthsList = [];
   const pendingList = [];
 
   sections.forEach((sec, idx) => {
     const sem = analyzeSectionSemantics(sec, idx);
 
-    // أ. إدراج الإنجازات المنفذة في جدول نقاط القوة (بما في ذلك الجزء المنفذ للأقسام ثنائية الطبيعة)
+    // أ. إدراج الإنجازات المنفذة في جدول نقاط القوة بالكامل
     if (sem.executedAchievements.length > 0 && sem.nature !== 'negative') {
-      const achSummary = sem.executedAchievements.slice(0, 2).join(' • ');
-      const tagsLine = sem.tags.length > 0 ? sem.tags.slice(0, 3).join(' • ') : '';
+      const framedAchievements = sem.executedAchievements.map(formatResolvedStrengthClause).filter(Boolean);
+      const achSummary = framedAchievements.join(' • ');
+      const tagsLine = sem.tags.length > 0 ? sem.tags.join(' • ') : '';
       const displaySummary = achSummary || tagsLine || 'معايير العرض المرئي مستوفاة بالكامل';
       const isDual = sem.nature === 'dual';
 
@@ -2546,7 +2651,7 @@ export function renderExecutiveMatrixPage() {
       });
     }
 
-    // ب. إدراج البنود المعلقة / القصور فقط في جدول المتابعة (دون نسخ مقال الإنجازات!)
+    // ب. إدراج البنود المعلقة / القصور فقط في جدول المتابعة بالكامل بعد إزالة التكرار
     if (sem.nature === 'dual' || sem.nature === 'negative') {
       const statusLabel = sem.isAction ? 'طلب صيانة / إدارة' : 'متابعة المعرض';
       const dotClass = sem.isAction ? 'bg-rose-600' : 'bg-amber-500';
@@ -2557,7 +2662,7 @@ export function renderExecutiveMatrixPage() {
       pendingList.push({
         num: idx + 1,
         title: sem.cleanTitle,
-        actionNotes: sem.primaryPending || 'متابعة المعايير اليومية والتشغيلية بالقسم',
+        actionNotes: sem.fullPendingText || sem.primaryPending || 'متابعة المعايير اليومية والتشغيلية بالقسم',
         assignee: sem.assignee,
         dueDate: sem.dueDate || 'خلال أسبوع',
         statusLabel,
@@ -2567,37 +2672,17 @@ export function renderExecutiveMatrixPage() {
     }
   });
 
-  // 2. نظام الكثافة التلقائية رباعي المستويات مع تغليف النصوص وحد أقصى سطرين للملاحظة
-  const maxRows = Math.max(strengthsList.length, pendingList.length);
-  let cellPadding = 'py-1.5 px-2';
-  let fontSize = 'text-[10.5px] leading-snug';
-  let headerTextSize = 'text-[10px]';
-
-  if (maxRows > 14) {
-    cellPadding = 'py-0.5 px-1';
-    fontSize = 'text-[8px] leading-tight';
-    headerTextSize = 'text-[8.5px]';
-  } else if (maxRows > 10) {
-    cellPadding = 'py-0.5 px-1.5';
-    fontSize = 'text-[8.8px] leading-tight';
-    headerTextSize = 'text-[9px]';
-  } else if (maxRows > 6) {
-    cellPadding = 'py-1 px-2';
-    fontSize = 'text-[9.5px] leading-tight';
-    headerTextSize = 'text-[9.5px]';
-  }
-
   // استخراج اسم الفرع وتاريخ التدقيق والأسبوع التنفيذي
   const branchName = sanitizeCorporateText(currentAudit?.branchName, 'معرض النخيل مول');
   const auditDate = currentAudit?.auditDate || new Date().toISOString().split('T')[0];
   const auditWeek = currentAudit?.auditWeek || (typeof calculateCurrentWeek === 'function' ? calculateCurrentWeek() : '');
 
-  // 3. بناء قالب المصفوفة التنفيذية مع نقاط CSS ملونة بدل الرموز Unicode لمنع اختلال الأرقام في PDF
+  // 2. بناء قالب المصفوفة التنفيذية بأبعاد الأعمدة المحسّنة (26px / 19% / 64% / 17%) دون أي اقتطاع
   matrixContainer.innerHTML = `
-    <div id="matrix-auto-fit-box" class="w-full flex flex-col justify-start my-auto transition-all duration-200" style="margin: auto; width: 100%;">
+    <div id="matrix-auto-fit-box" class="w-full flex flex-col justify-start transition-all duration-200" style="width: 100%; margin: 0 auto;">
       
       <!-- الشريط العلوي التنفيذي للمصفوفة مع بطاقة هوية الفرع وتاريخ التدقيق -->
-      <div class="flex items-center justify-between pb-2 mb-2.5 border-b-2 border-slate-900 gap-2 flex-wrap" dir="rtl">
+      <div id="matrix-header-bar" class="flex items-center justify-between pb-2 mb-2 border-b-2 border-slate-900 gap-2 flex-wrap" dir="rtl">
         <div class="flex items-center gap-2 min-w-0">
           <span class="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center text-xs font-black shrink-0 border border-amber-500/40">M2</span>
           <div class="min-w-0">
@@ -2641,9 +2726,9 @@ export function renderExecutiveMatrixPage() {
       <div class="matrix-dual-grid grid grid-cols-1 md:grid-cols-2 gap-3 w-full items-start" dir="rtl">
         
         <!-- العمود الأيمن: نقاط القوة والمعايير المكتملة (Emerald Theme) -->
-        <div class="flex flex-col rounded-xl border border-emerald-300 bg-white w-full overflow-hidden">
+        <div class="flex flex-col rounded-xl border border-emerald-300 bg-white w-full overflow-visible">
           <!-- ترويسة العمود الأيمن -->
-          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-emerald-700">
+          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3 py-1.5 flex items-center justify-between rounded-t-[11px] border-b border-emerald-700">
             <span class="font-black text-[11px] flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-emerald-300 shrink-0"></span>
               <span>نقاط القوة والإنجازات الميدانية</span>
@@ -2658,27 +2743,27 @@ export function renderExecutiveMatrixPage() {
                 <span>لم تُسجل بنود إنجاز ميداني مكتملة حتى الآن في هذه الجولة</span>
               </div>
             ` : `
-              <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
-                <thead class="bg-emerald-100/95 border-b-2 border-emerald-300 text-emerald-950 font-black ${headerTextSize}">
+              <table class="w-full text-right border-collapse" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
+                <thead class="bg-emerald-100/95 border-b-2 border-emerald-300 text-emerald-950 font-black text-[9.5px]">
                   <tr>
-                    <th class="py-1 px-1 text-center" style="width: 28px;">#</th>
-                    <th class="py-1 px-2 text-right" style="width: 26%;">القسم</th>
-                    <th class="py-1 px-2 text-right" style="width: 52%;">أبرز الإنجازات والمعايير</th>
-                    <th class="py-1 px-1.5 text-center" style="width: 22%;">الحالة</th>
+                    <th class="py-1 px-1 text-center" style="width: 26px;">#</th>
+                    <th class="py-1 px-2 text-right" style="width: 19%;">القسم</th>
+                    <th class="py-1 px-2 text-right" style="width: 64%;">أبرز الإنجازات والمعايير</th>
+                    <th class="py-1 px-1.5 text-center" style="width: 17%;">الحالة</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-emerald-100 text-slate-800">
                   ${strengthsList.map(item => `
-                    <tr class="hover:bg-emerald-50/40 align-middle">
-                      <td class="${cellPadding} text-center font-bold text-emerald-800 tabular-nums" style="width: 28px;">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900" style="width: 26%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                    <tr class="hover:bg-emerald-50/40 align-top">
+                      <td class="matrix-fit-cell py-1.5 px-1 text-center font-bold text-emerald-800 tabular-nums text-[9.5px]" style="width: 26px;">${item.num}</td>
+                      <td class="matrix-fit-cell py-1.5 px-2 font-black text-slate-900" style="width: 19%; font-size: 9.5px; line-height: 1.3; word-break: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
                         <bdi>${wrapEnglishBidiHtml(item.title)}</bdi>
                       </td>
-                      <td class="${cellPadding} text-slate-700 font-medium" style="width: 52%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <div class="matrix-note-clamp">${wrapEnglishBidiHtml(item.standardsSummary)}</div>
+                      <td class="matrix-fit-cell py-1.5 px-2 text-slate-700 font-medium" style="width: 64%; font-size: 9.8px; line-height: 1.35; word-break: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
+                        ${wrapEnglishBidiHtml(item.standardsSummary)}
                       </td>
-                      <td class="${cellPadding} text-center" style="width: 22%;">
-                        <span class="inline-flex items-center justify-center gap-1 text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
+                      <td class="matrix-fit-cell py-1.5 px-1 text-center" style="width: 17%; overflow: visible;">
+                        <span class="matrix-status-badge inline-flex items-center justify-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
                           <span class="inline-block w-1.5 h-1.5 rounded-full ${item.dotClass} shrink-0"></span>
                           <span>${item.statusText}</span>
                         </span>
@@ -2692,9 +2777,9 @@ export function renderExecutiveMatrixPage() {
         </div>
 
         <!-- العمود الأيسر: البنود المعلقة وجدول التكليف والمتابعة (Amber/Rose Theme) -->
-        <div class="flex flex-col rounded-xl border border-amber-300 bg-white w-full overflow-hidden">
+        <div class="flex flex-col rounded-xl border border-amber-300 bg-white w-full overflow-visible">
           <!-- ترويسة العمود الأيسر -->
-          <div class="bg-gradient-to-r from-slate-900 via-amber-950 to-rose-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-amber-800/80">
+          <div class="bg-gradient-to-r from-slate-900 via-amber-950 to-rose-950 text-white px-3 py-1.5 flex items-center justify-between rounded-t-[11px] border-b border-amber-800/80">
             <span class="font-black text-[11px] flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
               <span>البنود المعلقة وجدول التكليف والمتابعة</span>
@@ -2709,28 +2794,28 @@ export function renderExecutiveMatrixPage() {
                 <span>جاهزية ميدانية كاملة 100% — لا توجد بنود معلقة أو ملاحظات تصحيحية حرجة</span>
               </div>
             ` : `
-              <table class="w-full text-right border-collapse ${fontSize}" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
-                <thead class="bg-amber-100/95 border-b-2 border-amber-300 text-amber-950 font-black ${headerTextSize}">
+              <table class="w-full text-right border-collapse" style="table-layout: fixed; width: 100%; border-collapse: collapse;">
+                <thead class="bg-amber-100/95 border-b-2 border-amber-300 text-amber-950 font-black text-[9.5px]">
                   <tr>
-                    <th class="py-1 px-1 text-center" style="width: 28px;">#</th>
-                    <th class="py-1 px-2 text-right" style="width: 24%;">القسم</th>
-                    <th class="py-1 px-2 text-right" style="width: 48%;">الإجراء والملاحظة المطلوبة</th>
-                    <th class="py-1 px-1.5 text-center" style="width: 28%;">التكليف والموعد</th>
+                    <th class="py-1 px-1 text-center" style="width: 26px;">#</th>
+                    <th class="py-1 px-2 text-right" style="width: 19%;">القسم</th>
+                    <th class="py-1 px-2 text-right" style="width: 64%;">الإجراء والملاحظة المطلوبة</th>
+                    <th class="py-1 px-1.5 text-center" style="width: 17%;">التكليف والموعد</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-amber-100 text-slate-800">
                   ${pendingList.map(item => `
-                    <tr class="hover:bg-amber-50/40 align-middle">
-                      <td class="${cellPadding} text-center font-bold text-amber-800 tabular-nums" style="width: 28px;">${item.num}</td>
-                      <td class="${cellPadding} font-black text-slate-900" style="width: 24%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                    <tr class="hover:bg-amber-50/40 align-top">
+                      <td class="matrix-fit-cell py-1.5 px-1 text-center font-bold text-amber-800 tabular-nums text-[9.5px]" style="width: 26px;">${item.num}</td>
+                      <td class="matrix-fit-cell py-1.5 px-2 font-black text-slate-900" style="width: 19%; font-size: 9.5px; line-height: 1.3; word-break: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
                         <bdi>${wrapEnglishBidiHtml(item.title)}</bdi>
                       </td>
-                      <td class="${cellPadding} text-rose-950 font-semibold" style="width: 48%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
-                        <div class="matrix-note-clamp text-rose-900">${wrapEnglishBidiHtml(item.actionNotes)}</div>
+                      <td class="matrix-fit-cell py-1.5 px-2 text-rose-900 font-semibold" style="width: 64%; font-size: 9.8px; line-height: 1.35; word-break: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
+                        ${wrapEnglishBidiHtml(item.actionNotes)}
                       </td>
-                      <td class="${cellPadding} text-center" style="width: 28%; word-break: break-word; overflow-wrap: break-word; white-space: normal;">
+                      <td class="matrix-fit-cell py-1.5 px-1 text-center" style="width: 17%; word-break: break-word; overflow-wrap: break-word; white-space: normal; overflow: visible;">
                         <div class="flex flex-col items-center gap-0.5">
-                          <span class="inline-flex items-center justify-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
+                          <span class="matrix-status-badge inline-flex items-center justify-center gap-1 text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${item.badgeClass} whitespace-nowrap">
                             <span class="inline-block w-1.5 h-1.5 rounded-full ${item.dotClass} shrink-0"></span>
                             <span>${item.statusLabel}</span>
                           </span>
@@ -2751,33 +2836,67 @@ export function renderExecutiveMatrixPage() {
     </div>
   `;
 
-  // 4. تطبيق التحجيم الذكي وضمان عدم تجاوز حدود الصفحة الثانية (Single-Page Lock)
+  // 3. التمدد الطبيعي الكامل مع الملاءمة الذكية عند تجاوز حد 188mm فقط (لا تقليص مسبق ولا اقتطاع)
   fitMatrixToSinglePage();
 }
 
 /**
- * فحص الارتفاع الديناميكي للمصفوفة ومنعها من التجاوز لصفحة ثالثة
+ * التحجيم الذكي عند الحافة السفلية لصفحة A4 Landscape (188mm ≈ 710px)
+ * المرحلة 1: السماح بالتمدد الطبيعي الكامل بالصفحة (py-1.5 px-2)
+ * المرحلة 2: في حال تجاوز الارتفاع الفعلي 188mm فقط، يتم تضييق الحشو الرأسي تدريجياً (py-1 ثم py-0.5)
+ * المرحلة 3: إن استمر التجاوز، يُطبّق تصغير مجهري (micro-zoom) للحفاظ على الصفحة الثانية دون اقتطاع أي حرف
  */
 export function fitMatrixToSinglePage() {
   const box = document.getElementById('matrix-auto-fit-box');
   if (!box) return;
+
+  // إعادة التعيين إلى الوضع الطبيعي قبل القياس
   box.style.zoom = '1';
   box.style.transform = 'none';
+  const cells = box.querySelectorAll('.matrix-fit-cell');
+  cells.forEach(cell => {
+    cell.classList.remove('py-1', 'py-0.5');
+    if (!cell.classList.contains('py-1.5')) cell.classList.add('py-1.5');
+  });
 
-  // الارتفاع الآمن لصفحة A4 Landscape (186mm بما يعادل ~680px)
-  const MAX_SAFE_HEIGHT = 670;
-  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('print').matches) {
-    if (box.scrollHeight > MAX_SAFE_HEIGHT) {
-      const scaleFactor = Math.max(0.72, Math.min(1, MAX_SAFE_HEIGHT / box.scrollHeight));
-      box.style.zoom = String(scaleFactor);
-    }
+  const headerBar = document.getElementById('matrix-header-bar');
+  if (headerBar) {
+    headerBar.classList.remove('pb-1', 'mb-1');
+    if (!headerBar.classList.contains('pb-2')) headerBar.classList.add('pb-2');
+    if (!headerBar.classList.contains('mb-2')) headerBar.classList.add('mb-2');
+  }
+
+  // الارتفاع الفعلي القابل للاستخدام في A4 Landscape (188mm ≈ 710px على 96dpi)
+  const MAX_USABLE_PAGE_HEIGHT_PX = 710;
+  if (box.scrollHeight <= MAX_USABLE_PAGE_HEIGHT_PX) {
     return;
   }
 
-  if (box.scrollHeight > MAX_SAFE_HEIGHT) {
-    const scaleFactor = Math.max(0.72, Math.min(1, MAX_SAFE_HEIGHT / box.scrollHeight));
-    box.style.zoom = String(scaleFactor);
+  // المرحلة 1: تضييق الحشو الرأسي تدريجياً إلى py-1
+  cells.forEach(cell => {
+    cell.classList.remove('py-1.5');
+    cell.classList.add('py-1');
+  });
+  if (headerBar) {
+    headerBar.classList.remove('pb-2', 'mb-2');
+    headerBar.classList.add('pb-1', 'mb-1');
   }
+  if (box.scrollHeight <= MAX_USABLE_PAGE_HEIGHT_PX) {
+    return;
+  }
+
+  // المرحلة 2: تضييق إضافي إلى py-0.5
+  cells.forEach(cell => {
+    cell.classList.remove('py-1');
+    cell.classList.add('py-0.5');
+  });
+  if (box.scrollHeight <= MAX_USABLE_PAGE_HEIGHT_PX) {
+    return;
+  }
+
+  // المرحلة 3: التصغير المجهري (micro-zoom) كخيار أخير لضمان احتواء الصفحة الواحدة بدون قص
+  const scaleFactor = Math.max(0.75, Math.min(1, MAX_USABLE_PAGE_HEIGHT_PX / box.scrollHeight));
+  box.style.zoom = String(Number(scaleFactor.toFixed(3)));
 }
 
 // ==================== رسم وإدارة واجهة التصدير المجمع (Bulk Export UI Renderer) ====================

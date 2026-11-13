@@ -126,19 +126,7 @@
       background: #f59e0b;
     }
 
-    /* ضبط أقصى طول للملاحظات في مصفوفة الصفحة الثانية (حد أقصى سطران مع التفاف نظيف) */
-    .matrix-note-clamp {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      white-space: normal;
-      line-height: 1.35;
-    }
-
-    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.5) */
+    /* تحسينات الطباعة والتصدير كـ PDF بنظام العرض الأفقي التنفيذي الصارم (Strict A4 Landscape & Zero Left Clipping - v1.7.6) */
     @page {
       size: A4 landscape;
       margin: 8mm;
@@ -316,7 +304,7 @@
         box-shadow: none !important;
       }
 
-      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - Strict Single-Page 186mm + 2-Col Side-by-Side) */
+      /* مصفوفة التدقيق التنفيذي بالصفحة الثانية (Page 2 Executive Action Matrix - Strict Single-Page 188mm + Full Text Expansion) */
       #print-page-2-matrix:not(.is-hidden-print) {
         page-break-before: always !important;
         break-before: page !important;
@@ -326,18 +314,18 @@
         break-inside: avoid !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: 186mm !important;
+        max-height: 188mm !important;
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
         align-items: stretch !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
         padding: 2mm 0 !important;
         background: #ffffff !important;
       }
-      #print-page-2-matrix:not(.is-hidden-print) *:not(.matrix-note-clamp) {
+      #print-page-2-matrix:not(.is-hidden-print) * {
         overflow: visible !important;
         max-height: none !important;
       }
@@ -347,12 +335,6 @@
         gap: 10px !important;
         align-items: start !important;
         width: 100% !important;
-      }
-      #print-page-2-matrix .matrix-note-clamp {
-        display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
       }
       #print-page-2-matrix table {
         table-layout: fixed !important;
@@ -366,12 +348,18 @@
         page-break-inside: avoid !important;
         break-inside: avoid !important;
       }
+      #print-page-2-matrix td,
+      #print-page-2-matrix th {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        overflow: visible !important;
+      }
       #matrix-auto-fit-box {
-        zoom: 1 !important;
         transform: none !important;
         height: auto !important;
-        max-height: 182mm !important;
-        overflow: hidden !important;
+        max-height: 188mm !important;
+        overflow: visible !important;
       }
       #print-page-2-matrix.is-hidden-print {
         display: none !important;
@@ -805,7 +793,7 @@
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
             <span class="text-xs font-black text-amber-300">بوابة الدخول الموحد</span>
           </div>
-          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.5</span>
+          <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">v1.7.6</span>
         </div>
 
         <form id="login-form" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-3">
@@ -889,7 +877,7 @@
             <h1 class="text-base sm:text-lg md:text-xl font-black text-white tracking-wide whitespace-nowrap" style="letter-spacing: 0.5px; white-space: nowrap;">
               <span>SAMX-VM</span>
             </h1>
-            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.5</span>
+            <span class="bg-corp-800 border border-corp-700 text-gold-400 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">v1.7.6</span>
           </div>
           <p class="text-[11px] text-slate-400 hidden md:block whitespace-nowrap">العرض المرئي والتنسيق التجاري</p>
         </div>
@@ -3100,7 +3088,7 @@
               <span class="text-amber-400 text-base">⚡</span>
               <h5 class="font-bold text-xs text-white">نظام التخزين والمزامنة السحابية</h5>
             </div>
-            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.5</span>
+            <span class="text-[10px] font-mono text-gold-400 font-bold bg-gold-500/10 border border-gold-500/30 px-2 py-0.5 rounded">v1.7.6</span>
           </div>
           
           <div class="space-y-1.5 text-[11px] text-slate-300 bg-corp-900/60 p-2.5 rounded-xl border border-corp-850">
